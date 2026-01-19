@@ -27,11 +27,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/data/export', function () {
         return response()->json(['message' => 'Data Exported Successfully']);
     })->middleware('permission:EXPORT_DATA');
-    
-    // Example: User with generic view permission
-    Route::get('/schools', function(Request $request) {
-        // Here we would implement the Scope trait logic (e.g., School::scopeForUser($request->user())->get())
-        return response()->json(['message' => 'List of schools scoped to user']);
-    })->middleware('permission:VIEW_DATA');
+
+    // --- Core CRUD Routes ---
+    require __DIR__ . '/localite.php';
+
+    Route::apiResource('schools', \App\Http\Controllers\Api\SchoolController::class);
+    Route::apiResource('roles', \App\Http\Controllers\Api\RoleController::class);
+    Route::apiResource('permissions', \App\Http\Controllers\Api\PermissionController::class);
 
 });
+
