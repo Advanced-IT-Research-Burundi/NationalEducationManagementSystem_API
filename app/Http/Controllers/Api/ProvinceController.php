@@ -13,8 +13,8 @@ class ProvinceController extends Controller
      */
     public function index()
     {
-        $provinces = Province::all();
-        return response()->json($provinces);
+        $provinces = Province::with('pays', 'ministere')->paginate(10);
+        return sendResponse($provinces, 'Provinces retrieved successfully');
     }
 
     /**

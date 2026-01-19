@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Commune;
 use App\Models\Ministere;
 use App\Models\Pays;
+use App\Models\Province;
 use App\Models\User;
 use Illuminate\Console\Command;
 
@@ -42,9 +44,62 @@ class SeedDefaultUser extends Command
         //     'pays_id' => null,
         // ]);
 
-        Pays::create([
-            'name' => 'Burundi',
-            'code' => 'BI',
-        ]);
+        // Pays::create([
+        //     'name' => 'Burundi',
+        //     'code' => 'BI',
+        // ]);
+
+        // $provinces = [
+        //     'Bujumbura Mairie',
+        //     'Bujumbura Rural',
+        //     'Bubanza',
+        //     'Bururi',
+        //     'Cankuzo',
+        //     'Cibitoke',
+        //     'Gitega',
+        //     'Karuzi',
+        //     'Kayanza',
+        //     'Kirundo',
+        //     'Makamba',
+        //     'Muramvya',
+        //     'Muyinga',
+        //     'Ngozi',
+        //     'Rutana',
+        //     'Ruyigi',
+        // ];
+
+        // foreach ($provinces as $province) {
+        //     Province::create([
+        //         'name' => $province,
+        //         'ministere_id' => 3,
+        //         'pays_id' => 1,
+        //     ]);
+        // }
+
+        $communes = [
+            'Bujumbura Mairie',
+            'Bujumbura Rural',
+            'Bubanza',
+            'Bururi',
+            'Cankuzo',
+            'Cibitoke',
+            'Gitega',
+            'Karuzi',
+            'Kayanza',
+            'Kirundo',
+            'Makamba',
+            'Muramvya',
+            'Muyinga',
+            'Ngozi',
+            'Rutana',
+            'Ruyigi',
+        ];
+
+        foreach ($communes as $commune) {
+            Commune::create([
+                'name' => $commune,
+                'province_id' => 3,
+            ]);
+        }
     }
 }

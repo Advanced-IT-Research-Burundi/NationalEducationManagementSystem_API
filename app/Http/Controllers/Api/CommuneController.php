@@ -13,8 +13,8 @@ class CommuneController extends Controller
      */
     public function index()
     {
-        $communes = Commune::with('province')->get();
-        return response()->json($communes);
+        $communes = Commune::with('province')->paginate(10);
+        return sendResponse($communes, 'Communes retrieved successfully');
     }
 
     /**
