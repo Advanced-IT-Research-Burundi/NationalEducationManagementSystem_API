@@ -28,7 +28,7 @@ class ProvinceController extends Controller
 
         $province = Province::create($validated);
 
-        return response()->json($province, 201);
+        return sendResponse($province, 'Province created successfully');
     }
 
     /**
@@ -37,7 +37,7 @@ class ProvinceController extends Controller
     public function show(string $id)
     {
         $province = Province::findOrFail($id);
-        return response()->json($province);
+        return sendResponse($province, 'Province retrieved successfully');
     }
 
     /**
@@ -53,7 +53,7 @@ class ProvinceController extends Controller
 
         $province->update($validated);
 
-        return response()->json($province);
+        return sendResponse($province, 'Province updated successfully');
     }
 
     /**
@@ -64,6 +64,6 @@ class ProvinceController extends Controller
         $province = Province::findOrFail($id);
         $province->delete();
 
-        return response()->json(null, 204);
+        return sendResponse(null, 'Province deleted successfully');
     }
 }

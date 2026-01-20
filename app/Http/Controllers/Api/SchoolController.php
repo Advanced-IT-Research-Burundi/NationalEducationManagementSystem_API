@@ -13,8 +13,8 @@ class SchoolController extends Controller
      */
     public function index()
     {
-        $schools = School::with(['pays', 'ministere', 'province', 'commune', 'zone', 'colline'])->get();
-        return response()->json($schools);
+        $schools = School::with(['pays', 'ministere', 'province', 'commune', 'zone', 'colline'])->paginate(10);
+        return sendResponse($schools, 'Schools retrieved successfully');
     }
 
     /**

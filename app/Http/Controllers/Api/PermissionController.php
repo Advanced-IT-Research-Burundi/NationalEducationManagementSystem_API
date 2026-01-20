@@ -13,8 +13,8 @@ class PermissionController extends Controller
      */
     public function index()
     {
-        $permissions = Permission::all();
-        return response()->json($permissions);
+        $permissions = Permission::paginate(10)->all();
+        return sendResponse($permissions, 'Permissions retrieved successfully');
     }
 
     /**
@@ -29,7 +29,7 @@ class PermissionController extends Controller
 
         $permission = Permission::create($validated);
 
-        return response()->json($permission, 201);
+        return sendResponse($permission, 'Permission created successfully');
     }
 
     /**
@@ -38,7 +38,7 @@ class PermissionController extends Controller
     public function show(string $id)
     {
         $permission = Permission::findOrFail($id);
-        return response()->json($permission);
+        return sendResponse($permission, 'Permission retrieved successfully');
     }
 
     /**
@@ -55,7 +55,7 @@ class PermissionController extends Controller
 
         $permission->update($validated);
 
-        return response()->json($permission);
+        return sendResponse($permission, 'Permission updated successfully');
     }
 
     /**
@@ -66,6 +66,6 @@ class PermissionController extends Controller
         $permission = Permission::findOrFail($id);
         $permission->delete();
 
-        return response()->json(null, 204);
+        return sendResponse(null, 'Permission deleted successfully');
     }
 }

@@ -29,7 +29,7 @@ class CommuneController extends Controller
 
         $commune = Commune::create($validated);
 
-        return response()->json($commune, 201);
+        return sendResponse($commune, 'Commune created successfully');
     }
 
     /**
@@ -38,7 +38,7 @@ class CommuneController extends Controller
     public function show(string $id)
     {
         $commune = Commune::with('province')->findOrFail($id);
-        return response()->json($commune);
+        return sendResponse($commune, 'Commune retrieved successfully');
     }
 
     /**
@@ -55,7 +55,7 @@ class CommuneController extends Controller
 
         $commune->update($validated);
 
-        return response()->json($commune);
+        return sendResponse($commune, 'Commune updated successfully');
     }
 
     /**
@@ -66,6 +66,6 @@ class CommuneController extends Controller
         $commune = Commune::findOrFail($id);
         $commune->delete();
 
-        return response()->json(null, 204);
+        return sendResponse(null, 'Commune deleted successfully');
     }
 }

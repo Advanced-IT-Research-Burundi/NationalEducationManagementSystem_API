@@ -30,7 +30,7 @@ class MinistereController extends Controller
 
         $ministere = Ministere::create($validated);
 
-        return response()->json($ministere, 201);
+        return sendResponse($ministere, 'Ministere created successfully');
     }
 
     /**
@@ -39,7 +39,7 @@ class MinistereController extends Controller
     public function show(string $id)
     {
         $ministere = Ministere::with('pays')->findOrFail($id);
-        return response()->json($ministere);
+        return sendResponse($ministere, 'Ministere retrieved successfully');
     }
 
     /**
@@ -57,7 +57,7 @@ class MinistereController extends Controller
 
         $ministere->update($validated);
 
-        return response()->json($ministere);
+        return sendResponse($ministere, 'Ministere updated successfully');
     }
 
     /**
@@ -68,6 +68,6 @@ class MinistereController extends Controller
         $ministere = Ministere::findOrFail($id);
         $ministere->delete();
 
-        return response()->json(null, 204);
+        return sendResponse(null, 'Ministere deleted successfully');
     }
 }

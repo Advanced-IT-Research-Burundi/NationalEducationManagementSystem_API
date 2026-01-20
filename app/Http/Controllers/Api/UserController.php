@@ -25,7 +25,7 @@ class UserController extends Controller
         
         $users = User::with(['role', 'creator'])->paginate(15);
         
-        return response()->json($users);
+        return sendResponse($users, 'Users retrieved successfully');
     }
 
     /**

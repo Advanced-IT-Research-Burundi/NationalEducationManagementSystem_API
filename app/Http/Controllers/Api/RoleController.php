@@ -13,8 +13,8 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $roles = Role::all();
-        return response()->json($roles);
+        $roles = Role::paginate(10)->all();
+        return sendResponse($roles, 'Roles retrieved successfully');
     }
 
     /**
@@ -29,7 +29,7 @@ class RoleController extends Controller
 
         $role = Role::create($validated);
 
-        return response()->json($role, 201);
+        return sendResponse($role, 'Role created successfully');
     }
 
     /**
@@ -38,7 +38,7 @@ class RoleController extends Controller
     public function show(string $id)
     {
         $role = Role::with('permissions')->findOrFail($id);
-        return response()->json($role);
+        return sendResponse($role, 'Role retrieved successfully');
     }
 
     /**
@@ -55,7 +55,7 @@ class RoleController extends Controller
 
         $role->update($validated);
 
-        return response()->json($role);
+        return sendResponse($role, 'Role updated successfully');
     }
 
     /**
@@ -66,6 +66,6 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
         $role->delete();
 
-        return response()->json(null, 204);
+        return sendResponse(null, 'Role deleted successfully');
     }
 }
