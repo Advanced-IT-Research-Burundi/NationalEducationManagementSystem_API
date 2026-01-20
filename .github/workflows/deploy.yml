@@ -28,7 +28,7 @@ jobs:
             git pull origin ${{secrets.MAIN_BRANCH}}
             echo "Deployed successfully" >> deploy.log
             php artisan migrate
-            php artisan db:seed --class=BurundiSchoolsSeeder
+            php artisan db:seed
             php artisan cache:clear
             php artisan config:clear
             php artisan route:clear
