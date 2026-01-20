@@ -38,7 +38,7 @@ class SchoolPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User বিষয়টি $user, School $school): bool
+    public function update(User $user, School $school): bool
     {
         if ($school->statut === 'ACTIVE' && !$user->hasRole('Admin National')) {
              // Maybe restrict editing active schools?

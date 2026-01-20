@@ -27,6 +27,13 @@ jobs:
             git stash
             git pull origin ${{secrets.MAIN_BRANCH}}
             echo "Deployed successfully" >> deploy.log
+            php artisan migrate
+            php artisan db:seed --class=BurundiSchoolsSeeder
+            php artisan cache:clear
+            php artisan config:clear
+            php artisan route:clear
+            php artisan view:clear
+            php artisan optimize:clear
 
 
 
