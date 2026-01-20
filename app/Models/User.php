@@ -34,6 +34,7 @@ class User extends Authenticatable
         'zone_id',
         'colline_id',
         'school_id',
+        'created_by',
     ];
 
     /**
@@ -130,5 +131,13 @@ class User extends Authenticatable
             'ECOLE' => School::find($this->admin_entity_id),
             default => null,
         };
+    }
+
+    /**
+     * Get the user who created this user.
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

@@ -1,13 +1,22 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Public Routes
 Route::post('/auth/login', [AuthController::class, 'login']);
 // Protected Routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+
+    // User Management
+    Route::apiResource('users', UserController::class);
+    Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
