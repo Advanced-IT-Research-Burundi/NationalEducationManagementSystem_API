@@ -7,17 +7,31 @@ use Illuminate\Database\Eloquent\Model;
 
 class School extends Model
 {
-    use HasFactory, \App\Traits\HasDataScope;
+    use HasFactory, \App\Traits\HasDataScope, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $fillable = [
         'name',
-        'code',
+        'code_ecole',
+        'type_ecole',
+        'niveau',
+        'statut',
+        'latitude',
+        'longitude',
         'colline_id', 
         'zone_id', 
         'commune_id', 
         'province_id', 
         'ministere_id', 
-        'pays_id'
+        'pays_id',
+        'created_by',
+        'validated_by',
+        'validated_at'
+    ];
+
+    protected $casts = [
+        'validated_at' => 'datetime',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
     ];
 
     public function colline()
@@ -45,5 +59,14 @@ class School extends Model
     public function pays()
     {
         return $this->belongsTo(Pays::class);
+    }
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function validator()
+    {
+        return $this->belongsTo(User::class, 'validated_by');
     }
 }

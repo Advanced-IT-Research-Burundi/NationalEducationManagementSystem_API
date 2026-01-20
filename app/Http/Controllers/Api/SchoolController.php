@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreSchoolRequest;
+use App\Http\Requests\UpdateSchoolRequest;
+use App\Models\Colline;
 use App\Models\School;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SchoolController extends Controller
 {
@@ -13,71 +17,107 @@ class SchoolController extends Controller
      */
     public function index()
     {
-        $schools = School::with(['pays', 'ministere', 'province', 'commune', 'zone', 'colline'])->get();
+        $this->authorize('viewAny', School::class);
+
+        $schools = School::with(['colline', 'zone', 'commune', 'province'])
+            ->latest()
+            ->paginate(15);
+
         return response()->json($schools);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreSchoolRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:50',
-            'colline_id' => 'required|exists:collines,id',
-            'zone_id' => 'nullable|exists:zones,id',
-            'commune_id' => 'nullable|exists:communes,id',
-            'province_id' => 'nullable|exists:provinces,id',
-            'ministere_id' => 'nullable|exists:ministeres,id',
-            'pays_id' => 'nullable|exists:pays,id',
-        ]);
+        // Permission check handled in Request
 
-        $school = School::create($validated);
+        $data = $request->validated();
+        
+        // Auto-localization logic
+        $colline = Colline::with(['zone.commune.province.ministere.pays'])->findOrFail($data['colline_id']);
+        
+        $data['zone_id'] = $colline->zone_id;
+        $data['commune_id'] = $colline->zone->commune_id ?? null;
+        $data['province_id'] = $colline->zone->commune->province_id ?? null;
+        $data['ministere_id'] = $colline->zone->commune->province->ministere_id ?? null; // Might be null as ministere is often top level
+        $data['pays_id'] = $colline->zone->commune->province->pays_id ?? 1; // Default to Burundi if not found logic
 
-        return response()->json($school, 201);
+        $data['created_by'] = Auth::id();
+        $data['statut'] = 'BROUILLON'; // Default status
+        $data['validation_status'] = 'EN_ATTENTE';
+
+        $school = School::create($data);
+
+        return response()->json([
+            'message' => 'School created successfully',
+            'school' => $school
+        ], 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(School $school)
     {
-        $school = School::with(['pays', 'ministere', 'province', 'commune', 'zone', 'colline'])->findOrFail($id);
-        return response()->json($school);
+        $this->authorize('view', $school);
+        
+        return response()->json($school->load(['colline', 'zone', 'commune', 'province', 'creator', 'validator']));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateSchoolRequest $request, School $school)
     {
-        $school = School::findOrFail($id);
+        // Permission check handled in Request
 
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'code' => 'nullable|string|max:50',
-            'colline_id' => 'sometimes|required|exists:collines,id',
-            'zone_id' => 'nullable|exists:zones,id',
-            'commune_id' => 'nullable|exists:communes,id',
-            'province_id' => 'nullable|exists:provinces,id',
-            'ministere_id' => 'nullable|exists:ministeres,id',
-            'pays_id' => 'nullable|exists:pays,id',
+        $data = $request->validated();
+        
+        if (isset($data['colline_id']) && $data['colline_id'] != $school->colline_id) {
+             // Re-localize if colline changed
+            $colline = Colline::with(['zone.commune.province'])->findOrFail($data['colline_id']);
+            $data['zone_id'] = $colline->zone_id;
+            $data['commune_id'] = $colline->zone->commune_id;
+            $data['province_id'] = $colline->zone->commune->province_id;
+        }
+
+        $school->update($data);
+
+        return response()->json([
+            'message' => 'School updated successfully',
+            'school' => $school
         ]);
-
-        $school->update($validated);
-
-        return response()->json($school);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(School $school)
     {
-        $school = School::findOrFail($id);
+        $this->authorize('delete', $school);
+        
         $school->delete();
 
-        return response()->json(null, 204);
+        return response()->json(['message' => 'School deleted successfully']);
+    }
+
+    /**
+     * Validate a school (Change status to ACTIVE).
+     */
+    public function validateSchool(Request $request, School $school)
+    {
+        $this->authorize('validate', $school);
+
+        $school->statut = 'ACTIVE';
+        $school->validated_by = Auth::id();
+        $school->validated_at = now();
+        $school->save();
+
+        return response()->json([
+            'message' => 'School validated successfully',
+            'school' => $school
+        ]);
     }
 }
