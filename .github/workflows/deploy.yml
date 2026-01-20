@@ -24,6 +24,7 @@ jobs:
             git clean -f -d
             git checkout ${{secrets.MAIN_BRANCH}}
             git config --global --add safe.directory ${{secrets.WORK_DIR}}
+            git stash
             git pull origin ${{secrets.MAIN_BRANCH}}
             echo "Deployed successfully" >> deploy.log
 
