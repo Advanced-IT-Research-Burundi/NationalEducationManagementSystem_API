@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Role;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
@@ -13,7 +14,7 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $roles = Role::all();
+        $roles = Role::with('permissions')->get();
         return response()->json($roles);
     }
 
@@ -24,12 +25,21 @@ class RoleController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:roles,name',
-            'description' => 'nullable|string',
+            'permissions' => 'array'
         ]);
 
-        $role = Role::create($validated);
+        $role = Role::create(['name' => $validated['name'], 'guard_name' => 'web']);
 
-        return response()->json($role, 201);
+        if (isset($validated['permissions'])) {
+             // Expecting array of permission names or IDs. 
+             // Spatie syncPermissions accepts names or objects.
+             // If frontend sends IDs, we need to convert or ensure consistency.
+             // Let's assume frontend sends list of permission names or we resolve them.
+             // Better: syncPermissions works with names.
+             $role->syncPermissions($validated['permissions']);
+        }
+
+        return response()->json($role->load('permissions'), 201);
     }
 
     /**
@@ -50,12 +60,19 @@ class RoleController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255|unique:roles,name,' . $role->id,
-            'description' => 'nullable|string',
+            'permissions' => 'array'
         ]);
 
-        $role->update($validated);
+        if (isset($validated['name'])) {
+            $role->name = $validated['name'];
+            $role->save();
+        }
 
-        return response()->json($role);
+        if (isset($validated['permissions'])) {
+            $role->syncPermissions($validated['permissions']);
+        }
+
+        return response()->json($role->load('permissions'));
     }
 
     /**
