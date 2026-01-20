@@ -70,6 +70,11 @@ trait HasDataScope
         return $query->whereRaw('0 = 1'); 
     }
 
+    public static function bootHasDataScope()
+    {
+        static::addGlobalScope(new \App\Scopes\AdminScope);
+    }
+
     protected function isSchoolModel()
     {
         return class_basename($this) === 'School';

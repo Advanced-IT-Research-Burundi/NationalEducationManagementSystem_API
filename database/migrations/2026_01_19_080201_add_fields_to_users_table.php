@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('role_id')->nullable()->constrained('roles')->onDelete('set null');
             $table->string('statut')->default('actif');
             
             // Administrative Hierarchy
@@ -32,7 +31,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['role_id']);
             $table->dropForeign(['pays_id']);
             $table->dropForeign(['ministere_id']);
             $table->dropForeign(['province_id']);
@@ -42,7 +40,6 @@ return new class extends Migration
             $table->dropForeign(['school_id']);
             
             $table->dropColumn([
-                'role_id', 
                 'statut', 
                 'pays_id', 
                 'ministere_id', 

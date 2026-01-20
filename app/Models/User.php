@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +25,8 @@ class User extends Authenticatable
         'password',
         'role_id',
         'statut',
+        'admin_level',
+        'admin_entity_id',
         'pays_id',
         'ministere_id',
         'province_id',
@@ -57,6 +60,12 @@ class User extends Authenticatable
     }
 
     // Relationships
+    // Note: role() relationship might key conflict with Spatie's roles() if not careful, 
+    // but Spatie uses permissions based system. 
+    // Ideally we should remove the 'role_id' column and 'role()' relation if we are fully switching to Spatie,
+    // but the task was to update the user table, not necessarily refactor everything immediately unless requested.
+    // However, keeping it simple for now. 
+    
     public function role()
     {
         return $this->belongsTo(Role::class);
@@ -97,9 +106,29 @@ class User extends Authenticatable
         return $this->belongsTo(School::class);
     }
 
-    // Helper to check permission
+    // Helper to check permission (Manual implementation if needed, but Spatie provides can())
     public function hasPermission($permissionSlug)
     {
-        return $this->role && $this->role->permissions->contains('slug', $permissionSlug);
+        return $this->can($permissionSlug);
+    }
+
+    /**
+     * Get the administrative entity model this user belongs to.
+     */
+    public function getAdminEntity()
+    {
+        if (!$this->admin_level || !$this->admin_entity_id) {
+            return null;
+        }
+
+        return match ($this->admin_level) {
+            'PAYS' => Pays::find($this->admin_entity_id),
+            'MINISTERE' => Ministere::find($this->admin_entity_id),
+            'PROVINCE' => Province::find($this->admin_entity_id),
+            'COMMUNE' => Commune::find($this->admin_entity_id),
+            'ZONE' => Zone::find($this->admin_entity_id),
+            'ECOLE' => School::find($this->admin_entity_id),
+            default => null,
+        };
     }
 }
