@@ -40,7 +40,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- Core CRUD Routes ---
     require __DIR__ . '/localite.php';
 
+    // Schools Management with Workflow
     Route::apiResource('schools', \App\Http\Controllers\Api\SchoolController::class);
+    Route::post('schools/{school}/submit', [\App\Http\Controllers\Api\SchoolController::class, 'submit'])->name('schools.submit');
+    Route::post('schools/{school}/validate', [\App\Http\Controllers\Api\SchoolController::class, 'validate'])->name('schools.validate');
+    Route::post('schools/{school}/deactivate', [\App\Http\Controllers\Api\SchoolController::class, 'deactivate'])->name('schools.deactivate');
+
     Route::apiResource('roles', \App\Http\Controllers\Api\RoleController::class);
     Route::apiResource('permissions', \App\Http\Controllers\Api\PermissionController::class);
 

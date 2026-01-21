@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSchoolRequest;
 use App\Http\Requests\UpdateSchoolRequest;
+use App\Http\Requests\SubmitSchoolRequest;
+use App\Http\Requests\ValidateSchoolRequest;
+use App\Http\Requests\DeactivateSchoolRequest;
 use App\Models\Colline;
 use App\Models\School;
 use Illuminate\Http\Request;
@@ -15,15 +18,50 @@ class SchoolController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', School::class);
 
-        $schools = School::with(['colline', 'zone', 'commune', 'province'])
-            ->latest()
-            ->paginate(15);
+        $query = School::with(['colline', 'zone', 'commune', 'province', 'creator']);
 
-        return sendResponse($schools, 'Schools retrieved successfully');
+        // Search filter
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        // Status filter
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        // Type filter
+        if ($request->filled('type_ecole')) {
+            $query->byType($request->type_ecole);
+        }
+
+        // Niveau filter
+        if ($request->filled('niveau')) {
+            $query->byNiveau($request->niveau);
+        }
+
+        // Province filter (additional hierarchy filter)
+        if ($request->filled('province_id')) {
+            $query->where('province_id', $request->province_id);
+        }
+
+        // Commune filter
+        if ($request->filled('commune_id')) {
+            $query->where('commune_id', $request->commune_id);
+        }
+
+        // Zone filter
+        if ($request->filled('zone_id')) {
+            $query->where('zone_id', $request->zone_id);
+        }
+
+        $schools = $query->latest()->paginate($request->get('per_page', 15));
+
+        return response()->json($schools);
     }
 
     /**
@@ -45,8 +83,7 @@ class SchoolController extends Controller
         $data['pays_id'] = $colline->zone->commune->province->pays_id ?? 1; // Default to Burundi if not found logic
 
         $data['created_by'] = Auth::id();
-        $data['statut'] = 'BROUILLON'; // Default status
-        $data['validation_status'] = 'EN_ATTENTE';
+        $data['statut'] = School::STATUS_BROUILLON; // Default status
 
         $school = School::create($data);
 
@@ -104,20 +141,76 @@ class SchoolController extends Controller
     }
 
     /**
-     * Validate a school (Change status to ACTIVE).
+     * Submit a school for validation.
+     * BROUILLON → EN_ATTENTE_VALIDATION
      */
-    public function validateSchool(Request $request, School $school)
+    public function submit(SubmitSchoolRequest $request, School $school)
+    {
+        $this->authorize('submit', $school);
+
+        if (!$school->canSubmit()) {
+            return response()->json([
+                'message' => 'Cette école ne peut pas être soumise. Vérifiez que tous les champs requis sont remplis.'
+            ], 422);
+        }
+
+        $school->statut = School::STATUS_EN_ATTENTE_VALIDATION;
+        $school->save();
+
+        return response()->json([
+            'message' => 'École soumise pour validation avec succès',
+            'school' => $school->load(['colline', 'zone', 'commune', 'province', 'creator'])
+        ]);
+    }
+
+    /**
+     * Validate (activate) a school.
+     * EN_ATTENTE_VALIDATION → ACTIVE
+     */
+    public function validate(ValidateSchoolRequest $request, School $school)
     {
         $this->authorize('validate', $school);
 
-        $school->statut = 'ACTIVE';
+        if (!$school->canValidate()) {
+            return response()->json([
+                'message' => 'Cette école ne peut pas être validée. Vérifiez que la géolocalisation est renseignée.'
+            ], 422);
+        }
+
+        $school->statut = School::STATUS_ACTIVE;
         $school->validated_by = Auth::id();
         $school->validated_at = now();
         $school->save();
 
         return response()->json([
-            'message' => 'School validated successfully',
-            'school' => $school
+            'message' => 'École validée et activée avec succès',
+            'school' => $school->load(['colline', 'zone', 'commune', 'province', 'creator', 'validator'])
+        ]);
+    }
+
+    /**
+     * Deactivate a school.
+     * ACTIVE → INACTIVE
+     */
+    public function deactivate(DeactivateSchoolRequest $request, School $school)
+    {
+        $this->authorize('deactivate', $school);
+
+        if (!$school->canDeactivate()) {
+            return response()->json([
+                'message' => 'Seules les écoles actives peuvent être désactivées.'
+            ], 422);
+        }
+
+        $school->statut = School::STATUS_INACTIVE;
+        $school->save();
+
+        // You could store the deactivation reason in a separate table or meta field
+        // For now, we just change the status
+
+        return response()->json([
+            'message' => 'École désactivée avec succès',
+            'school' => $school->load(['colline', 'zone', 'commune', 'province'])
         ]);
     }
 }
