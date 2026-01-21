@@ -23,7 +23,7 @@ class SchoolController extends Controller
             ->latest()
             ->paginate(15);
 
-        return response()->json($schools);
+        return sendResponse($schools, 'Schools retrieved successfully');
     }
 
     /**

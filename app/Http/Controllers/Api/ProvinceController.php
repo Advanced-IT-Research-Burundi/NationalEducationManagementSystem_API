@@ -13,7 +13,16 @@ class ProvinceController extends Controller
      */
     public function index()
     {
-        $provinces = Province::with('pays', 'ministere')->paginate(10);
+        $paysId = request('pays_id');
+        $ministereId = request('ministere_id');
+        $limit = request('limit', 10);
+        if ($paysId) {
+            $provinces = Province::where('pays_id', $paysId)->with('pays', 'ministere')->paginate($limit);
+        } elseif ($ministereId) {
+            $provinces = Province::where('ministere_id', $ministereId)->with('pays', 'ministere')->paginate($limit);
+        } else {
+            $provinces = Province::with('pays', 'ministere')->paginate($limit);
+        }
         return sendResponse($provinces, 'Provinces retrieved successfully');
     }
 

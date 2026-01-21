@@ -13,8 +13,18 @@ class ZoneController extends Controller
      */
     public function index()
     {
-        $zones = Zone::with('commune')->get();
-        return response()->json($zones);
+        $communeId = request('commune_id');
+        $limit = request('limit', 10);
+
+        $query = Zone::with('commune');
+
+        if ($communeId) {
+            $query->where('commune_id', $communeId);
+        }
+
+        $zones = $query->paginate($limit);
+        
+        return sendResponse($zones, 'Zones retrieved successfully');
     }
 
     /**

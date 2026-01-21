@@ -13,7 +13,17 @@ class CommuneController extends Controller
      */
     public function index()
     {
-        $communes = Commune::with('province')->paginate(10);
+        $provinceId = request('province_id');
+        $limit = request('limit', 10);
+
+        $query = Commune::with('province');
+
+        if ($provinceId) {
+            $query->where('province_id', $provinceId);
+        }
+
+        $communes = $query->paginate($limit);
+        
         return sendResponse($communes, 'Communes retrieved successfully');
     }
 
