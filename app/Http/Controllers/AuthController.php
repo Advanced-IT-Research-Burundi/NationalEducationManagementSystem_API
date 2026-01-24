@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -29,7 +28,7 @@ class AuthController extends Controller
         }
 
         if ($user->statut !== 'actif') {
-             throw ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'email' => ['Votre compte est inactif. Contactez l\'administrateur.'],
             ]);
         }
@@ -52,7 +51,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Déconnexion réussie'
+            'message' => 'Déconnexion réussie',
         ]);
     }
 
@@ -61,6 +60,17 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return response()->json($request->user()->load('role'));
+        $user = $request->user()->load([
+            'role',
+            'pays',
+            'ministere',
+            'province',
+            'commune',
+            'zone',
+            'colline',
+            'school',
+        ]);
+
+        return response()->json($user);
     }
 }

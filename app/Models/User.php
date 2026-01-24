@@ -12,7 +12,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -61,12 +61,12 @@ class User extends Authenticatable
     }
 
     // Relationships
-    // Note: role() relationship might key conflict with Spatie's roles() if not careful, 
-    // but Spatie uses permissions based system. 
+    // Note: role() relationship might key conflict with Spatie's roles() if not careful,
+    // but Spatie uses permissions based system.
     // Ideally we should remove the 'role_id' column and 'role()' relation if we are fully switching to Spatie,
     // but the task was to update the user table, not necessarily refactor everything immediately unless requested.
-    // However, keeping it simple for now. 
-    
+    // However, keeping it simple for now.
+
     public function role()
     {
         return $this->belongsTo(Role::class);
@@ -118,7 +118,7 @@ class User extends Authenticatable
      */
     public function getAdminEntity()
     {
-        if (!$this->admin_level || !$this->admin_entity_id) {
+        if (! $this->admin_level || ! $this->admin_entity_id) {
             return null;
         }
 
@@ -139,5 +139,43 @@ class User extends Authenticatable
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Check if user is a school-level user.
+     */
+    public function isSchoolUser(): bool
+    {
+        return $this->admin_level === 'ECOLE';
+    }
+
+    /**
+     * Check if user belongs to a specific school.
+     */
+    public function belongsToSchool(int $schoolId): bool
+    {
+        if ($this->admin_level === 'ECOLE') {
+            return $this->admin_entity_id === $schoolId || $this->school_id === $schoolId;
+        }
+
+        // Higher level users may have access to multiple schools
+        return false;
+    }
+
+    /**
+     * Check if user can access data for a specific school.
+     * This considers the full hierarchy.
+     */
+    public function canAccessSchool(School $school): bool
+    {
+        return match ($this->admin_level) {
+            'PAYS' => true,
+            'MINISTERE' => $school->ministere_id === $this->admin_entity_id,
+            'PROVINCE' => $school->province_id === $this->admin_entity_id,
+            'COMMUNE' => $school->commune_id === $this->admin_entity_id,
+            'ZONE' => $school->zone_id === $this->admin_entity_id,
+            'ECOLE' => $school->id === $this->admin_entity_id,
+            default => false,
+        };
     }
 }
