@@ -7,24 +7,33 @@ use Illuminate\Database\Eloquent\Model;
 
 class School extends Model
 {
-    use HasFactory, \App\Traits\HasDataScope, \Illuminate\Database\Eloquent\SoftDeletes;
+    use \App\Traits\HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     // Workflow status constants
     const STATUS_BROUILLON = 'BROUILLON';
+
     const STATUS_EN_ATTENTE_VALIDATION = 'EN_ATTENTE_VALIDATION';
+
     const STATUS_ACTIVE = 'ACTIVE';
+
     const STATUS_INACTIVE = 'INACTIVE';
 
     // Type constants
     const TYPE_PUBLIQUE = 'PUBLIQUE';
+
     const TYPE_PRIVEE = 'PRIVEE';
+
     const TYPE_ECC = 'ECC';
+
     const TYPE_AUTRE = 'AUTRE';
 
     // Niveau constants
     const NIVEAU_FONDAMENTAL = 'FONDAMENTAL';
+
     const NIVEAU_POST_FONDAMENTAL = 'POST_FONDAMENTAL';
+
     const NIVEAU_SECONDAIRE = 'SECONDAIRE';
+
     const NIVEAU_SUPERIEUR = 'SUPERIEUR';
 
     protected $fillable = [
@@ -35,15 +44,15 @@ class School extends Model
         'statut',
         'latitude',
         'longitude',
-        'colline_id', 
-        'zone_id', 
-        'commune_id', 
-        'province_id', 
-        'ministere_id', 
+        'colline_id',
+        'zone_id',
+        'commune_id',
+        'province_id',
+        'ministere_id',
         'pays_id',
         'created_by',
         'validated_by',
-        'validated_at'
+        'validated_at',
     ];
 
     protected $casts = [
@@ -59,7 +68,7 @@ class School extends Model
      */
     public function canSubmit(): bool
     {
-        return $this->statut === self::STATUS_BROUILLON 
+        return $this->statut === self::STATUS_BROUILLON
             && $this->hasRequiredFieldsForSubmission();
     }
 
@@ -76,18 +85,18 @@ class School extends Model
 
     public function hasRequiredFieldsForSubmission(): bool
     {
-        return !empty($this->name)
-            && !empty($this->code_ecole)
-            && !empty($this->type_ecole)
-            && !empty($this->niveau)
-            && !empty($this->colline_id);
+        return ! empty($this->name)
+            && ! empty($this->code_ecole)
+            && ! empty($this->type_ecole)
+            && ! empty($this->niveau)
+            && ! empty($this->colline_id);
     }
 
     public function hasRequiredFieldsForValidation(): bool
     {
         return $this->hasRequiredFieldsForSubmission()
-            && !is_null($this->latitude)
-            && !is_null($this->longitude);
+            && ! is_null($this->latitude)
+            && ! is_null($this->longitude);
     }
 
     /**
@@ -125,9 +134,9 @@ class School extends Model
 
     public function scopeSearch($query, $search)
     {
-        return $query->where(function($q) use ($search) {
+        return $query->where(function ($q) use ($search) {
             $q->where('name', 'LIKE', "%{$search}%")
-              ->orWhere('code_ecole', 'LIKE', "%{$search}%");
+                ->orWhere('code_ecole', 'LIKE', "%{$search}%");
         });
     }
 
@@ -136,7 +145,7 @@ class School extends Model
      */
     public function getStatutLabelAttribute(): string
     {
-        return match($this->statut) {
+        return match ($this->statut) {
             self::STATUS_BROUILLON => 'Brouillon',
             self::STATUS_EN_ATTENTE_VALIDATION => 'En attente de validation',
             self::STATUS_ACTIVE => 'Active',
@@ -158,22 +167,27 @@ class School extends Model
     {
         return $this->belongsTo(Zone::class);
     }
+
     public function commune()
     {
         return $this->belongsTo(Commune::class);
     }
+
     public function province()
     {
         return $this->belongsTo(Province::class);
     }
+
     public function ministere()
     {
         return $this->belongsTo(Ministere::class);
     }
+
     public function pays()
     {
         return $this->belongsTo(Pays::class);
     }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -182,5 +196,21 @@ class School extends Model
     public function validator()
     {
         return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    // Academic relationships
+    public function classes()
+    {
+        return $this->hasMany(Classe::class);
+    }
+
+    public function enseignants()
+    {
+        return $this->hasMany(Enseignant::class);
+    }
+
+    public function eleves()
+    {
+        return $this->hasMany(Eleve::class);
     }
 }

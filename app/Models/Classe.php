@@ -1,0 +1,154 @@
+<?php
+
+namespace App\Models;
+
+use App\Traits\HasDataScope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Classe extends Model
+{
+    use HasDataScope, HasFactory, SoftDeletes;
+
+    // Status constants
+    const STATUS_ACTIVE = 'ACTIVE';
+
+    const STATUS_INACTIVE = 'INACTIVE';
+
+    const STATUS_ARCHIVEE = 'ARCHIVEE';
+
+    protected $table = 'classes';
+
+    protected $fillable = [
+        'nom',
+        'code',
+        'niveau_id',
+        'school_id',
+        'annee_scolaire',
+        'local',
+        'capacite',
+        'statut',
+        'created_by',
+    ];
+
+    protected $casts = [
+        'capacite' => 'integer',
+    ];
+
+    protected $appends = ['statut_label', 'effectif'];
+
+    /**
+     * Query Scopes
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('statut', self::STATUS_ACTIVE);
+    }
+
+    public function scopeBySchool($query, int $schoolId)
+    {
+        return $query->where('school_id', $schoolId);
+    }
+
+    public function scopeByNiveau($query, int $niveauId)
+    {
+        return $query->where('niveau_id', $niveauId);
+    }
+
+    public function scopeByAnneeScolaire($query, string $annee)
+    {
+        return $query->where('annee_scolaire', $annee);
+    }
+
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('nom', 'LIKE', "%{$search}%")
+                ->orWhere('code', 'LIKE', "%{$search}%");
+        });
+    }
+
+    /**
+     * Accessors
+     */
+    public function getStatutLabelAttribute(): string
+    {
+        return match ($this->statut) {
+            self::STATUS_ACTIVE => 'Active',
+            self::STATUS_INACTIVE => 'Inactive',
+            self::STATUS_ARCHIVEE => 'Archivée',
+            default => 'Inconnu',
+        };
+    }
+
+    public function getEffectifAttribute(): int
+    {
+        return $this->inscriptions()->where('statut', 'ACTIVE')->count();
+    }
+
+    /**
+     * Relationships
+     */
+    public function niveau(): BelongsTo
+    {
+        return $this->belongsTo(Niveau::class);
+    }
+
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function enseignants(): BelongsToMany
+    {
+        return $this->belongsToMany(Enseignant::class, 'affectations_enseignants', 'classe_id', 'enseignant_id')
+            ->withPivot(['matiere', 'est_titulaire', 'date_debut', 'date_fin', 'statut'])
+            ->withTimestamps();
+    }
+
+    public function affectations(): HasMany
+    {
+        return $this->hasMany(AffectationEnseignant::class, 'classe_id');
+    }
+
+    public function inscriptions(): HasMany
+    {
+        return $this->hasMany(InscriptionEleve::class, 'classe_id');
+    }
+
+    public function eleves(): BelongsToMany
+    {
+        return $this->belongsToMany(Eleve::class, 'inscriptions_eleves', 'classe_id', 'eleve_id')
+            ->withPivot(['annee_scolaire', 'date_inscription', 'statut', 'numero_ordre'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Helper Methods
+     */
+    public function getTitulaire(): ?Enseignant
+    {
+        return $this->enseignants()
+            ->wherePivot('est_titulaire', true)
+            ->wherePivot('statut', 'ACTIVE')
+            ->first();
+    }
+
+    public function hasCapacity(): bool
+    {
+        if (is_null($this->capacite)) {
+            return true;
+        }
+
+        return $this->effectif < $this->capacite;
+    }
+}

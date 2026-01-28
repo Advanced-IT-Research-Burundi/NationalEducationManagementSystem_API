@@ -33,6 +33,7 @@ Route::get('/', function () {
         'modules' => [
             'core',
             'schools',
+            'academic',
             'pedagogy',
             'exams',
             'statistics',
@@ -68,31 +69,34 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 */
 
 // Module 1: Core (Auth, Users, Roles, Permissions, Geographic Hierarchy)
-require __DIR__ . '/modules/core.php';
+require __DIR__.'/modules/core.php';
 
 // Module 2: Schools (School Management, Workflow)
-require __DIR__ . '/modules/schools.php';
+require __DIR__.'/modules/schools.php';
+
+// Module 2b: Academic (Niveaux, Classes, Enseignants, Élèves)
+require __DIR__.'/modules/academic.php';
 
 // Module 3: Pedagogy (Inspections, Quality Standards, Training)
-require __DIR__ . '/modules/pedagogy.php';
+require __DIR__.'/modules/pedagogy.php';
 
 // Module 4: Exams (Planning, Centers, Results, Certification)
-require __DIR__ . '/modules/exams.php';
+require __DIR__.'/modules/exams.php';
 
 // Module 5: Statistics (Data Collection, KPIs, Dashboards, M&E)
-require __DIR__ . '/modules/statistics.php';
+require __DIR__.'/modules/statistics.php';
 
 // Module 6: Infrastructure (Buildings, Equipment, Maintenance)
-require __DIR__ . '/modules/infrastructure.php';
+require __DIR__.'/modules/infrastructure.php';
 
 // Module 7: HR (Teachers, Assignments, Careers, Attendance)
-require __DIR__ . '/modules/hr.php';
+require __DIR__.'/modules/hr.php';
 
 // Module 8: System (Administration, Helpdesk, Training Materials)
-require __DIR__ . '/modules/system.php';
+require __DIR__.'/modules/system.php';
 
 // Module 9: Partners (PTF, NGO, Research, External Audit)
-require __DIR__ . '/modules/partners.php';
+require __DIR__.'/modules/partners.php';
 
 /*
 |--------------------------------------------------------------------------
