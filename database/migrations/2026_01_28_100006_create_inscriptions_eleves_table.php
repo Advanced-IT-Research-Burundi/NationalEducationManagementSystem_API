@@ -18,12 +18,12 @@ return new class extends Migration
             $table->foreignId('ecole_id')->nullable()->constrained('ecoles')->onDelete('cascade');
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires')->onDelete('cascade');
             $table->foreignId('niveau_demande_id')->nullable()->constrained('niveaux')->onDelete('cascade');
-            $table->date('date_inscription');
+            $table->date('date_inscription')->default(DB::raw('CURRENT_DATE'));
             $table->enum('type_inscription', [
                 'nouvelle', 'reinscription', 'transfert_entrant'
             ]);
             $table->enum('statut', ['ACTIVE', 'TRANSFEREE', 'TERMINEE', 'ANNULEE'])->default('ACTIVE');
-            $table->integer('numero_ordre')->nullable(); // Numéro d'ordre dans la classe
+            $table->integer('numero_inscription')->nullable(); // Numéro d'ordre dans la classe (INSCR0001, INSCR0002, etc..)
              $table->text('motif_rejet')->nullable();
             $table->boolean('est_redoublant')->default(false);
             $table->json('pieces_fournies')->nullable();

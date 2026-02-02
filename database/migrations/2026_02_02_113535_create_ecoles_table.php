@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('ministere_id')->nullable()->constrained('ministeres')->onDelete('cascade');
             $table->foreignId('pays_id')->nullable()->constrained('pays')->onDelete('cascade');
              // Renaming code to code_ecole if possible, otherwise adding code_ecole
-            if (Schema::hasColumn('schools', 'code')) {
+            if (Schema::hasColumn('ecoles', 'code')) {
                  $table->renameColumn('code', 'code_ecole');
             } else {
                  $table->string('code_ecole')->nullable()->unique();

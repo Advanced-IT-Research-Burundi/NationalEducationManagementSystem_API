@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('eleves', function (Blueprint $table) {
             $table->id();
-            $table->string('matricule')->unique();
+            $table->string('matricule')->unique(); //Généré  :  numéro séquentiel (0001)
             $table->string('nom');
             $table->string('prenom');
             $table->date('date_naissance')->nullable();
@@ -23,13 +23,13 @@ return new class extends Migration
             $table->string('nom_mere')->nullable();
             $table->string('contact_parent')->nullable();
             $table->text('adresse')->nullable();
-            $table->foreignId('ecole_id')->constrained('ecoles')->onDelete('cascade');
-            $table->enum('statut', ['INSCRIT', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])->default('INSCRIT');
+            // $table->foreignId('ecole_id')->constrained('ecoles')->onDelete('cascade');
+            $table->enum('statut', ['INSCRIT','NOUVEAU', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])->default('NOUVEAU');
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['ecole_id', 'statut']);
+            // $table->index(['ecole_id', 'statut']);
         });
     }
 
