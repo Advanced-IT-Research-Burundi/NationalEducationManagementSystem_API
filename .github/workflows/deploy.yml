@@ -1,39 +1,21 @@
-name: Remote SSH Command
 on:
   push:
     branches:
       - master
-
+name: 🚀 Deploy Application on push
 jobs:
-  build:
-    name: Build
+  web-deploy:
+    name: 🎉 Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Execute remote SSH commands using password
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{secrets.SSH_HOST}}
-          username: ${{secrets.SSH_USER}}
-          password: ${{secrets.SSH_PASSWORD}}
-          port: ${{secrets.SSH_PORT}}
-          script: |
-            cd ${{secrets.WORK_DIR}}
-            git config pull.rebase true
-            # Mettre à jour la branche distante avec rebase en utilisant le token GitHub
-            git reset --hard HEAD
-            git clean -f -d
-            git checkout ${{secrets.MAIN_BRANCH}}
-            git config --global --add safe.directory ${{secrets.WORK_DIR}}
-            git stash
-            git pull origin ${{secrets.MAIN_BRANCH}}
-            echo "Deployed successfully" >> deploy.log
-            php artisan migrate
-            php artisan db:seed
-            php artisan cache:clear
-            php artisan config:clear
-            php artisan route:clear
-            php artisan view:clear
-            php artisan optimize:clear
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v3
 
-
-
+    - name: 📂 Sync files
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        #server: ftp.cloud209.cloudwebhosting.com ftp.clskycompany.com
+        server: ftp.nasoni.bi
+        username: advanced@nasoni.bi
+        password: jy3#%u6vaWC5c4]=
+        server-dir: ./
