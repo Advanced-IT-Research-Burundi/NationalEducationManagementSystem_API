@@ -159,5 +159,6 @@ class InscriptionController extends Controller
             'success' => true,
             'message' => 'Inscription annulée'
         ], 204);
+
     }
 }
