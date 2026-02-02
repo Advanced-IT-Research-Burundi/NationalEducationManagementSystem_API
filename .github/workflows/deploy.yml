@@ -15,7 +15,7 @@ jobs:
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
         #server: ftp.cloud209.cloudwebhosting.com ftp.clskycompany.com
-        server: ftp.nasoni.bi
-        username: advanced@nasoni.bi
-        password: jy3#%u6vaWC5c4]=
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
         server-dir: ./
