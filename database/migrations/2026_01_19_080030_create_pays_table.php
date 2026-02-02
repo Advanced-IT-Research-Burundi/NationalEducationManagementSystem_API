@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique(); // e.g., 'BI'
             $table->string('name');
+            $table->string('phone_code')->nullable()->after('name');
             $table->timestamps();
         });
     }

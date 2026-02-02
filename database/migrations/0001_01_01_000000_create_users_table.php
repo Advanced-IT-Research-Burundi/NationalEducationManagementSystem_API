@@ -17,6 +17,28 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+             $table->enum('admin_level', [
+                'PAYS',
+                'MINISTERE',
+                'PROVINCE',
+                'COMMUNE',
+                'ZONE',
+                'COLLINE',
+                'ECOLE'
+            ])->nullable()->after('statut');
+            $table->bigInteger('admin_entity_id')->unsigned()->nullable()->after('admin_level');
+
+             $table->string('statut')->default('actif');
+            // Administrative Hierarchy
+            $table->foreignId('pays_id')->nullable()->constrained('pays')->onDelete('set null');
+            $table->foreignId('ministere_id')->nullable()->constrained('ministeres')->onDelete('set null');
+            $table->foreignId('province_id')->nullable()->constrained('provinces')->onDelete('set null');
+            $table->foreignId('commune_id')->nullable()->constrained('communes')->onDelete('set null');
+            $table->foreignId('zone_id')->nullable()->constrained('zones')->onDelete('set null');
+            $table->foreignId('colline_id')->nullable()->constrained('collines')->onDelete('set null');
+            $table->foreignId('school_id')->nullable()->constrained('schools')->onDelete('set null');
+
             $table->rememberToken();
             $table->timestamps();
         });
