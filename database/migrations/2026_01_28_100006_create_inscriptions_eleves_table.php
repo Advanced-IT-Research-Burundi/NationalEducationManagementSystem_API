@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('inscriptions_eleves', function (Blueprint $table) {
             $table->id();
             $table->foreignId('eleve_id')->constrained('eleves')->onDelete('cascade');
-            $table->foreignId('classe_id')->constrained('classes')->onDelete('cascade');
+            $table->foreignId('classe_id')->nullable()->constrained('classes')->onDelete('cascade');
             $table->foreignId('ecole_id')->nullable()->constrained('ecoles')->onDelete('cascade');
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires')->onDelete('cascade');
-            $table->foreignId('niveau_demande_id')->nullable()->constrained('niveaux')->onDelete('cascade');
+            $table->foreignId('niveau_demande_id')->nullable()->nullable()->constrained('niveaux')->onDelete('cascade');
             $table->date('date_inscription')->default(DB::raw('CURRENT_DATE'));
             $table->enum('type_inscription', [
                 'nouvelle', 'reinscription', 'transfert_entrant'
