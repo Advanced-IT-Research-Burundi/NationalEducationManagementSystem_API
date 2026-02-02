@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,12 +14,13 @@ use Illuminate\Support\Facades\Hash;
 class UserController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of users.
      */
-    public function index()
+    public function index(): JsonResponse
     {
         $this->authorize('viewAny', User::class);
 
+<<<<<<< HEAD:app/Http/Controllers/Api/UserController.php
         // Apply Data Scope automatically via AdminScope or manually if needed.
         // Since we implemented AdminScope globally, User::all() or User::paginate() 
         // will already be filtered by the logged-in user's administrative level.
@@ -26,22 +28,25 @@ class UserController extends Controller
         $users = User::with(['role', 'creator'])->paginate(15);
         
         return sendResponse($users, 'Users retrieved successfully');
+=======
+        $users = User::with(['roles', 'creator'])->paginate(15);
+
+        return response()->json($users);
+>>>>>>> master:app/Http/Controllers/Api/Core/UserController.php
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created user.
      */
-    public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request): JsonResponse
     {
-        // policy 'create' check is done in request authorize()
-        
         $data = $request->validated();
-        
+
         $user = new User();
         $user->fill($data);
         $user->password = Hash::make($data['password']);
         $user->created_by = Auth::id();
-        $user->statut = 'actif'; // default
+        $user->statut = 'actif';
         $user->save();
 
         if (isset($data['role'])) {
@@ -50,28 +55,38 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User created successfully',
-            'user' => $user->load('role')
+            'user' => $user->load('roles'),
         ], 201);
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified user.
      */
-    public function show(User $user)
+    public function show(User $user): JsonResponse
     {
         $this->authorize('view', $user);
-        return response()->json($user->load(['role', 'creator', 'pays', 'ministere', 'province', 'commune', 'zone', 'colline', 'school']));
+
+        return response()->json($user->load([
+            'roles',
+            'permissions',
+            'creator',
+            'pays',
+            'ministere',
+            'province',
+            'commune',
+            'zone',
+            'colline',
+            'school',
+        ]));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the specified user.
      */
-    public function update(UpdateUserRequest $request, User $user)
+    public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        // policy 'update' check done in request
-        
         $data = $request->validated();
-        
+
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         } else {
@@ -86,17 +101,17 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User updated successfully',
-            'user' => $user->load('role')
+            'user' => $user->load('roles'),
         ]);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified user.
      */
-    public function destroy(User $user)
+    public function destroy(User $user): JsonResponse
     {
         $this->authorize('delete', $user);
-        
+
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully']);
@@ -105,7 +120,7 @@ class UserController extends Controller
     /**
      * Toggle user status (active/inactive).
      */
-    public function toggleStatus(Request $request, User $user)
+    public function toggleStatus(Request $request, User $user): JsonResponse
     {
         $this->authorize('update', $user);
 
@@ -114,14 +129,14 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User status updated',
-            'statut' => $user->statut
+            'statut' => $user->statut,
         ]);
     }
 
     /**
      * Admin reset password.
      */
-    public function resetPassword(Request $request, User $user)
+    public function resetPassword(Request $request, User $user): JsonResponse
     {
         $this->authorize('update', $user);
 

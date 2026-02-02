@@ -5,19 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Role extends Model
+use Spatie\Permission\Models\Role as SpatieRole;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+class Role extends SpatieRole
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'description'];
+    protected $fillable = ['name', 'guard_name', 'description'];
 
-    public function users()
+    // Explicitly define relationship to User to avoid dynamic guard lookup issues with withCount
+    public function users(): BelongsToMany
     {
-        return $this->hasMany(User::class);
-    }
-
-    public function permissions()
-    {
-        return $this->belongsToMany(Permission::class);
+        return $this->morphedByMany(
+            User::class,
+            'model',
+            config('permission.table_names.model_has_roles'),
+            'role_id',
+            'model_id'
+        );
     }
 }

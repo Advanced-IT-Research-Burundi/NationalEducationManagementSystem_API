@@ -1,0 +1,177 @@
+{
+  "name": "NEMS - School Module Tests",
+  "description": "Collection de tests pour le module École avec workflow de validation",
+  "requests": [
+    {
+      "name": "1. Login as Admin National",
+      "method": "POST",
+      "url": "http://localhost:8000/api/auth/login",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "email": "admin@nems.bi",
+        "password": "password"
+      },
+      "tests": [
+        {
+          "type": "status",
+          "value": 200
+        },
+        {
+          "type": "json",
+          "key": "token",
+          "save": "auth_token"
+        }
+      ]
+    },
+    {
+      "name": "2. Create School (BROUILLON)",
+      "method": "POST",
+      "url": "http://localhost:8000/api/schools",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "body": {
+        "name": "École Primaire de Gitega",
+        "code_ecole": "EPG2026001",
+        "type_ecole": "PUBLIQUE",
+        "niveau": "FONDAMENTAL",
+        "colline_id": 1,
+        "latitude": -3.427222,
+        "longitude": 29.925278
+      },
+      "description": "Crée une nouvelle école avec statut BROUILLON. La hiérarchie (zone, commune, province) est auto-remplie depuis la colline."
+    },
+    {
+      "name": "3. List All Schools",
+      "method": "GET",
+      "url": "http://localhost:8000/api/schools",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "description": "Liste toutes les écoles visibles selon le scope de l'utilisateur"
+    },
+    {
+      "name": "4. List Schools with Filters",
+      "method": "GET",
+      "url": "http://localhost:8000/api/schools?statut=BROUILLON&type_ecole=PUBLIQUE&niveau=FONDAMENTAL&search=Gitega",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "description": "Filtrage par statut, type, niveau et recherche textuelle"
+    },
+    {
+      "name": "5. Get School Details",
+      "method": "GET",
+      "url": "http://localhost:8000/api/schools/1",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "description": "Récupère les détails d'une école avec ses relations (colline, zone, commune, province)"
+    },
+    {
+      "name": "6. Update School (BROUILLON)",
+      "method": "PUT",
+      "url": "http://localhost:8000/api/schools/1",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "body": {
+        "name": "École Primaire Catholique de Gitega",
+        "type_ecole": "ECC",
+        "latitude": -3.427500,
+        "longitude": 29.925500
+      },
+      "description": "Mise à jour d'une école en brouillon"
+    },
+    {
+      "name": "7. Submit School for Validation",
+      "method": "POST",
+      "url": "http://localhost:8000/api/schools/1/submit",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "description": "Transition: BROUILLON → EN_ATTENTE_VALIDATION. Vérifie que tous les champs requis sont remplis."
+    },
+    {
+      "name": "8. Validate School (Activate)",
+      "method": "POST",
+      "url": "http://localhost:8000/api/schools/1/validate",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "body": {
+        "notes": "École inspectée et validée le 21/01/2026"
+      },
+      "description": "Transition: EN_ATTENTE_VALIDATION → ACTIVE. Nécessite géolocalisation et permission validate_data."
+    },
+    {
+      "name": "9. Deactivate School",
+      "method": "POST",
+      "url": "http://localhost:8000/api/schools/1/deactivate",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "body": {
+        "reason": "Fermeture temporaire pour rénovation"
+      },
+      "description": "Transition: ACTIVE → INACTIVE. Réservé aux Admin National et Directeurs Provinciaux."
+    },
+    {
+      "name": "10. Delete School (Soft Delete)",
+      "method": "DELETE",
+      "url": "http://localhost:8000/api/schools/1",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "description": "Suppression logique (soft delete) d'une école"
+    },
+    {
+      "name": "Error: Submit without Required Fields",
+      "method": "POST",
+      "url": "http://localhost:8000/api/schools/2/submit",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "description": "Test d'erreur: tentative de soumission sans tous les champs requis (doit retourner 422)"
+    },
+    {
+      "name": "Error: Validate without Geolocation",
+      "method": "POST",
+      "url": "http://localhost:8000/api/schools/3/validate",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      },
+      "description": "Test d'erreur: tentative de validation sans coordonnées GPS (doit retourner 422)"
+    },
+    {
+      "name": "Error: Edit Active School (Non-Admin)",
+      "method": "PUT",
+      "url": "http://localhost:8000/api/schools/1",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {{non_admin_token}}"
+      },
+      "body": {
+        "name": "Tentative de modification"
+      },
+      "description": "Test d'erreur: seul Admin National peut modifier une école active (doit retourner 403)"
+    }
+  ],
+  "variables": {
+    "base_url": "http://localhost:8000",
+    "auth_token": "your_token_here",
+    "non_admin_token": "non_admin_token_here"
+  },
+  "info": {
+    "version": "1.0.0",
+    "author": "NEMS Development Team",
+    "created": "2026-01-21",
+    "documentation": "Voir walkthrough.md pour plus de détails"
+  }
+}

@@ -22,20 +22,32 @@ class UserPolicy
         if ($user->hasRole('Admin National')) {
             return true;
         }
-        
+
         // Own profile
         if ($user->id === $model->id) {
             return true;
         }
 
-        // Hierarchy check logic similar to creation
-        // Provincial Director can view users in their province, etc.
-        // Simplified for now: allow if in same scope
-        
-        // This is tricky without fully implementing scope checking here again.
-        // But typically the Data Scope filters the list, so if they can list, they can see?
-        // Let's rely on basic permission + maybe scope matching
-        
+        // School-level user can only view users in their school
+        if ($user->admin_level === 'ECOLE') {
+            return $model->school_id === $user->admin_entity_id;
+        }
+
+        // Zone-level user can only view users in their zone
+        if ($user->admin_level === 'ZONE') {
+            return $model->zone_id === $user->admin_entity_id;
+        }
+
+        // Commune-level user can only view users in their commune
+        if ($user->admin_level === 'COMMUNE') {
+            return $model->commune_id === $user->admin_entity_id;
+        }
+
+        // Province-level user can only view users in their province
+        if ($user->admin_level === 'PROVINCE') {
+            return $model->province_id === $user->admin_entity_id;
+        }
+
         return $user->hasPermission('manage_users');
     }
 
@@ -48,51 +60,44 @@ class UserPolicy
     }
 
     /**
-     * Determine whether the user can store a specific user based on hierarchy.
-     * Note: Policy 'create' usually takes only the authenticated user.
-     * We might need a custom method or check this logic in Request/Controller.
-     * But we can define a custom 'createChild' ability if we pass the target role/entity.
-     * 
-     * However, standard CRUD uses 'create' valid for the resource class.
-     * We'll implement strict logic in the Controller/Request for *what* kind of user they can create.
-     * Here, we just return if they *can* access the create action.
-     */
-
-
-    /**
      * Determine whether the user can update the model.
      */
     public function update(User $user, User $model): bool
     {
-        // Prevent modifying yourself to upgrade role? Maybe.
+        // Own profile - users can update their own basic info
         if ($user->id === $model->id) {
-            // Usually users can't change their own administrative details, only profile
-             return true; 
+            return true;
         }
 
         if ($user->hasRole('Admin National')) {
             return true;
         }
 
-        // Hierarchical update check
-        // Check if the target model belongs to the user's scope
-        
-        if ($user->admin_level === 'PROVINCE' && $model->province_id === $user->admin_entity_id) {
-            return true;
-        }
-        
-        if ($user->admin_level === 'COMMUNE' && $model->commune_id === $user->admin_entity_id) {
-            return true;
+        // School-level user can only update users in their school
+        if ($user->admin_level === 'ECOLE') {
+            return $model->school_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
         }
 
-        // And so on... simplified:
-        if ($user->hasPermission('manage_users')) {
-             // Add logic: cannot update someone of higher or equal rank?
-             // For now allow, Controller will handle validation of data changes
-             return true;
+        // Zone-level user can only update users in their zone
+        if ($user->admin_level === 'ZONE') {
+            return $model->zone_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
         }
 
-        return false;
+        // Commune-level user can only update users in their commune
+        if ($user->admin_level === 'COMMUNE') {
+            return $model->commune_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
+        }
+
+        // Province-level user can only update users in their province
+        if ($user->admin_level === 'PROVINCE') {
+            return $model->province_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
+        }
+
+        return $user->hasPermission('manage_users');
     }
 
     /**
@@ -108,11 +113,30 @@ class UserPolicy
             return true;
         }
 
-        // Similar hierarchical check
-         if ($user->admin_level === 'PROVINCE' && $model->province_id === $user->admin_entity_id) {
-            return true;
+        // School-level user can only delete users in their school
+        if ($user->admin_level === 'ECOLE') {
+            return $model->school_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
         }
-        
+
+        // Zone-level user can only delete users in their zone
+        if ($user->admin_level === 'ZONE') {
+            return $model->zone_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
+        }
+
+        // Commune-level user can only delete users in their commune
+        if ($user->admin_level === 'COMMUNE') {
+            return $model->commune_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
+        }
+
+        // Province-level user can only delete users in their province
+        if ($user->admin_level === 'PROVINCE') {
+            return $model->province_id === $user->admin_entity_id
+                && $user->hasPermission('manage_users');
+        }
+
         return $user->hasPermission('manage_users');
     }
 }
