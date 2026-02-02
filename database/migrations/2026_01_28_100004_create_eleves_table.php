@@ -23,13 +23,13 @@ return new class extends Migration
             $table->string('nom_mere')->nullable();
             $table->string('contact_parent')->nullable();
             $table->text('adresse')->nullable();
-            $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
+            $table->foreignId('ecole_id')->constrained('ecoles')->onDelete('cascade');
             $table->enum('statut', ['INSCRIT', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])->default('INSCRIT');
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['school_id', 'statut']);
+            $table->index(['ecole_id', 'statut']);
         });
     }
 

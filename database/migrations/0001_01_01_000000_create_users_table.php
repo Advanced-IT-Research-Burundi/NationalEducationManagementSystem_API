@@ -38,6 +38,7 @@ return new class extends Migration
             $table->foreignId('zone_id')->nullable()->constrained('zones')->onDelete('set null');
             $table->foreignId('colline_id')->nullable()->constrained('collines')->onDelete('set null');
             $table->foreignId('school_id')->nullable()->constrained('schools')->onDelete('set null');
+            $table->foreignId('ecole_id')->nullable()->constrained('ecoles')->onDelete('set null');
 
             $table->rememberToken();
             $table->timestamps();

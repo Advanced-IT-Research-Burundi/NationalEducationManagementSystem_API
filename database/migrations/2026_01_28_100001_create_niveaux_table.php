@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('nom'); // 7ème, 8ème, 9ème, etc.
             $table->string('code')->unique(); // 7, 8, 9, etc.
             $table->integer('ordre')->default(0); // Pour le tri
-            $table->enum('cycle', ['PRIMAIRE', 'FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR']);
+            $table->enum('cycle', ['PRIMAIRE', 'FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR','UNIVERSITAIRE']);
             $table->text('description')->nullable();
             $table->boolean('actif')->default(true);
             $table->timestamps();

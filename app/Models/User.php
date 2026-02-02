@@ -107,6 +107,12 @@ class User extends Authenticatable
         return $this->belongsTo(School::class);
     }
 
+    public function ecole()
+    {
+        return $this->belongsTo(Ecole::class);
+    }
+
+
     // Helper to check permission (Manual implementation if needed, but Spatie provides can())
     public function hasPermission($permissionSlug)
     {
