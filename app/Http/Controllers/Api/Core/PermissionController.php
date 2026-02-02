@@ -14,14 +14,9 @@ class PermissionController extends Controller
      */
     public function index(): JsonResponse
     {
-<<<<<<< HEAD:app/Http/Controllers/Api/PermissionController.php
-        $permissions = Permission::paginate(10)->all();
-        return sendResponse($permissions, 'Permissions retrieved successfully');
-=======
         $permissions = Permission::all();
 
         return response()->json($permissions);
->>>>>>> master:app/Http/Controllers/Api/Core/PermissionController.php
     }
 
     /**
@@ -44,12 +39,8 @@ class PermissionController extends Controller
     public function show(string $id): JsonResponse
     {
         $permission = Permission::findOrFail($id);
-<<<<<<< HEAD:app/Http/Controllers/Api/PermissionController.php
-        return sendResponse($permission, 'Permission retrieved successfully');
-=======
 
         return response()->json($permission);
->>>>>>> master:app/Http/Controllers/Api/Core/PermissionController.php
     }
 
     /**

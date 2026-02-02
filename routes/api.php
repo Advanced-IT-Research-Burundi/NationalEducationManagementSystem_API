@@ -19,6 +19,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Inscription\InscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -151,3 +152,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->json(['message' => 'Data Exported Successfully']);
     })->middleware('permission:export_data')->name('data.export');
 });
+
+
+// Module-inscription API routes
+  Route::apiResource('inscriptions-eleves', InscriptionController::class);

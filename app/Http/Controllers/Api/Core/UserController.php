@@ -20,7 +20,6 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-<<<<<<< HEAD:app/Http/Controllers/Api/UserController.php
         // Apply Data Scope automatically via AdminScope or manually if needed.
         // Since we implemented AdminScope globally, User::all() or User::paginate() 
         // will already be filtered by the logged-in user's administrative level.
@@ -28,11 +27,10 @@ class UserController extends Controller
         $users = User::with(['role', 'creator'])->paginate(15);
         
         return sendResponse($users, 'Users retrieved successfully');
-=======
+
         $users = User::with(['roles', 'creator'])->paginate(15);
 
         return response()->json($users);
->>>>>>> master:app/Http/Controllers/Api/Core/UserController.php
     }
 
     /**
