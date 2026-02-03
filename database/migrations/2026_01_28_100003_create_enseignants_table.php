@@ -27,7 +27,7 @@ return new class extends Migration
             $table->softDeletes();
 
             // Un utilisateur ne peut être enseignant que dans une seule école
-            $table->unique(['user_id', 'school_id']);
+            $table->unique(['user_id', 'ecole_id']);
         });
     }
 

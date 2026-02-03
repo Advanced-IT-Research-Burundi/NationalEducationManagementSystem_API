@@ -26,19 +26,19 @@ return new class extends Migration
                 'ZONE',
                 'COLLINE',
                 'ECOLE'
-            ])->nullable()->after('statut');
-            $table->bigInteger('admin_entity_id')->unsigned()->nullable()->after('admin_level');
+            ])->nullable();
+            $table->bigInteger('admin_entity_id')->nullable();
 
              $table->string('statut')->default('actif');
             // Administrative Hierarchy
-            $table->foreignId('pays_id')->nullable()->constrained('pays')->onDelete('set null');
-            $table->foreignId('ministere_id')->nullable()->constrained('ministeres')->onDelete('set null');
-            $table->foreignId('province_id')->nullable()->constrained('provinces')->onDelete('set null');
-            $table->foreignId('commune_id')->nullable()->constrained('communes')->onDelete('set null');
-            $table->foreignId('zone_id')->nullable()->constrained('zones')->onDelete('set null');
-            $table->foreignId('colline_id')->nullable()->constrained('collines')->onDelete('set null');
-            $table->foreignId('school_id')->nullable()->constrained('schools')->onDelete('set null');
-            $table->foreignId('ecole_id')->nullable()->constrained('ecoles')->onDelete('set null');
+            $table->foreignId('pays_id')->nullable();
+            $table->foreignId('ministere_id')->nullable();
+            $table->foreignId('province_id')->nullable();
+            $table->foreignId('commune_id')->nullable();
+            $table->foreignId('zone_id')->nullable();
+            $table->foreignId('colline_id')->nullable();
+            $table->foreignId('school_id')->nullable();
+            $table->foreignId('ecole_id')->nullable();
 
             $table->rememberToken();
             $table->timestamps();

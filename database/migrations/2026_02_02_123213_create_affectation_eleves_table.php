@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('affectation_eleves', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('inscription_id')->constrained('inscriptions')->cascadeOnDelete();
+            $table->foreignId('inscription_id')->constrained('inscriptions_eleves')->cascadeOnDelete();
             $table->foreignId('classe_id')->constrained('classes')->cascadeOnDelete();
             $table->date('date_affectation');
             $table->date('date_fin')->nullable();
