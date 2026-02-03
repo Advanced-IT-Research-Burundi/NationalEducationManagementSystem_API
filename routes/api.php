@@ -17,9 +17,11 @@
  * 9. Partners   - PTF, NGO, Research, External Audit
  */
 
+use App\Http\Controllers\Api\Academic\AnneeScolaireController;
+use App\Http\Controllers\Api\Academic\NiveauController;
+use App\Http\Controllers\Api\Inscription\InscriptionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\Inscription\InscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -153,6 +155,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
     })->middleware('permission:export_data')->name('data.export');
 });
 
-
 // Module-inscription API routes
-  Route::apiResource('inscriptions-eleves', InscriptionController::class);
+Route::apiResource('inscriptions-eleves', InscriptionController::class);
+
+/*
+|--------------------------------------------------------------------------
+| Settings / Configuration Routes (Alias for UI compatibility)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Années Scolaires (alias without /academic prefix for UI)
+    Route::get('annees-scolaires/list', [AnneeScolaireController::class, 'list']);
+    Route::get('annees-scolaires/current', [AnneeScolaireController::class, 'current']);
+    Route::post('annees-scolaires/{annee_scolaire}/toggle-active', [AnneeScolaireController::class, 'toggleActive']);
+    Route::apiResource('annees-scolaires', AnneeScolaireController::class);
+
+    // Niveaux Scolaires (alias without /academic prefix for UI)
+    Route::get('niveaux-scolaires/list', [NiveauController::class, 'list']);
+    Route::apiResource('niveaux-scolaires', NiveauController::class);
+});

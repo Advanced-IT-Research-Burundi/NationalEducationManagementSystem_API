@@ -3,9 +3,10 @@
 /**
  * Module Academic Routes
  *
- * Niveaux, Classes, Enseignants, Élèves, Inscriptions, Affectations
+ * Années Scolaires, Niveaux, Classes, Enseignants, Élèves, Inscriptions, Affectations
  */
 
+use App\Http\Controllers\Api\Academic\AnneeScolaireController;
 use App\Http\Controllers\Api\Academic\ClasseController;
 use App\Http\Controllers\Api\Academic\EleveController;
 use App\Http\Controllers\Api\Academic\EnseignantController;
@@ -18,6 +19,12 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->group(function () {
+
+    // Années Scolaires (School Years)
+    Route::get('annees-scolaires/list', [AnneeScolaireController::class, 'list'])->name('annees-scolaires.list');
+    Route::get('annees-scolaires/current', [AnneeScolaireController::class, 'current'])->name('annees-scolaires.current');
+    Route::post('annees-scolaires/{annee_scolaire}/toggle-active', [AnneeScolaireController::class, 'toggleActive'])->name('annees-scolaires.toggle-active');
+    Route::apiResource('annees-scolaires', AnneeScolaireController::class);
 
     // Niveaux (Grade Levels)
     Route::get('niveaux/list', [NiveauController::class, 'list'])->name('niveaux.list');
