@@ -18,7 +18,8 @@ class CampagneInscriptionController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = CampagneInscription::with(['anneeScolaire', 'ecole']);
+        $query = CampagneInscription::with(['anneeScolaire', 'ecole'])
+            ->forCurrentUser();
 
         // Search filter
         if ($request->filled('search')) {
@@ -185,7 +186,7 @@ class CampagneInscriptionController extends Controller
      */
     public function statistics(Request $request): JsonResponse
     {
-        $query = CampagneInscription::query();
+        $query = CampagneInscription::query()->forCurrentUser();
 
         if ($request->filled('annee_scolaire_id')) {
             $query->byAnneeScolaire($request->annee_scolaire_id);

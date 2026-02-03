@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Enums\CampagneStatut;
 use App\Enums\CampagneType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class CampagneInscription extends Model
 {
@@ -73,6 +75,39 @@ class CampagneInscription extends Model
         }
 
         return $query->where('type', $type);
+    }
+
+    /**
+     * Scope to filter campagnes by user's administrative hierarchy.
+     */
+    public function scopeForCurrentUser(Builder $query): Builder
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // Admin National sees everything
+        if ($user->hasRole('Admin National') || $user->admin_level === 'PAYS') {
+            return $query;
+        }
+
+        $level = $user->admin_level;
+        $entityId = $user->admin_entity_id;
+
+        if (! $level || ! $entityId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return match ($level) {
+            'ECOLE' => $query->where('ecole_id', $entityId),
+            'ZONE' => $query->whereHas('ecole', fn ($q) => $q->where('zone_id', $entityId)),
+            'COMMUNE' => $query->whereHas('ecole', fn ($q) => $q->where('commune_id', $entityId)),
+            'PROVINCE' => $query->whereHas('ecole', fn ($q) => $q->where('province_id', $entityId)),
+            'MINISTERE' => $query,
+            default => $query->whereRaw('1 = 0'),
+        };
     }
 
     /**
