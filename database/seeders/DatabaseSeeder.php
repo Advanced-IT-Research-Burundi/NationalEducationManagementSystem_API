@@ -28,6 +28,8 @@ class DatabaseSeeder extends Seeder
             BurundiAdministrativeDivisionsSeeder::class,
             RolesAndPermissionsSeeder::class,
             BurundiSchoolsSeeder::class,
+            AnneeScolaireSeeder::class,
+            NiveauSeeder::class,
         ]);
     }
 }
