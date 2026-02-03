@@ -15,22 +15,11 @@ class Eleve extends Model
     use HasDataScope, HasFactory, SoftDeletes;
 
     // Status constants
-    const STATUS_INSCRIT = 'INSCRIT';
-
-    const STATUS_ACTIF = 'ACTIF';
-
-    const STATUS_SUSPENDU = 'SUSPENDU';
-
-    const STATUS_TRANSFERE = 'TRANSFERE';
-
-    const STATUS_DIPLOME = 'DIPLOME';
-
-    const STATUS_ABANDONNE = 'ABANDONNE';
-
-    // Gender constants
-    const SEXE_M = 'M';
-
-    const SEXE_F = 'F';
+    const STATUT_ACTIF = 'actif';
+    const STATUT_INACTIF = 'inactif';
+    const STATUT_TRANSFERE = 'transfere';
+    const STATUT_ABANDONNE = 'abandonne';
+    const STATUT_DECEDE = 'decede';
 
     protected $table = 'eleves';
 
@@ -38,40 +27,39 @@ class Eleve extends Model
         'matricule',
         'nom',
         'prenom',
+        'sexe',
         'date_naissance',
         'lieu_naissance',
-        'sexe',
+        'nationalite',
+        'colline_origine_id',
+        'adresse',
         'nom_pere',
         'nom_mere',
-        'contact_parent',
-        'adresse',
-        'school_id',
-        'statut',
+        'contact_tuteur',
+        'nom_tuteur',
+        'photo_path',
+        'est_orphelin',
+        'a_handicap',
+        'type_handicap',
+        'ecole_origine_id',
+        'statut_global',
         'created_by',
     ];
 
     protected $casts = [
         'date_naissance' => 'date',
+        'est_orphelin' => 'boolean',
+        'a_handicap' => 'boolean',
     ];
 
-    protected $appends = ['statut_label', 'nom_complet', 'age'];
+    protected $appends = ['nom_complet', 'age'];
 
     /**
      * Query Scopes
      */
     public function scopeActif($query)
     {
-        return $query->whereIn('statut', [self::STATUS_INSCRIT, self::STATUS_ACTIF]);
-    }
-
-    public function scopeBySchool($query, int $schoolId)
-    {
-        return $query->where('school_id', $schoolId);
-    }
-
-    public function scopeBySexe($query, string $sexe)
-    {
-        return $query->where('sexe', $sexe);
+        return $query->where('statut_global', self::STATUT_ACTIF);
     }
 
     public function scopeSearch($query, string $search)
@@ -86,19 +74,6 @@ class Eleve extends Model
     /**
      * Accessors
      */
-    public function getStatutLabelAttribute(): string
-    {
-        return match ($this->statut) {
-            self::STATUS_INSCRIT => 'Inscrit',
-            self::STATUS_ACTIF => 'Actif',
-            self::STATUS_SUSPENDU => 'Suspendu',
-            self::STATUS_TRANSFERE => 'Transféré',
-            self::STATUS_DIPLOME => 'Diplômé',
-            self::STATUS_ABANDONNE => 'Abandonné',
-            default => 'Inconnu',
-        };
-    }
-
     public function getNomCompletAttribute(): string
     {
         return "{$this->prenom} {$this->nom}";
@@ -116,9 +91,14 @@ class Eleve extends Model
     /**
      * Relationships
      */
-    public function school(): BelongsTo
+    public function collineOrigine(): BelongsTo
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(Colline::class, 'colline_origine_id');
+    }
+
+    public function ecoleOrigine(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'ecole_origine_id');
     }
 
     public function creator(): BelongsTo
@@ -126,39 +106,31 @@ class Eleve extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function classes(): BelongsToMany
-    {
-        return $this->belongsToMany(Classe::class, 'inscriptions_eleves', 'eleve_id', 'classe_id')
-            ->withPivot(['annee_scolaire', 'date_inscription', 'statut', 'numero_ordre', 'observations'])
-            ->withTimestamps();
-    }
-
     public function inscriptions(): HasMany
     {
-        return $this->hasMany(InscriptionEleve::class, 'eleve_id');
+        return $this->hasMany(Inscription::class);
     }
 
-    /**
-     * Helper Methods
-     */
-    public function getCurrentClasse(): ?Classe
+    public function activeInscription()
     {
-        return $this->classes()
-            ->wherePivot('statut', 'ACTIVE')
-            ->orderByDesc('pivot_date_inscription')
-            ->first();
+        return $this->hasOne(Inscription::class)->latestOfMany();
     }
 
-    public function isEnrolledInClass(int $classeId): bool
+    // Scopes for HasDataScope - No direct scope column on Eleve anymore globally, usually scoped via Inscription
+    // But if we want to scope Eleve list by school... we can't easily unless we join inscriptions.
+    // For now, let's leave default implementation or null.
+    // However, HasDataScope trait requires getScopeColumn.
+    // Since Eleve is global, maybe we return null so it's visible to higher levels?
+    // Or we implement a scope that joins with inscriptions?
+    // The previous implementation used school_id.
+    // Let's set it to null for now (all access or custom scope need implementation).
+    protected static function getScopeColumn(): ?string
     {
-        return $this->inscriptions()
-            ->where('classe_id', $classeId)
-            ->where('statut', 'ACTIVE')
-            ->exists();
+        return null;
     }
 
-    public function canEnroll(): bool
+    protected static function getScopeRelation(): ?string
     {
-        return in_array($this->statut, [self::STATUS_INSCRIT, self::STATUS_ACTIF]);
+        return null;
     }
 }

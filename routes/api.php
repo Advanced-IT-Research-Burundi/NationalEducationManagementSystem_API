@@ -157,14 +157,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Module-inscription API routes
+// Module-inscription API routes
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('inscriptions-eleves/statistics', [InscriptionController::class, 'statistics']);
-    Route::get('inscriptions-eleves/campagne-active', [InscriptionController::class, 'campagneActive']);
-    Route::post('inscriptions-eleves/{inscription}/submit', [InscriptionController::class, 'submit']);
-    Route::post('inscriptions-eleves/{inscription}/validate', [InscriptionController::class, 'validateInscription']);
-    Route::post('inscriptions-eleves/{inscription}/reject', [InscriptionController::class, 'reject']);
-    Route::post('inscriptions-eleves/{inscription}/cancel', [InscriptionController::class, 'cancel']);
-    Route::apiResource('inscriptions-eleves', InscriptionController::class);
+    // Route::get('inscriptions/statistics', [InscriptionController::class, 'statistics']);
+    // Route::get('inscriptions/campagne-active', [InscriptionController::class, 'campagneActive']);
+    
+    Route::post('inscriptions/{inscription}/soumettre', [InscriptionController::class, 'soumettre']);
+    Route::post('inscriptions/{inscription}/valider', [InscriptionController::class, 'valider']);
+    Route::post('inscriptions/{inscription}/rejeter', [InscriptionController::class, 'rejeter']);
+    
+    Route::apiResource('inscriptions', InscriptionController::class);
 });
 
 /*
@@ -184,9 +186,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('niveaux-scolaires', NiveauController::class);
 
     // Campagnes d'Inscription
-    Route::get('campagnes-inscription/statistics', [CampagneInscriptionController::class, 'statistics']);
-    Route::get('campagnes-inscription/by-ecole/{ecole}', [CampagneInscriptionController::class, 'byEcole']);
-    Route::post('campagnes-inscription/{campagne}/ouvrir', [CampagneInscriptionController::class, 'ouvrir']);
-    Route::post('campagnes-inscription/{campagne}/cloturer', [CampagneInscriptionController::class, 'cloturer']);
-    Route::apiResource('campagnes-inscription', CampagneInscriptionController::class);
+    // Campagnes d'Inscription
+    // Route::get('campagnes-inscription/statistics', [CampagneInscriptionController::class, 'statistics']);
+    // Route::get('campagnes-inscription/by-ecole/{ecole}', [CampagneInscriptionController::class, 'byEcole']);
+    
+    // Note: Parameter binding for apiResource might need adjustment if it doesn't match $campagneInscription
+    // Explicitly defining param for custom routes
+    Route::post('campagnes-inscription/{campagneInscription}/ouvrir', [CampagneInscriptionController::class, 'ouvrir']);
+    Route::post('campagnes-inscription/{campagneInscription}/cloturer', [CampagneInscriptionController::class, 'cloturer']);
+    Route::apiResource('campagnes-inscription', CampagneInscriptionController::class)->parameters([
+        'campagnes-inscription' => 'campagneInscription'
+    ]);
 });

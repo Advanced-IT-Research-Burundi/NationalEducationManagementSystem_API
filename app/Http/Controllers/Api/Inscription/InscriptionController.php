@@ -2,413 +2,157 @@
 
 namespace App\Http\Controllers\Api\Inscription;
 
-use App\Enums\CampagneStatut;
 use App\Http\Controllers\Controller;
-use App\Models\CampagneInscription;
-use App\Models\Eleve;
-use App\Models\InscriptionEleve;
-use Illuminate\Http\JsonResponse;
+use App\Models\Inscription;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class InscriptionController extends Controller
 {
-    /**
-     * GET /api/inscriptions-eleves
-     * Liste des inscriptions filtrées par l'école de l'utilisateur
-     */
     public function index(Request $request): JsonResponse
     {
-        $query = InscriptionEleve::with([
-            'eleve',
-            'classe',
-            'ecole',
-            'anneeScolaire',
-            'niveauDemande',
-            'campagne',
-        ])->forCurrentUser()->latest();
-
-        // Filtres optionnels
-        if ($request->filled('annee_scolaire_id')) {
-            $query->where('annee_scolaire_id', $request->annee_scolaire_id);
-        }
+        $query = Inscription::query()
+            ->with(['eleve', 'anneeScolaire', 'ecole', 'niveauDemande', 'campagne']);
 
         if ($request->filled('ecole_id')) {
             $query->where('ecole_id', $request->ecole_id);
         }
 
-        if ($request->filled('campagne_id')) {
-            $query->where('campagne_id', $request->campagne_id);
+        if ($request->filled('annee_scolaire_id')) {
+            $query->where('annee_scolaire_id', $request->annee_scolaire_id);
         }
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
 
-        if ($request->filled('type')) {
-            $query->where('type_inscription', $request->type);
-        }
-
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('numero_inscription', 'LIKE', "%{$search}%")
-                    ->orWhereHas('eleve', function ($q) use ($search) {
-                        $q->where('nom', 'LIKE', "%{$search}%")
-                            ->orWhere('prenom', 'LIKE', "%{$search}%")
-                            ->orWhere('matricule', 'LIKE', "%{$search}%");
-                    });
+            $query->whereHas('eleve', function ($q) use ($search) {
+                $q->where('nom', 'like', "%{$search}%")
+                  ->orWhere('prenom', 'like', "%{$search}%")
+                  ->orWhere('matricule', 'like', "%{$search}%");
             });
         }
 
-        $perPage = $request->input('per_page', 15);
+        $inscriptions = $query->latest('date_inscription')->paginate($request->per_page ?? 15);
 
-        return response()->json($query->paginate($perPage));
+        return response()->json($inscriptions);
     }
 
-    /**
-     * POST /api/inscriptions-eleves
-     * Créer une inscription - l'élève est lié à l'école de l'utilisateur connecté
-     * et à la campagne active de cette école
-     */
     public function store(Request $request): JsonResponse
     {
-        $user = Auth::user();
-
-        // Déterminer l'école
-        $ecoleId = $this->getUserSchoolId($user);
-
-        if (! $ecoleId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous devez être associé à une école pour créer une inscription.',
-            ], 403);
-        }
-
-        // Trouver la campagne active pour cette école
-        $campagneActive = CampagneInscription::where('ecole_id', $ecoleId)
-            ->where('statut', CampagneStatut::Ouverte)
-            ->first();
-
-        if (! $campagneActive) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Aucune campagne d\'inscription n\'est ouverte pour votre école.',
-            ], 422);
-        }
-
-        // Validation
+        // Basic validation - should be moved to FormRequest
         $validated = $request->validate([
             'eleve_id' => 'required|exists:eleves,id',
-            'classe_id' => 'nullable|exists:classes,id',
-            'niveau_demande_id' => 'required|exists:niveaux,id',
-            'type_inscription' => 'required|in:nouvelle,reinscription,transfert_entrant',
-            'date_inscription' => 'nullable|date',
-            'est_redoublant' => 'boolean',
-            'observations' => 'nullable|string|max:1000',
+            'campagne_id' => 'required|exists:campagnes_inscription,id',
+            'ecole_id' => 'required|exists:ecoles,id',
+            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+            'niveau_demande_id' => 'required|exists:niveaux_scolaires,id',
+            'type_inscription' => ['required', Rule::in(['nouvelle', 'reinscription', 'transfert_entrant'])],
+            'pieces_fournies' => 'nullable|array',
+            'observations' => 'nullable|string',
         ]);
 
-        // Vérifier que l'élève appartient à l'école
-        $eleve = Eleve::find($validated['eleve_id']);
-        if ($eleve->school_id && $eleve->school_id !== $ecoleId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cet élève n\'appartient pas à votre école.',
-            ], 422);
-        }
+        // Generate numero_inscription logic here or inside model boot
+        // For now, simplify assignment
+        $validated['numero_inscription'] = 'INS-' . date('Y') . '-' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
+        $validated['date_inscription'] = now();
+        $validated['statut'] = 'brouillon';
+        $validated['created_by'] = $request->user()->id;
 
-        // Vérifier si l'élève n'est pas déjà inscrit dans cette campagne
-        $existingInscription = InscriptionEleve::where('eleve_id', $validated['eleve_id'])
-            ->where('campagne_id', $campagneActive->id)
-            ->whereNotIn('statut', [InscriptionEleve::STATUS_ANNULE, InscriptionEleve::STATUS_REJETE])
-            ->exists();
+        $inscription = Inscription::create($validated);
 
-        if ($existingInscription) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cet élève a déjà une inscription en cours dans cette campagne.',
-            ], 422);
-        }
-
-        // Créer l'inscription
-        $inscription = DB::transaction(function () use ($validated, $ecoleId, $campagneActive, $eleve) {
-            // Lier l'élève à l'école si ce n'est pas déjà fait
-            if (! $eleve->school_id) {
-                $eleve->update(['school_id' => $ecoleId]);
-            }
-
-            return InscriptionEleve::create([
-                'eleve_id' => $validated['eleve_id'],
-                'ecole_id' => $ecoleId,
-                'campagne_id' => $campagneActive->id,
-                'annee_scolaire_id' => $campagneActive->annee_scolaire_id,
-                'classe_id' => $validated['classe_id'] ?? null,
-                'niveau_demande_id' => $validated['niveau_demande_id'],
-                'type_inscription' => $validated['type_inscription'],
-                'date_inscription' => $validated['date_inscription'] ?? now(),
-                'est_redoublant' => $validated['est_redoublant'] ?? false,
-                'observations' => $validated['observations'] ?? null,
-                'statut' => InscriptionEleve::STATUS_BROUILLON,
-            ]);
-        });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription créée avec succès',
-            'data' => $inscription->load([
-                'eleve',
-                'classe',
-                'ecole',
-                'anneeScolaire',
-                'niveauDemande',
-                'campagne',
-            ]),
-        ], 201);
+        return response()->json($inscription, 201);
     }
 
-    /**
-     * GET /api/inscriptions-eleves/{inscription}
-     */
-    public function show(InscriptionEleve $inscriptionsElefe): JsonResponse
+    public function show(Inscription $inscription): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => $inscriptionsElefe->load([
-                'eleve',
-                'classe',
-                'ecole',
-                'anneeScolaire',
-                'niveauDemande',
-                'campagne',
-                'creator',
-                'validePar',
-                'affectations.classe',
-            ]),
-        ]);
+        $inscription->load(['eleve', 'anneeScolaire', 'ecole', 'niveauDemande', 'campagne', 'creator']);
+        return response()->json($inscription);
     }
 
-    /**
-     * PUT /api/inscriptions-eleves/{inscription}
-     */
-    public function update(Request $request, InscriptionEleve $inscriptionsElefe): JsonResponse
+    public function update(Request $request, Inscription $inscription): JsonResponse
     {
-        // Seules les inscriptions en brouillon peuvent être modifiées
-        if ($inscriptionsElefe->statut !== InscriptionEleve::STATUS_BROUILLON) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Seules les inscriptions en brouillon peuvent être modifiées.',
-            ], 422);
+        // Only allow update if status is brouillon or rejete
+        if (!in_array($inscription->statut, ['brouillon', 'rejete'])) {
+            return response()->json(['message' => 'Impossible de modifier une inscription en cours de traitement ou validée.'], 403);
         }
 
         $validated = $request->validate([
-            'classe_id' => 'nullable|exists:classes,id',
-            'niveau_demande_id' => 'sometimes|exists:niveaux,id',
-            'type_inscription' => 'sometimes|in:nouvelle,reinscription,transfert_entrant',
-            'est_redoublant' => 'boolean',
-            'observations' => 'nullable|string|max:1000',
+            'niveau_demande_id' => 'sometimes|exists:niveaux_scolaires,id',
+            'type_inscription' => ['sometimes', Rule::in(['nouvelle', 'reinscription', 'transfert_entrant'])],
+            'pieces_fournies' => 'nullable|array',
+            'observations' => 'nullable|string',
         ]);
 
-        $inscriptionsElefe->update($validated);
+        $inscription->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription mise à jour',
-            'data' => $inscriptionsElefe->fresh([
-                'eleve',
-                'classe',
-                'ecole',
-                'anneeScolaire',
-                'niveauDemande',
-            ]),
-        ]);
+        return response()->json($inscription);
     }
 
-    /**
-     * DELETE /api/inscriptions-eleves/{inscription}
-     */
-    public function destroy(InscriptionEleve $inscriptionsElefe): JsonResponse
+    public function destroy(Inscription $inscription): JsonResponse
     {
-        if (! $inscriptionsElefe->canCancel()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette inscription ne peut pas être supprimée.',
-            ], 422);
+        if ($inscription->statut !== 'brouillon') {
+             return response()->json(['message' => 'Seules les inscriptions brouillon peuvent être supprimées.'], 403);
         }
 
-        $inscriptionsElefe->cancel();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription annulée',
-        ]);
+        $inscription->delete();
+        return response()->json(null, 204);
     }
 
-    /**
-     * POST /api/inscriptions-eleves/{inscription}/submit
-     * Soumettre une inscription pour validation
-     */
-    public function submit(InscriptionEleve $inscription): JsonResponse
+    // Workflow Actions
+    public function soumettre(Inscription $inscription, Request $request): JsonResponse
     {
-        if (! $inscription->submit()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette inscription ne peut pas être soumise.',
-            ], 422);
+        if ($inscription->statut !== 'brouillon' && $inscription->statut !== 'rejete') {
+            return response()->json(['message' => 'Statut invalide pour soumission.'], 400);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription soumise pour validation',
-            'data' => $inscription->fresh(),
-        ]);
-    }
-
-    /**
-     * POST /api/inscriptions-eleves/{inscription}/validate
-     * Valider une inscription
-     */
-    public function validateInscription(InscriptionEleve $inscription): JsonResponse
-    {
-        if (! $inscription->validate()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette inscription ne peut pas être validée.',
-            ], 422);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription validée avec succès',
-            'data' => $inscription->fresh(['eleve', 'classe']),
-        ]);
-    }
-
-    /**
-     * POST /api/inscriptions-eleves/{inscription}/reject
-     * Rejeter une inscription
-     */
-    public function reject(Request $request, InscriptionEleve $inscription): JsonResponse
-    {
-        $validated = $request->validate([
-            'motif_rejet' => 'required|string|max:500',
+        $inscription->update([
+            'statut' => 'soumis',
+            'date_soumission' => now(),
+            'soumis_par' => $request->user()->id,
         ]);
 
-        if (! $inscription->reject($validated['motif_rejet'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette inscription ne peut pas être rejetée.',
-            ], 422);
+        return response()->json($inscription);
+    }
+
+    public function valider(Inscription $inscription, Request $request): JsonResponse
+    {
+        if ($inscription->statut !== 'soumis') {
+            return response()->json(['message' => 'L\'inscription doit être soumise pour être validée.'], 400);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription rejetée',
-            'data' => $inscription->fresh(),
+        // TODO: Check permissions
+
+        $inscription->update([
+            'statut' => 'valide',
+            'date_validation' => now(),
+            'valide_par' => $request->user()->id,
         ]);
+
+        // Update Eleve status to INSCRIT?
+        $inscription->eleve->update(['statut_global' => 'actif']); // Or whatever the logic is
+
+        return response()->json($inscription);
     }
 
-    /**
-     * POST /api/inscriptions-eleves/{inscription}/cancel
-     * Annuler une inscription
-     */
-    public function cancel(InscriptionEleve $inscription): JsonResponse
+    public function rejeter(Inscription $inscription, Request $request): JsonResponse
     {
-        if (! $inscription->cancel()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cette inscription ne peut pas être annulée.',
-            ], 422);
+        $request->validate(['motif_rejet' => 'required|string']);
+
+        if ($inscription->statut !== 'soumis') {
+             return response()->json(['message' => 'L\'inscription doit être soumise pour être rejetée.'], 400);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription annulée',
+        $inscription->update([
+            'statut' => 'rejete',
+            'motif_rejet' => $request->input('motif_rejet'),
+            'valide_par' => $request->user()->id, // Person rejecting
         ]);
-    }
 
-    /**
-     * GET /api/inscriptions-eleves/statistics
-     * Statistiques des inscriptions
-     */
-    public function statistics(Request $request): JsonResponse
-    {
-        $query = InscriptionEleve::query()->forCurrentUser();
-
-        if ($request->filled('ecole_id')) {
-            $query->where('ecole_id', $request->ecole_id);
-        }
-
-        if ($request->filled('annee_scolaire_id')) {
-            $query->where('annee_scolaire_id', $request->annee_scolaire_id);
-        }
-
-        if ($request->filled('campagne_id')) {
-            $query->where('campagne_id', $request->campagne_id);
-        }
-
-        $stats = [
-            'total' => (clone $query)->count(),
-            'by_status' => [
-                'brouillon' => (clone $query)->where('statut', 'brouillon')->count(),
-                'soumis' => (clone $query)->where('statut', 'soumis')->count(),
-                'valide' => (clone $query)->where('statut', 'valide')->count(),
-                'rejete' => (clone $query)->where('statut', 'rejete')->count(),
-                'annule' => (clone $query)->where('statut', 'annule')->count(),
-            ],
-            'by_type' => [
-                'nouvelle' => (clone $query)->where('type_inscription', 'nouvelle')->count(),
-                'reinscription' => (clone $query)->where('type_inscription', 'reinscription')->count(),
-                'transfert_entrant' => (clone $query)->where('type_inscription', 'transfert_entrant')->count(),
-            ],
-        ];
-
-        return response()->json($stats);
-    }
-
-    /**
-     * GET /api/inscriptions-eleves/campagne-active
-     * Obtenir la campagne active pour l'école de l'utilisateur
-     */
-    public function campagneActive(): JsonResponse
-    {
-        $user = Auth::user();
-        $ecoleId = $this->getUserSchoolId($user);
-
-        if (! $ecoleId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous devez être associé à une école.',
-                'data' => null,
-            ]);
-        }
-
-        $campagne = CampagneInscription::with(['ecole', 'anneeScolaire'])
-            ->where('ecole_id', $ecoleId)
-            ->where('statut', CampagneStatut::Ouverte)
-            ->first();
-
-        return response()->json([
-            'success' => true,
-            'data' => $campagne,
-        ]);
-    }
-
-    /**
-     * Helper: Obtenir l'ID de l'école de l'utilisateur
-     */
-    private function getUserSchoolId($user): ?int
-    {
-        // Si l'utilisateur est de niveau ECOLE
-        if ($user->admin_level === 'ECOLE' && $user->admin_entity_id) {
-            return $user->admin_entity_id;
-        }
-
-        // Si l'utilisateur a un school_id direct
-        if ($user->school_id) {
-            return $user->school_id;
-        }
-
-        return null;
+        return response()->json($inscription);
     }
 }
