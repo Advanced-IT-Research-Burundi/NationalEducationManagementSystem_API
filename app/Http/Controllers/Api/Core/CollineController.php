@@ -38,7 +38,7 @@ class CollineController extends Controller
             $query->search($request->search);
         }
 
-        $collines = $query->paginate(10);
+        $collines = $query->paginate($request->input('per_page', 15));
 
         return sendResponse($collines, 'Collines retrieved successfully.');
     }
