@@ -2,14 +2,13 @@
 
 namespace App\Providers;
 
-use Dedoc\Scramble\ScrambleServiceProvider;
-use Illuminate\Support\ServiceProvider;
-
-
 use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\ScrambleServiceProvider;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +26,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Super Admin: l'utilisateur avec l'ID 1 a toujours tous les droits
+        Gate::before(function ($user, $ability) {
+            if ($user->id === 1) {
+                return true;
+            }
+        });
+
         Scramble::routes(function (Route $route) {
             return Str::startsWith($route->uri, 'api/');
         });

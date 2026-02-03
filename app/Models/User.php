@@ -15,6 +15,11 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
+     * Guard name for Spatie Permission.
+     */
+    protected string $guard_name = 'api';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -111,7 +116,6 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Ecole::class);
     }
-
 
     // Helper to check permission (Manual implementation if needed, but Spatie provides can())
     public function hasPermission($permissionSlug)
