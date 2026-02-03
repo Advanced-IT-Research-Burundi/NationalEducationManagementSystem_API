@@ -157,7 +157,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Module-inscription API routes
-Route::apiResource('inscriptions-eleves', InscriptionController::class);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('inscriptions-eleves/statistics', [InscriptionController::class, 'statistics']);
+    Route::get('inscriptions-eleves/campagne-active', [InscriptionController::class, 'campagneActive']);
+    Route::post('inscriptions-eleves/{inscription}/submit', [InscriptionController::class, 'submit']);
+    Route::post('inscriptions-eleves/{inscription}/validate', [InscriptionController::class, 'validateInscription']);
+    Route::post('inscriptions-eleves/{inscription}/reject', [InscriptionController::class, 'reject']);
+    Route::post('inscriptions-eleves/{inscription}/cancel', [InscriptionController::class, 'cancel']);
+    Route::apiResource('inscriptions-eleves', InscriptionController::class);
+});
 
 /*
 |--------------------------------------------------------------------------
