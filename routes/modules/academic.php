@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 | Protected Academic Routes
 |--------------------------------------------------------------------------
 */
+
 Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->group(function () {
 
     // Années Scolaires (School Years)

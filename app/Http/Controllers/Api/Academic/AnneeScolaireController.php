@@ -33,7 +33,7 @@ class AnneeScolaireController extends Controller
 
         $anneesScolaires = $query->ordered()->paginate($request->get('per_page', 15));
 
-        return response()->json($anneesScolaires);
+        return sendResponse($anneesScolaires, 'Années scolaires récupérées avec succès');
     }
 
     /**
