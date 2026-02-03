@@ -19,6 +19,7 @@
 
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
 use App\Http\Controllers\Api\Academic\NiveauController;
+use App\Http\Controllers\Api\Inscription\CampagneInscriptionController;
 use App\Http\Controllers\Api\Inscription\InscriptionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -173,4 +174,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Niveaux Scolaires (alias without /academic prefix for UI)
     Route::get('niveaux-scolaires/list', [NiveauController::class, 'list']);
     Route::apiResource('niveaux-scolaires', NiveauController::class);
+
+    // Campagnes d'Inscription
+    Route::get('campagnes-inscription/statistics', [CampagneInscriptionController::class, 'statistics']);
+    Route::get('campagnes-inscription/by-ecole/{ecole}', [CampagneInscriptionController::class, 'byEcole']);
+    Route::post('campagnes-inscription/{campagne}/ouvrir', [CampagneInscriptionController::class, 'ouvrir']);
+    Route::post('campagnes-inscription/{campagne}/cloturer', [CampagneInscriptionController::class, 'cloturer']);
+    Route::apiResource('campagnes-inscription', CampagneInscriptionController::class);
 });
