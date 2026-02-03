@@ -13,7 +13,7 @@ class MinistereController extends Controller
      */
     public function index()
     {
-        $ministeres = Ministere::with('pays')->paginate(10); // Assuming relationship to Pays exists
+        $ministeres = Ministere::with('pays')->paginate(10);
         return sendResponse($ministeres, 'Ministeres retrieved successfully');
     }
 

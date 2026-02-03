@@ -24,9 +24,9 @@ class ProvinceController extends Controller
             $query->where('pays_id', $request->pays_id);
         }
 
-        $provinces = $query->get();
+        $provinces = $query->paginate(10);
 
-        return response()->json($provinces);
+        return sendResponse($provinces, 'Provinces retrieved successfully.');
     }
 
     /**

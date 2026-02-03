@@ -28,9 +28,9 @@ class CommuneController extends Controller
             $query->where('pays_id', $request->pays_id);
         }
 
-        $communes = $query->get();
+        $communes = $query->paginate(10);
 
-        return response()->json($communes);
+        return sendResponse($communes, 'Communes retrieved successfully.');
     }
 
     /**
