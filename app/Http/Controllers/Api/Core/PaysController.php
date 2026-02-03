@@ -15,12 +15,8 @@ class PaysController extends Controller
     public function index(): JsonResponse
     {
         $pays = Pays::all();
-<<<<<<< HEAD:app/Http/Controllers/Api/PaysController.php
-        return sendResponse($pays, 'Pays retrieved successfully');
-=======
 
         return response()->json($pays);
->>>>>>> master:app/Http/Controllers/Api/Core/PaysController.php
     }
 
     /**
