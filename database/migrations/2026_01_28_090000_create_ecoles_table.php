@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('schools', function (Blueprint $table) {
+        Schema::create('ecoles', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->enum('type_ecole', ['PUBLIQUE', 'PRIVEE', 'ECC', 'AUTRE'])->nullable();

@@ -9,6 +9,8 @@ class School extends Model
 {
     use \App\Traits\HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
+    protected $table = 'ecoles';
+
     // Workflow status constants
     const STATUS_BROUILLON = 'BROUILLON';
 
