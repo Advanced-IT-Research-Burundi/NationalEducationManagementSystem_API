@@ -40,7 +40,7 @@ class CollineController extends Controller
 
         $collines = $query->paginate(10);
 
-        return response()->json($collines);
+        return sendResponse($collines, 'Collines retrieved successfully.');
     }
 
     /**
