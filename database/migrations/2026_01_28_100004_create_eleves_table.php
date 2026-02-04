@@ -37,6 +37,14 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('ecoles')
                 ->nullOnDelete();
+            $table->foreignId('school_id')
+                ->nullable()
+                ->constrained('ecoles')
+                ->nullOnDelete();
+            $table->foreignId('created_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->enum('statut_global', [
                 'actif', 'inactif', 'transfere', 'abandonne', 'decede'
             ])->default('actif');

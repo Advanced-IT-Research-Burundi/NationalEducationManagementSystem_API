@@ -44,6 +44,7 @@ class Eleve extends Model
         'ecole_origine_id',
         'statut_global',
         'created_by',
+        'school_id'
     ];
 
     protected $casts = [
@@ -60,6 +61,11 @@ class Eleve extends Model
     public function scopeActif($query)
     {
         return $query->where('statut_global', self::STATUT_ACTIF);
+    }
+
+    public function scopeBySchool($query, $schoolId)
+    {
+        return $query->where('school_id', $schoolId);
     }
 
     public function scopeSearch($query, string $search)
@@ -101,6 +107,12 @@ class Eleve extends Model
         return $this->belongsTo(School::class, 'ecole_origine_id');
     }
 
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'school_id');
+    }
+
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -132,5 +144,22 @@ class Eleve extends Model
     protected static function getScopeRelation(): ?string
     {
         return null;
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($eleve) {
+            $eleve->created_by = auth()->id();
+            $eleve->matricule = $eleve->generateMatricule();
+        });
+    }
+
+    public function generateMatricule()
+    {
+        $lastMatricule = self::latest()->first()->matricule ?? '000000';
+        $newMatricule = str_pad((int) $lastMatricule + 1, 6, '0', STR_PAD_LEFT);
+        return $newMatricule;
     }
 }

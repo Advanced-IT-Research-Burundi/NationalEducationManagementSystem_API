@@ -24,7 +24,7 @@ class StoreEleveRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'matricule' => ['required', 'string', 'max:50', 'unique:eleves,matricule'],
+            'matricule' => ['nullable', 'string', 'max:50', 'unique:eleves,matricule'],
             'nom' => ['required', 'string', 'max:100'],
             'prenom' => ['required', 'string', 'max:100'],
             'date_naissance' => ['nullable', 'date', 'before:today'],
@@ -34,7 +34,7 @@ class StoreEleveRequest extends FormRequest
             'nom_mere' => ['nullable', 'string', 'max:100'],
             'contact_parent' => ['nullable', 'string', 'max:20'],
             'adresse' => ['nullable', 'string', 'max:500'],
-            'school_id' => ['required', 'exists:schools,id'],
+            'school_id' => ['required', 'exists:ecoles,id'],
             'statut' => ['nullable', Rule::in(['INSCRIT', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])],
 
             // Optional: auto-enroll in a class
