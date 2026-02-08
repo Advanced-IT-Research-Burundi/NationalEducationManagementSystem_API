@@ -47,6 +47,7 @@ class Eleve extends Model
         'ecole_origine_id',
         'statut_global',
         'created_by',
+        'school_id'
     ];
 
     protected $casts = [
@@ -63,6 +64,11 @@ class Eleve extends Model
     public function scopeActif($query)
     {
         return $query->where('statut_global', self::STATUT_ACTIF);
+    }
+
+    public function scopeBySchool($query, $schoolId)
+    {
+        return $query->where('school_id', $schoolId);
     }
 
     public function scopeSearch($query, string $search)
@@ -103,6 +109,12 @@ class Eleve extends Model
     {
         return $this->belongsTo(School::class, 'ecole_origine_id');
     }
+
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'school_id');
+    }
+
 
     public function creator(): BelongsTo
     {
@@ -160,56 +172,20 @@ class Eleve extends Model
         return null;
     }
 
-    /**
-     * Helper Methods for Mouvements
-     */
-
-    /**
-     * Vérifie si l'élève peut être transféré.
-     */
-    public function canBeTransferred(): bool
+    public static function boot()
     {
-        return $this->statut_global === self::STATUT_ACTIF;
+        parent::boot();
+
+        static::creating(function ($eleve) {
+            $eleve->created_by = auth()->id();
+            $eleve->matricule = $eleve->generateMatricule();
+        });
     }
 
-    /**
-     * Vérifie si l'élève peut être réintégré.
-     */
-    public function canBeReintegrated(): bool
+    public function generateMatricule()
     {
-        return in_array($this->statut_global, [
-            self::STATUT_INACTIF,
-            self::STATUT_ABANDONNE,
-        ]);
-    }
-
-    /**
-     * Vérifie si l'élève a un mouvement en attente pour une année scolaire.
-     */
-    public function hasPendingMouvement(?int $anneeScolaireId = null): bool
-    {
-        $query = $this->mouvements()->where('statut', 'en_attente');
-
-        if ($anneeScolaireId) {
-            $query->where('annee_scolaire_id', $anneeScolaireId);
-        }
-
-        return $query->exists();
-    }
-
-    /**
-     * Compte les redoublements de l'élève.
-     */
-    public function countRedoublements(?int $niveauId = null): int
-    {
-        return MouvementEleve::countRedoublements($this->id, $niveauId);
-    }
-
-    /**
-     * Vérifie si l'élève peut encore redoubler (max 2 fois par niveau).
-     */
-    public function canRedouble(int $niveauId): bool
-    {
-        return $this->countRedoublements($niveauId) < 2;
+        $lastMatricule = self::latest()->first()->matricule ?? '000000';
+        $newMatricule = str_pad((int) $lastMatricule + 1, 6, '0', STR_PAD_LEFT);
+        return $newMatricule;
     }
 }
