@@ -30,6 +30,9 @@ class DatabaseSeeder extends Seeder
             BurundiSchoolsSeeder::class,
             AnneeScolaireSeeder::class,
             NiveauSeeder::class,
+            ClasseSeeder::class,
+            EleveSeeder::class,
+            MouvementEleveSeeder::class,
         ]);
     }
 }

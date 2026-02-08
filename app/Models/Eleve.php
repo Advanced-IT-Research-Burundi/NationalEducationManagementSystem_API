@@ -6,7 +6,6 @@ use App\Traits\HasDataScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -16,9 +15,13 @@ class Eleve extends Model
 
     // Status constants
     const STATUT_ACTIF = 'actif';
+
     const STATUT_INACTIF = 'inactif';
+
     const STATUT_TRANSFERE = 'transfere';
+
     const STATUT_ABANDONNE = 'abandonne';
+
     const STATUT_DECEDE = 'decede';
 
     protected $table = 'eleves';
@@ -111,9 +114,32 @@ class Eleve extends Model
         return $this->hasMany(Inscription::class);
     }
 
+    public function inscriptionsEleves(): HasMany
+    {
+        return $this->hasMany(InscriptionEleve::class);
+    }
+
     public function activeInscription()
     {
         return $this->hasOne(Inscription::class)->latestOfMany();
+    }
+
+    public function mouvements(): HasMany
+    {
+        return $this->hasMany(MouvementEleve::class);
+    }
+
+    public function mouvementsValides(): HasMany
+    {
+        return $this->hasMany(MouvementEleve::class)
+            ->where('statut', 'valide')
+            ->orderByDesc('date_mouvement');
+    }
+
+    public function dernierMouvement(): BelongsTo
+    {
+        return $this->belongsTo(MouvementEleve::class)
+            ->ofMany('date_mouvement', 'max');
     }
 
     // Scopes for HasDataScope - No direct scope column on Eleve anymore globally, usually scoped via Inscription
@@ -132,5 +158,58 @@ class Eleve extends Model
     protected static function getScopeRelation(): ?string
     {
         return null;
+    }
+
+    /**
+     * Helper Methods for Mouvements
+     */
+
+    /**
+     * Vérifie si l'élève peut être transféré.
+     */
+    public function canBeTransferred(): bool
+    {
+        return $this->statut_global === self::STATUT_ACTIF;
+    }
+
+    /**
+     * Vérifie si l'élève peut être réintégré.
+     */
+    public function canBeReintegrated(): bool
+    {
+        return in_array($this->statut_global, [
+            self::STATUT_INACTIF,
+            self::STATUT_ABANDONNE,
+        ]);
+    }
+
+    /**
+     * Vérifie si l'élève a un mouvement en attente pour une année scolaire.
+     */
+    public function hasPendingMouvement(?int $anneeScolaireId = null): bool
+    {
+        $query = $this->mouvements()->where('statut', 'en_attente');
+
+        if ($anneeScolaireId) {
+            $query->where('annee_scolaire_id', $anneeScolaireId);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Compte les redoublements de l'élève.
+     */
+    public function countRedoublements(?int $niveauId = null): int
+    {
+        return MouvementEleve::countRedoublements($this->id, $niveauId);
+    }
+
+    /**
+     * Vérifie si l'élève peut encore redoubler (max 2 fois par niveau).
+     */
+    public function canRedouble(int $niveauId): bool
+    {
+        return $this->countRedoublements($niveauId) < 2;
     }
 }

@@ -7,12 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 
 class InscriptionEleve extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     // Status constants
     const STATUS_BROUILLON = 'brouillon';
@@ -34,7 +33,7 @@ class InscriptionEleve extends Model
 
     const STATUS_ANNULEE = 'ANNULEE';
 
-    protected $table = 'inscriptions_eleves';
+    protected $table = 'inscriptions';
 
     protected $fillable = [
         'eleve_id',

@@ -3,13 +3,14 @@
 /**
  * Module Academic Routes
  *
- * Années Scolaires, Niveaux, Classes, Enseignants, Élèves, Inscriptions, Affectations
+ * Années Scolaires, Niveaux, Classes, Enseignants, Élèves, Inscriptions, Affectations, Mouvements
  */
 
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
 use App\Http\Controllers\Api\Academic\ClasseController;
 use App\Http\Controllers\Api\Academic\EleveController;
 use App\Http\Controllers\Api\Academic\EnseignantController;
+use App\Http\Controllers\Api\Academic\MouvementEleveController;
 use App\Http\Controllers\Api\Academic\NiveauController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,4 +55,16 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::delete('inscriptions/{inscription}', [EleveController::class, 'unenroll'])->name('inscriptions.unenroll');
     Route::post('inscriptions/{inscription}/transfer', [EleveController::class, 'transfer'])->name('inscriptions.transfer');
     Route::apiResource('eleves', EleveController::class);
+
+    // Mouvements Élèves (Student Movements: transfers, dropouts, etc.)
+    Route::get('mouvements-eleve/statistics', [MouvementEleveController::class, 'statistics'])->name('mouvements-eleve.statistics');
+    Route::get('mouvements-eleve/types', [MouvementEleveController::class, 'types'])->name('mouvements-eleve.types');
+    Route::get('mouvements-eleve/by-eleve/{eleve}', [MouvementEleveController::class, 'byEleve'])->name('mouvements-eleve.by-eleve');
+    Route::get('mouvements-eleve/by-school/{school}', [MouvementEleveController::class, 'bySchool'])->name('mouvements-eleve.by-school');
+    Route::get('mouvements-eleve/by-type/{type}', [MouvementEleveController::class, 'byType'])->name('mouvements-eleve.by-type');
+    Route::post('mouvements-eleve/{mouvement_eleve}/validate', [MouvementEleveController::class, 'validate'])->name('mouvements-eleve.validate');
+    Route::post('mouvements-eleve/{mouvement_eleve}/reject', [MouvementEleveController::class, 'reject'])->name('mouvements-eleve.reject');
+    Route::apiResource('mouvements-eleve', MouvementEleveController::class)->parameters([
+        'mouvements-eleve' => 'mouvement_eleve',
+    ]);
 });
