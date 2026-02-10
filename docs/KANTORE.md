@@ -10,10 +10,10 @@ Responsable de l'**implémentation des modules métier** du système : Pédagogi
 
 ### 1. Module Pédagogie - Implémentation Complète
 
-| Priorité | **HAUTE** |
-|----------|-----------|
+| Priorité    | **HAUTE**                                                                                                                                                          |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Description | Implémenter le module Pédagogie qui gère les inspections scolaires, les standards de qualité et les formations. Les controllers existent mais sans logique métier. |
-| Livrable | Module fonctionnel avec CRUD complet, workflows de validation, rapports d'inspection |
+| Livrable    | Module fonctionnel avec CRUD complet, workflows de validation, rapports d'inspection                                                                               |
 
 **Sous-tâches :**
 - [ ] Créer les migrations pour les tables : `inspections`, `standards_qualite`, `formations`, `participants_formation`
@@ -38,10 +38,10 @@ Formation: id, titre, description, date_debut, date_fin, formateur_id,
 
 ### 2. Module Examens - Implémentation Complète
 
-| Priorité | **HAUTE** |
-|----------|-----------|
+| Priorité    | **HAUTE**                                                                                                                                                |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Description | Implémenter le module Examens pour la planification des examens nationaux, la gestion des centres d'examen, la saisie des résultats et la certification. |
-| Livrable | Module fonctionnel avec gestion complète du cycle d'examen |
+| Livrable    | Module fonctionnel avec gestion complète du cycle d'examen                                                                                               |
 
 **Sous-tâches :**
 - [ ] Créer les migrations : `examens`, `sessions_examen`, `centres_examen`, `inscriptions_examen`, `resultats`, `certificats`
@@ -68,10 +68,10 @@ Certificat: id, resultat_id, numero_unique, date_emission, qr_code
 
 ### 3. Module Statistiques - Logique de Calcul
 
-| Priorité | **HAUTE** |
-|----------|-----------|
+| Priorité    | **HAUTE**                                                                                                                                           |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Description | Implémenter la logique de calcul des statistiques et KPIs du tableau de bord. Les endpoints existent mais retournent des données vides ou factices. |
-| Livrable | Statistiques réelles calculées dynamiquement avec mise en cache |
+| Livrable    | Statistiques réelles calculées dynamiquement avec mise en cache                                                                                     |
 
 **Sous-tâches :**
 - [ ] Implémenter les statistiques globales : nombre écoles, élèves, enseignants par niveau admin
@@ -98,10 +98,10 @@ Certificat: id, resultat_id, numero_unique, date_emission, qr_code
 
 ### 4. Intégration Audit Logging (Spatie Activity Log)
 
-| Priorité | **MOYENNE** |
-|----------|-------------|
+| Priorité    | **MOYENNE**                                                                                                                                                                 |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Description | Intégrer complètement spatie/laravel-activitylog pour tracer toutes les actions importantes sur les entités critiques. Le package est installé mais pas activement utilisé. |
-| Livrable | Logging automatique sur tous les modèles critiques, interface de consultation des logs |
+| Livrable    | Logging automatique sur tous les modèles critiques, interface de consultation des logs                                                                                      |
 
 **Sous-tâches :**
 - [ ] Ajouter le trait `LogsActivity` aux modèles : School, Eleve, InscriptionEleve, User
@@ -126,10 +126,10 @@ protected static $logName = 'eleves';
 
 ### 5. Module Collecte de Données (Data Collection)
 
-| Priorité | **MOYENNE** |
-|----------|-------------|
+| Priorité    | **MOYENNE**                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------ |
 | Description | Implémenter le système de collecte de données pour les enquêtes et recensements scolaires. |
-| Livrable | Système de formulaires dynamiques avec soumission et validation hiérarchique |
+| Livrable    | Système de formulaires dynamiques avec soumission et validation hiérarchique               |
 
 **Sous-tâches :**
 - [ ] Créer les migrations : `formulaires_collecte`, `campagnes_collecte`, `reponses_collecte`
@@ -144,10 +144,10 @@ protected static $logName = 'eleves';
 
 ### 6. Optimisation des Requêtes (Eager Loading)
 
-| Priorité | **BASSE** |
-|----------|----------|
+| Priorité    | **BASSE**                                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------------------------------- |
 | Description | Identifier et corriger les problèmes N+1 dans les contrôleurs existants en ajoutant l'eager loading approprié. |
-| Livrable | Requêtes optimisées avec eager loading, temps de réponse améliorés |
+| Livrable    | Requêtes optimisées avec eager loading, temps de réponse améliorés                                             |
 
 **Sous-tâches :**
 - [ ] Auditer les contrôleurs pour identifier les N+1 queries
