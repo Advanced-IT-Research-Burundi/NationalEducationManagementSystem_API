@@ -28,7 +28,7 @@ class StoreEleveRequest extends FormRequest
             'nom' => ['required', 'string', 'max:100'],
             'prenom' => ['required', 'string', 'max:100'],
             'date_naissance' => ['nullable', 'date', 'before:today'],
-            'lieu_naissance' => ['nullable', 'string', 'max:100'],
+            'lieu_naissance' => ['required', 'string', 'max:150'],
             'sexe' => ['required', Rule::in(['M', 'F'])],
             'nom_pere' => ['nullable', 'string', 'max:100'],
             'nom_mere' => ['nullable', 'string', 'max:100'],
@@ -58,6 +58,8 @@ class StoreEleveRequest extends FormRequest
             'school_id.required' => 'L\'école est requise.',
             'school_id.exists' => 'L\'école sélectionnée n\'existe pas.',
             'date_naissance.before' => 'La date de naissance doit être antérieure à aujourd\'hui.',
+            'lieu_naissance.required' => 'Le lieu de naissance est requis.',
+            'lieu_naissance.max' => 'Le lieu de naissance ne peut pas dépasser 150 caractères.',
             'annee_scolaire.regex' => 'Le format de l\'année scolaire doit être AAAA-AAAA (ex: 2025-2026).',
         ];
     }
