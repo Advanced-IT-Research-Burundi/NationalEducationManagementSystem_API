@@ -14,11 +14,14 @@ class UpdateInspectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date_realisation' => 'sometimes|date',
+            'ecole_id' => 'sometimes|exists:ecoles,id',
+            'inspecteur_id' => 'sometimes|exists:users,id',
+            'date_prevue' => 'sometimes|date',
+            'date_realisation' => 'sometimes|nullable|date',
             'type' => 'sometimes|in:reguliere,inopinee,thematique',
             'statut' => 'sometimes|in:planifiee,en_cours,terminee,annulee',
-            'rapport' => 'sometimes|string',
-            'note_globale' => 'sometimes|numeric|min:0|max:100',
+            'rapport' => 'sometimes|nullable|string',
+            'note_globale' => 'sometimes|nullable|numeric|min:0|max:100',
         ];
     }
 }

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\School;
+use App\Models\User;
 
 class Inspection extends Model
 {
@@ -28,7 +30,7 @@ class Inspection extends Model
 
     public function ecole()
     {
-        return $this->belongsTo(Ecole::class);
+        return $this->belongsTo(School::class);
     }
 
     public function inspecteur()
