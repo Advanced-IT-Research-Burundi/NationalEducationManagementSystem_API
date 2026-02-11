@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('affectation_eleves', function (Blueprint $table) {
+        Schema::create('affectations_classe', function (Blueprint $table) {
             $table->id();
             $table->foreignId('inscription_id')->constrained('inscriptions')->cascadeOnDelete();
             $table->foreignId('classe_id')->constrained('classes')->cascadeOnDelete();
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('est_active')->default(true);
             $table->unsignedInteger('numero_ordre')->nullable();
             $table->string('motif_changement', 255)->nullable();
-            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('affecte_par')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['inscription_id', 'classe_id'], 'unique_affectation');
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('affectation_eleves');
+        Schema::dropIfExists('affectations_classe');
     }
 };

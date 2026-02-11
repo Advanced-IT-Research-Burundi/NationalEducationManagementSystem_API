@@ -31,7 +31,7 @@ class UpdateEleveRequest extends FormRequest
             'nom' => ['sometimes', 'string', 'max:100'],
             'prenom' => ['sometimes', 'string', 'max:100'],
             'date_naissance' => ['nullable', 'date', 'before:today'],
-            'lieu_naissance' => ['nullable', 'string', 'max:100'],
+            'lieu_naissance' => ['sometimes', 'string', 'max:150'],
             'sexe' => ['sometimes', Rule::in(['M', 'F'])],
             'nom_pere' => ['nullable', 'string', 'max:100'],
             'nom_mere' => ['nullable', 'string', 'max:100'],

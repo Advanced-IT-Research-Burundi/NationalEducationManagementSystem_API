@@ -38,7 +38,7 @@ class NiveauController extends Controller
 
         $niveaux = $query->ordered()->paginate($request->get('per_page', 15));
 
-        return response()->json($niveaux);
+        return sendResponse($niveaux, 'Niveaux récupérés avec succès');
     }
 
     /**

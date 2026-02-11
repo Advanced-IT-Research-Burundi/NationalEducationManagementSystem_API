@@ -32,9 +32,9 @@ class ZoneController extends Controller
             $query->where('pays_id', $request->pays_id);
         }
 
-        $zones = $query->get();
+        $zones = $query->paginate($request->input('per_page', 15));
 
-        return response()->json($zones);
+        return sendResponse($zones, 'Zones retrieved successfully.');
     }
 
     /**

@@ -20,9 +20,9 @@ class MinistereController extends Controller
             $query->where('pays_id', $request->pays_id);
         }
 
-        $ministeres = $query->get();
+        $ministeres = $query->paginate(10);
 
-        return response()->json($ministeres);
+        return sendResponse($ministeres, 'Ministeres retrieved successfully.');
     }
 
     /**

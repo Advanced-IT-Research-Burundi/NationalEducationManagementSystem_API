@@ -27,9 +27,10 @@ class Classe extends Model
         'nom',
         'code',
         'niveau_id',
-        'school_id',
-        'annee_scolaire',
+        'ecole_id',
+        'annee_scolaire_id',
         'local',
+        'salle',
         'capacite',
         'statut',
         'created_by',
@@ -51,7 +52,7 @@ class Classe extends Model
 
     public function scopeBySchool($query, int $schoolId)
     {
-        return $query->where('school_id', $schoolId);
+        return $query->where('ecole_id', $schoolId);
     }
 
     public function scopeByNiveau($query, int $niveauId)
@@ -59,9 +60,9 @@ class Classe extends Model
         return $query->where('niveau_id', $niveauId);
     }
 
-    public function scopeByAnneeScolaire($query, string $annee)
+    public function scopeByAnneeScolaire($query, int $anneeId)
     {
-        return $query->where('annee_scolaire', $annee);
+        return $query->where('annee_scolaire_id', $anneeId);
     }
 
     public function scopeSearch($query, string $search)
@@ -100,7 +101,17 @@ class Classe extends Model
 
     public function school(): BelongsTo
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class, 'ecole_id');
+    }
+
+    public function ecole(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'ecole_id');
+    }
+
+    public function anneeScolaire(): BelongsTo
+    {
+        return $this->belongsTo(AnneeScolaire::class);
     }
 
     public function creator(): BelongsTo
