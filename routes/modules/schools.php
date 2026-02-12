@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Schools\SchoolWorkflowController;
 Route::middleware(['auth:sanctum'])->group(function () {
 
     // Schools CRUD
+    Route::get('schools/list', [SchoolController::class, 'list'])->name('schools.list');
     Route::apiResource('schools', SchoolController::class);
 
     // School Workflow Actions
