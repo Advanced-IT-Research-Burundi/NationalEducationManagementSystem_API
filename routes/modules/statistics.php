@@ -63,6 +63,10 @@ Route::middleware(['auth:sanctum'])->prefix('statistics')->name('statistics.')->
         ->name('dashboard.provincial');
     Route::get('dashboard/communal/{commune}', [DashboardController::class, 'communal'])
         ->name('dashboard.communal');
+    Route::get('dashboard/ecole/{ecole}', [DashboardController::class, 'ecole'])
+        ->name('dashboard.ecole');
+    Route::post('dashboard/clear-cache', [DashboardController::class, 'clearCache'])
+        ->name('dashboard.clear-cache');
 
     // Strategic Plans
     Route::apiResource('strategic-plans', StrategicPlanController::class);
