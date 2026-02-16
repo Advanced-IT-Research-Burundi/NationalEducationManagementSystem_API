@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class School extends Model
 {
-    use \App\Traits\HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
+    use \App\Traits\HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes, LogsActivity;
 
     protected $table = 'ecoles';
 
@@ -64,6 +66,15 @@ class School extends Model
     ];
 
     protected $appends = ['statut_label'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('ecoles')
+            ->dontSubmitEmptyLogs();
+    }
 
     /**
      * Workflow Helper Methods

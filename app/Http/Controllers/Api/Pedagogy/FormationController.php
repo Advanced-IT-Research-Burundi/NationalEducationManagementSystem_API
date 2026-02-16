@@ -65,21 +65,55 @@ class FormationController extends Controller
     public function register(Request $request, Formation $formation): JsonResponse
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'required_without:eleve_id|nullable|exists:users,id',
+            'eleve_id' => 'required_without:user_id|nullable|exists:eleves,id',
+        ], [
+            'user_id.required_without' => 'The user id or eleve id field is required.',
+            'eleve_id.required_without' => 'The user id or eleve id field is required.',
         ]);
 
-        $formation->participants()->syncWithoutDetaching([$request->user_id]);
+        if ($request->filled('eleve_id')) {
+            $formation->participantsEleves()->syncWithoutDetaching([$request->eleve_id]);
+        } else {
+            $formation->participants()->syncWithoutDetaching([$request->user_id]);
+        }
 
         return response()->json([
             'message' => 'Inscription à la formation réussie',
-            'data' => $formation->load('participants'),
+            'data' => $formation->load(['participants', 'participantsEleves']),
         ]);
     }
 
     public function participants(Formation $formation): JsonResponse
     {
+        $formation->load(['participants.roles', 'participants.school', 'participantsEleves.school', 'participantsEleves.inscriptionsEleves.classe']);
+        $userParticipants = $formation->participants->map(fn ($p) => [
+            'id' => $p->id,
+            'user_id' => $p->id,
+            'eleve_id' => null,
+            'nom_complet' => $p->name ?? '',
+            'matricule' => null,
+            'email' => $p->email ?? null,
+            'role' => $p->roles->first()?->name ?? 'Participant',
+            'ecole' => $p->school,
+            'etablissement' => $p->school?->name ?? null,
+            'classe' => null,
+        ]);
+        $eleveParticipants = $formation->participantsEleves->map(fn ($e) => [
+            'id' => $e->id,
+            'user_id' => null,
+            'eleve_id' => $e->id,
+            'nom_complet' => $e->nom_complet ?? ($e->prenom . ' ' . $e->nom),
+            'matricule' => $e->matricule ?? null,
+            'email' => null,
+            'role' => 'Élève',
+            'ecole' => $e->school,
+            'etablissement' => $e->school?->name ?? null,
+            'classe' => $e->inscriptionsEleves->sortByDesc('id')->first()?->classe ?? null,
+        ]);
+
         return response()->json([
-            'data' => $formation->participants,
+            'data' => $userParticipants->concat($eleveParticipants)->values(),
         ]);
     }
 

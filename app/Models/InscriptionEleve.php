@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class InscriptionEleve extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     // Status constants
     const STATUS_BROUILLON = 'brouillon';
@@ -68,6 +70,15 @@ class InscriptionEleve extends Model
     }
 
     protected $appends = ['statut_label', 'type_label'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('inscriptions_eleves')
+            ->dontSubmitEmptyLogs();
+    }
 
     /**
      * Boot method to auto-generate numero_inscription

@@ -36,4 +36,11 @@ class Formation extends Model
             ->withPivot('statut_participation', 'commentaires')
             ->withTimestamps();
     }
+
+    public function participantsEleves()
+    {
+        return $this->belongsToMany(Eleve::class, 'formation_eleve_participants', 'formation_id', 'eleve_id')
+            ->withPivot('statut_participation', 'commentaires')
+            ->withTimestamps();
+    }
 }
