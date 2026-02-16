@@ -17,6 +17,26 @@ class StoreBatimentRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // If ecole_id is not provided, try to get it from the authenticated user
+        if (! $this->has('ecole_id')) {
+            $user = $this->user();
+
+            // Try different properties
+            $ecoleId = $user->school_id
+                ?? $user->ecole_id
+                ?? ($user->admin_level === 'ECOLE' ? $user->admin_entity_id : null);
+
+            if ($ecoleId) {
+                $this->merge(['ecole_id' => $ecoleId]);
+            }
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
@@ -24,7 +44,7 @@ class StoreBatimentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ecole_id' => ['required', 'exists:ecoles,id'],
+            'ecole_id' => ['nullable', 'exists:ecoles,id'],
             'nom' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['ACADEMIQUE', 'ADMINISTRATIF', 'SPORTIF', 'AUTRE'])],
             'annee_construction' => ['nullable', 'integer', 'min:1800', 'max:'.(date('Y') + 5)],

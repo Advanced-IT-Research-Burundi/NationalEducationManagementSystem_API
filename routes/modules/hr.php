@@ -56,6 +56,18 @@ Route::middleware(['auth:sanctum'])->prefix('hr')->name('hr.')->group(function (
         ->name('transfer-requests.pending');
 
     // Career Management
+    Route::get('careers', [CareerController::class, 'index'])
+        ->name('careers.index');
+    Route::get('careers/teacher/{teacher}', [CareerController::class, 'show'])
+        ->name('careers.teacher');
+    Route::get('careers/teacher/{teacher}/history', [CareerController::class, 'history'])
+        ->name('careers.teacher.history');
+    Route::post('careers/teacher/{teacher}/promote', [CareerController::class, 'promote'])
+        ->name('careers.teacher.promote');
+    Route::get('careers/grades', [CareerController::class, 'grades'])
+        ->name('careers.grades');
+    
+    // Legacy career routes (keep for backward compatibility)
     Route::get('teachers/{teacher}/career', [CareerController::class, 'show'])
         ->name('career.show');
     Route::post('teachers/{teacher}/promotions', [CareerController::class, 'promote'])

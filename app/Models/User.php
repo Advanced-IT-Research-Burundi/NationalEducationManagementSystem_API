@@ -65,16 +65,6 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
     // Relationships
     // Note: role() relationship might key conflict with Spatie's roles() if not careful,
     // but Spatie uses permissions based system.
