@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use App\Enums\StatutMouvement;
 use App\Enums\TypeMouvement;
 use App\Models\AnneeScolaire;
-use App\Models\InscriptionEleve;
+use App\Models\Inscription;
 use App\Models\MouvementEleve;
 use App\Models\School;
 use Illuminate\Database\Seeder;
@@ -67,7 +67,7 @@ class MouvementEleveSeeder extends Seeder
         }
 
         // Récupérer des élèves avec leurs inscriptions
-        $inscriptions = InscriptionEleve::with(['eleve', 'classe.ecole'])
+        $inscriptions = Inscription::with(['eleve', 'classe.ecole'])
             ->where('annee_scolaire_id', $anneeScolaire->id)
             ->where('statut', 'valide')
             ->inRandomOrder()
@@ -130,7 +130,7 @@ class MouvementEleveSeeder extends Seeder
      * Crée un mouvement pour une inscription.
      */
     private function createMouvement(
-        InscriptionEleve $inscription,
+        Inscription $inscription,
         TypeMouvement $type,
         int $anneeScolaireId,
         array $schoolIds

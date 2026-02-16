@@ -103,7 +103,7 @@ class AnneeScolaire extends Model
 
     public function inscriptions(): HasMany
     {
-        return $this->hasMany(InscriptionEleve::class, 'annee_scolaire_id');
+        return $this->hasMany(Inscription::class, 'annee_scolaire_id');
     }
 
     public function mouvements(): HasMany

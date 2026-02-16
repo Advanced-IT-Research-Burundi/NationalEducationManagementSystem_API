@@ -128,11 +128,6 @@ class Eleve extends Model
         return $this->hasMany(Inscription::class);
     }
 
-    public function inscriptionsEleves(): HasMany
-    {
-        return $this->hasMany(InscriptionEleve::class);
-    }
-
     public function activeInscription()
     {
         return $this->hasOne(Inscription::class)->latestOfMany();

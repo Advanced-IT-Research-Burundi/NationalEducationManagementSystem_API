@@ -95,6 +95,18 @@ class Inscription extends Model
 
     public function affectation(): HasOne
     {
-        return $this->hasOne(AffectationClasse::class, 'inscription_id'); // Note: Assuming AffectationClasse model exists or will exist
+        return $this->hasOne(AffectationClasse::class, 'inscription_id');
+    }
+
+    public function classe(): \Illuminate\Database\Eloquent\Relations\HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Classe::class,
+            AffectationClasse::class,
+            'inscription_id', // Foreign key on AffectationClasse table
+            'id',             // Foreign key on Classe table
+            'id',             // Local key on Inscription table
+            'classe_id'       // Local key on AffectationClasse table
+        );
     }
 }
