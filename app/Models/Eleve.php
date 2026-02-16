@@ -47,13 +47,16 @@ class Eleve extends Model
         'ecole_origine_id',
         'statut_global',
         'created_by',
-        'school_id'
+        'school_id',
     ];
 
     protected $casts = [
         'date_naissance' => 'date',
         'est_orphelin' => 'boolean',
         'a_handicap' => 'boolean',
+        'type_handicap' => 'encrypted',
+        'photo_path' => 'encrypted',
+        'contact_tuteur' => 'encrypted',
     ];
 
     protected $appends = ['nom_complet', 'age'];
@@ -114,7 +117,6 @@ class Eleve extends Model
     {
         return $this->belongsTo(School::class, 'school_id');
     }
-
 
     public function creator(): BelongsTo
     {
@@ -186,6 +188,7 @@ class Eleve extends Model
     {
         $lastMatricule = self::latest()->first()->matricule ?? '000000';
         $newMatricule = str_pad((int) $lastMatricule + 1, 6, '0', STR_PAD_LEFT);
+
         return $newMatricule;
     }
 }
