@@ -30,7 +30,7 @@ class StoreEnseignantRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
 
             // Enseignant specific fields
-            'school_id' => ['required', 'exists:schools,id'],
+            'ecole_id' => ['nullable', 'exists:schools,id'],
             'matricule' => ['required', 'string', 'max:50', 'unique:enseignants,matricule'],
             'specialite' => ['nullable', 'string', 'max:100'],
             'qualification' => ['nullable', Rule::in(['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])],
