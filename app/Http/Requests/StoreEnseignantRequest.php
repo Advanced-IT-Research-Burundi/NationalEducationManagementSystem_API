@@ -34,11 +34,23 @@ class StoreEnseignantRequest extends FormRequest
             'matricule' => ['required', 'string', 'max:50', 'unique:enseignants,matricule'],
             'specialite' => ['nullable', 'string', 'max:100'],
             'qualification' => ['nullable', Rule::in(['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])],
-            'annees_experience' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'annees_experience' => ['nullable', 'integer', 'min:0', 'max:60'],
             'date_embauche' => ['nullable', 'date'],
             'telephone' => ['nullable', 'string', 'max:20'],
             'statut' => ['nullable', Rule::in(['ACTIF', 'INACTIF', 'CONGE', 'SUSPENDU', 'RETRAITE'])],
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        if ($this->user()->school_id && ! $this->input('school_id')) {
+            $this->merge([
+                'school_id' => $this->user()->school_id,
+            ]);
+        }
     }
 
     /**

@@ -150,15 +150,6 @@ class Eleve extends Model
         return $this->belongsTo(MouvementEleve::class)
             ->ofMany('date_mouvement', 'max');
     }
-
-    // Scopes for HasDataScope - No direct scope column on Eleve anymore globally, usually scoped via Inscription
-    // But if we want to scope Eleve list by school... we can't easily unless we join inscriptions.
-    // For now, let's leave default implementation or null.
-    // However, HasDataScope trait requires getScopeColumn.
-    // Since Eleve is global, maybe we return null so it's visible to higher levels?
-    // Or we implement a scope that joins with inscriptions?
-    // The previous implementation used school_id.
-    // Let's set it to null for now (all access or custom scope need implementation).
     protected static function getScopeColumn(): ?string
     {
         return null;

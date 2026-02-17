@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\AffectationClasse;
 
 class EleveController extends Controller
 {
@@ -48,8 +49,9 @@ class EleveController extends Controller
         // Classe filter (via inscriptions)
         if ($request->filled('classe_id')) {
             $query->whereHas('inscriptions', function ($q) use ($request) {
-                $q->where('classe_id', $request->classe_id)
-                    ->where('statut', 'ACTIVE');
+                $q->whereHas('classe', function ($q2) use ($request) {
+                    $q2->where('id', $request->classe_id);
+                })->where('statut', 'ACTIVE');
             });
         }
 
@@ -90,13 +92,20 @@ class EleveController extends Controller
                     ], 422);
                 }
 
-                Inscription::create([
+                $inscription = Inscription::create([
                     'eleve_id' => $eleve->id,
-                    'classe_id' => $classeId,
                     'annee_scolaire' => $anneeScolaire,
                     'date_inscription' => now(),
                     'statut' => 'ACTIVE',
                     'created_by' => Auth::id(),
+                ]);
+
+                AffectationClasse::create([
+                    'inscription_id' => $inscription->id,
+                    'classe_id' => $classeId,
+                    'date_affectation' => now(),
+                    'est_active' => true,
+                    'affecte_par' => Auth::id(),
                 ]);
 
                 // Update eleve status to ACTIF
@@ -107,7 +116,7 @@ class EleveController extends Controller
 
             return response()->json([
                 'message' => 'Élève créé avec succès',
-                'eleve' => $eleve->load(['ecole', 'classes']),
+                'eleve' => $eleve->load(['ecole', 'inscriptions.classe']),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -231,7 +240,22 @@ class EleveController extends Controller
         }
 
         $data['created_by'] = Auth::id();
-        $inscription = Inscription::create($data);
+        $inscription = Inscription::create([
+             'eleve_id' => $data['eleve_id'],
+             'annee_scolaire' => $data['annee_scolaire'],
+             'date_inscription' => $data['date_inscription'] ?? now(),
+             'statut' => 'ACTIVE',
+             'created_by' => Auth::id(),
+             // Add other fields from data as needed, filtering out classe_id
+        ]);
+
+        AffectationClasse::create([
+            'inscription_id' => $inscription->id,
+            'classe_id' => $data['classe_id'],
+            'date_affectation' => now(),
+            'est_active' => true,
+            'affecte_par' => Auth::id(),
+        ]);
 
         // Update eleve status if needed
         if ($eleve->statut === 'INSCRIT') {
