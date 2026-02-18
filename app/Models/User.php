@@ -114,7 +114,7 @@ class User extends Authenticatable
 
     public function ecole()
     {
-        return $this->belongsTo(Ecole::class);
+        return $this->belongsTo(School::class);
     }
 
     // Helper to check permission (Manual implementation if needed, but Spatie provides can())
@@ -187,5 +187,7 @@ class User extends Authenticatable
             'ECOLE' => $school->id === $this->admin_entity_id,
             default => false,
         };
+
+        
     }
 }

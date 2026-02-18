@@ -47,13 +47,16 @@ class Eleve extends Model
         'ecole_origine_id',
         'statut_global',
         'created_by',
-        'school_id'
+        'school_id',
     ];
 
     protected $casts = [
         'date_naissance' => 'date',
         'est_orphelin' => 'boolean',
         'a_handicap' => 'boolean',
+        'type_handicap' => 'encrypted',
+        'photo_path' => 'encrypted',
+        'contact_tuteur' => 'encrypted',
     ];
 
     protected $appends = ['nom_complet', 'age'];
@@ -115,7 +118,6 @@ class Eleve extends Model
         return $this->belongsTo(School::class, 'school_id');
     }
 
-
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -124,11 +126,6 @@ class Eleve extends Model
     public function inscriptions(): HasMany
     {
         return $this->hasMany(Inscription::class);
-    }
-
-    public function inscriptionsEleves(): HasMany
-    {
-        return $this->hasMany(InscriptionEleve::class);
     }
 
     public function activeInscription()
@@ -153,15 +150,6 @@ class Eleve extends Model
         return $this->belongsTo(MouvementEleve::class)
             ->ofMany('date_mouvement', 'max');
     }
-
-    // Scopes for HasDataScope - No direct scope column on Eleve anymore globally, usually scoped via Inscription
-    // But if we want to scope Eleve list by school... we can't easily unless we join inscriptions.
-    // For now, let's leave default implementation or null.
-    // However, HasDataScope trait requires getScopeColumn.
-    // Since Eleve is global, maybe we return null so it's visible to higher levels?
-    // Or we implement a scope that joins with inscriptions?
-    // The previous implementation used school_id.
-    // Let's set it to null for now (all access or custom scope need implementation).
     protected static function getScopeColumn(): ?string
     {
         return null;
@@ -186,6 +174,7 @@ class Eleve extends Model
     {
         $lastMatricule = self::latest()->first()->matricule ?? '000000';
         $newMatricule = str_pad((int) $lastMatricule + 1, 6, '0', STR_PAD_LEFT);
+
         return $newMatricule;
     }
 }

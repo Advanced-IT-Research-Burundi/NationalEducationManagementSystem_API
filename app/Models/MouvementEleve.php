@@ -210,12 +210,12 @@ class MouvementEleve extends Model
 
     public function ecoleOrigine(): BelongsTo
     {
-        return $this->belongsTo(Ecole::class, 'ecole_origine_id');
+        return $this->belongsTo(School::class, 'ecole_origine_id');
     }
 
     public function ecoleDestination(): BelongsTo
     {
-        return $this->belongsTo(Ecole::class, 'ecole_destination_id');
+        return $this->belongsTo(School::class, 'ecole_destination_id');
     }
 
     public function classeOrigine(): BelongsTo

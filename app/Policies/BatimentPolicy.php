@@ -2,10 +2,10 @@
 
 namespace App\Policies;
 
-use App\Models\InscriptionEleve;
+use App\Models\Batiment;
 use App\Models\User;
 
-class InscriptionElevePolicy
+class BatimentPolicy
 {
     /**
      * Determine whether the user can view any models.
@@ -18,14 +18,13 @@ class InscriptionElevePolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, InscriptionEleve $inscription): bool
+    public function view(User $user, Batiment $batiment): bool
     {
         if (! $user->hasPermission('view_data')) {
             return false;
         }
 
-        // Check if user can access this school's data
-        return $user->canAccessSchool($inscription->classe->school);
+        return $user->canAccessSchool($batiment->ecole);
     }
 
     /**
@@ -33,33 +32,46 @@ class InscriptionElevePolicy
      */
     public function create(User $user): bool
     {
-        // School staff and teachers can enroll students
         return $user->hasPermission('create_data') || $user->hasPermission('manage_schools');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, InscriptionEleve $inscription): bool
+    public function update(User $user, Batiment $batiment): bool
     {
         if (! ($user->hasPermission('update_data') || $user->hasPermission('manage_schools'))) {
             return false;
         }
 
-        // Check if user can access this school's data
-        return $user->canAccessSchool($inscription->classe->school);
+        return $user->canAccessSchool($batiment->ecole);
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, InscriptionEleve $inscription): bool
+    public function delete(User $user, Batiment $batiment): bool
     {
         if (! ($user->hasPermission('delete_data') || $user->hasPermission('manage_schools'))) {
             return false;
         }
 
-        // Check if user can access this school's data
-        return $user->canAccessSchool($inscription->classe->school);
+        return $user->canAccessSchool($batiment->ecole);
+    }
+
+    /**
+     * Determine whether the user can restore the model.
+     */
+    public function restore(User $user, Batiment $batiment): bool
+    {
+        return $user->hasPermission('delete_data') || $user->hasPermission('manage_schools');
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     */
+    public function forceDelete(User $user, Batiment $batiment): bool
+    {
+        return $user->hasPermission('delete_data') || $user->hasPermission('manage_schools');
     }
 }

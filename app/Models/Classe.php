@@ -131,9 +131,16 @@ class Classe extends Model
         return $this->hasMany(AffectationEnseignant::class, 'classe_id');
     }
 
-    public function inscriptions(): HasMany
+    public function inscriptions(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
-        return $this->hasMany(InscriptionEleve::class, 'classe_id');
+        return $this->hasManyThrough(
+            Inscription::class,
+            AffectationClasse::class,
+            'classe_id',      // Foreign key on AffectationClasse table
+            'id',             // Foreign key on Inscription table
+            'id',             // Local key on Classe table
+            'inscription_id'  // Local key on AffectationClasse table
+        );
     }
 
     public function eleves(): BelongsToMany

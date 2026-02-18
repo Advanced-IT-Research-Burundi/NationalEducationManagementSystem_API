@@ -9,6 +9,9 @@
  */
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Partners\PartenaireController;
+use App\Http\Controllers\Api\Partners\ProjetPartenaireController;
+use App\Http\Controllers\Api\Partners\FinancementController;
 use App\Http\Controllers\Api\Partners\PartnerProjectController;
 use App\Http\Controllers\Api\Partners\ProjectIndicatorController;
 use App\Http\Controllers\Api\Partners\PublicStatisticsController;
@@ -21,6 +24,21 @@ use App\Http\Controllers\Api\Partners\ExternalAuditController;
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->prefix('partners')->name('partners.')->group(function () {
+
+    // Partenaires (CRUD)
+    Route::apiResource('partenaires', PartenaireController::class);
+    
+    // Projets de Partenariat (CRUD)
+    Route::apiResource('projets', ProjetPartenaireController::class);
+    Route::get('projets/{projet}/financements', [FinancementController::class, 'byProject'])
+        ->name('projets.financements');
+    
+    // Financements (CRUD)
+    Route::apiResource('financements', FinancementController::class);
+    
+    // Statistics
+    Route::get('statistics', [PartenaireController::class, 'statistics'])
+        ->name('statistics');
 
     // Partner Projects (PTF - Partenaires Techniques et Financiers)
     Route::get('projects', [PartnerProjectController::class, 'index'])

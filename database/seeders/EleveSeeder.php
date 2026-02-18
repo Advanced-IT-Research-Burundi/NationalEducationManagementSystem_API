@@ -2,12 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\AffectationClasse;
 use App\Models\AnneeScolaire;
 use App\Models\CampagneInscription;
 use App\Models\Classe;
 use App\Models\Colline;
 use App\Models\Eleve;
-use App\Models\InscriptionEleve;
+use App\Models\Inscription;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -193,7 +194,7 @@ class EleveSeeder extends Seeder
     /**
      * Crée une inscription pour un élève.
      */
-    private function createInscription(Eleve $eleve, Classe $classe, AnneeScolaire $anneeScolaire): ?InscriptionEleve
+    private function createInscription(Eleve $eleve, Classe $classe, AnneeScolaire $anneeScolaire): ?Inscription
     {
         $campagne = CampagneInscription::where('annee_scolaire_id', $anneeScolaire->id)
             ->where('ecole_id', $classe->ecole_id)
@@ -203,7 +204,7 @@ class EleveSeeder extends Seeder
             return null;
         }
 
-        return InscriptionEleve::create([
+        $inscription = Inscription::create([
             'numero_inscription' => $this->generateNumeroInscription(),
             'eleve_id' => $eleve->id,
             'ecole_id' => $classe->ecole_id,
@@ -220,6 +221,19 @@ class EleveSeeder extends Seeder
             'created_by' => 1,
             'valide_par' => 1,
         ]);
+
+        if ($inscription) {
+            AffectationClasse::create([
+                'inscription_id' => $inscription->id,
+                'classe_id' => $classe->id,
+                'date_affectation' => $inscription->date_validation ?? now(),
+                'est_active' => true,
+                'numero_ordre' => $classe->inscriptions()->count(),
+                'affecte_par' => 1,
+            ]);
+        }
+
+        return $inscription;
     }
 
     /**
@@ -241,7 +255,7 @@ class EleveSeeder extends Seeder
     {
         $prefix = 'INS';
         $year = date('Y');
-        $sequence = InscriptionEleve::count() + 1;
+        $sequence = Inscription::count() + 1;
 
         return sprintf('%s%s%06d', $prefix, $year, $sequence);
     }

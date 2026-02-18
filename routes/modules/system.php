@@ -66,7 +66,11 @@ Route::middleware(['auth:sanctum'])->prefix('system')->name('system.')->group(fu
     Route::get('audit-logs/export', [AuditLogController::class, 'export'])
         ->name('audit-logs.export');
 
-    // Support Tickets
+    // Support Tickets (specific routes first to avoid conflicts)
+    Route::get('tickets/open', [SupportTicketController::class, 'open'])
+        ->name('tickets.open');
+    Route::get('tickets/status/{status}', [SupportTicketController::class, 'byStatus'])
+        ->name('tickets.by-status');
     Route::apiResource('tickets', SupportTicketController::class);
     Route::post('tickets/{ticket}/respond', [SupportTicketController::class, 'respond'])
         ->name('tickets.respond');
@@ -76,10 +80,6 @@ Route::middleware(['auth:sanctum'])->prefix('system')->name('system.')->group(fu
         ->name('tickets.close');
     Route::post('tickets/{ticket}/reopen', [SupportTicketController::class, 'reopen'])
         ->name('tickets.reopen');
-    Route::get('tickets/open', [SupportTicketController::class, 'open'])
-        ->name('tickets.open');
-    Route::get('tickets/by-status/{status}', [SupportTicketController::class, 'byStatus'])
-        ->name('tickets.by-status');
 
     // Training Materials
     Route::apiResource('training-materials', TrainingMaterialController::class);

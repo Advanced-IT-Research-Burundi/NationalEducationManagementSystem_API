@@ -10,12 +10,13 @@ Responsable du **frontend Vue.js**, de l'**expérience utilisateur** et de l'**i
 
 ### 1. Amélioration Page Statistiques (Dashboard)
 
-| Priorité | **HAUTE** |
-|----------|-----------|
+| Priorité   | **HAUTE**                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Description | La page StatisticsPage existe mais la logique des graphiques n'est pas définie. Intégrer les données réelles de l'API et créer des visualisations pertinentes. |
-| Livrable | Dashboard complet avec graphiques interactifs, filtres, et données temps réel |
+| Livrable    | Dashboard complet avec graphiques interactifs, filtres, et données temps réel                                                                                     |
 
 **Sous-tâches :**
+
 - [ ] Intégrer une librairie de graphiques (Chart.js ou ApexCharts)
 - [ ] Créer le composant `StatCard` pour les KPIs principaux
 - [ ] Créer le graphique d'évolution des effectifs (ligne)
@@ -30,12 +31,13 @@ Responsable du **frontend Vue.js**, de l'**expérience utilisateur** et de l'**i
 
 ### 2. Gestion des Erreurs Frontend
 
-| Priorité | **HAUTE** |
-|----------|-----------|
+| Priorité   | **HAUTE**                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Description | Implémenter une gestion globale des erreurs API avec affichage utilisateur approprié (toasts, modales, messages inline). |
-| Livrable | Système de gestion d'erreurs cohérent sur toute l'application |
+| Livrable    | Système de gestion d'erreurs cohérent sur toute l'application                                                            |
 
 **Sous-tâches :**
+
 - [ ] Créer un intercepteur Axios global pour les erreurs
 - [ ] Implémenter le composant `Toast` pour les notifications
 - [ ] Gérer les erreurs 401 (redirection login)
@@ -47,6 +49,7 @@ Responsable du **frontend Vue.js**, de l'**expérience utilisateur** et de l'**i
 - [ ] Logger les erreurs côté client (optionnel: Sentry)
 
 **Exemple d'intercepteur :**
+
 ```javascript
 axios.interceptors.response.use(
   response => response,
@@ -65,12 +68,13 @@ axios.interceptors.response.use(
 
 ### 3. Contrôle d'Accès UI (RBAC Frontend)
 
-| Priorité | **HAUTE** |
-|----------|-----------|
+| Priorité   | **HAUTE**                                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
 | Description | Implémenter le rendu conditionnel des éléments UI basé sur les rôles et permissions de l'utilisateur connecté. |
-| Livrable | Directive `v-can` et composant `CanAccess` pour le contrôle d'accès |
+| Livrable    | Directive `v-can` et composant `CanAccess` pour le contrôle d'accès                                            |
 
 **Sous-tâches :**
+
 - [ ] Créer la directive `v-can="permission"` pour affichage conditionnel
 - [ ] Créer le composant `<CanAccess :permission="...">` wrapper
 - [ ] Stocker les permissions utilisateur dans Vuex après login
@@ -81,6 +85,7 @@ axios.interceptors.response.use(
 - [ ] Documenter l'utilisation des directives
 
 **Exemple d'utilisation :**
+
 ```vue
 <button v-can="'create_data'" @click="createSchool">
   Créer une école
@@ -95,12 +100,13 @@ axios.interceptors.response.use(
 
 ### 4. Page Inscriptions - Améliorations
 
-| Priorité | **HAUTE** |
-|----------|-----------|
+| Priorité   | **HAUTE**                                                                                                   |
+| ----------- | ----------------------------------------------------------------------------------------------------------------- |
 | Description | Compléter la page InscriptionCreatePage avec validation du statut de campagne, workflow complet et meilleure UX. |
-| Livrable | Formulaire d'inscription complet avec toutes les validations métier |
+| Livrable    | Formulaire d'inscription complet avec toutes les validations métier                                              |
 
 **Sous-tâches :**
+
 - [ ] Vérifier que la campagne est active avant d'autoriser l'inscription
 - [ ] Ajouter la recherche d'élève existant (autocomplete)
 - [ ] Implémenter le formulaire de création nouvel élève intégré
@@ -114,12 +120,13 @@ axios.interceptors.response.use(
 
 ### 5. Page Enseignants - CRUD Complet
 
-| Priorité | **MOYENNE** |
-|----------|-------------|
+| Priorité   | **MOYENNE**                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
 | Description | Compléter l'interface de gestion des enseignants avec toutes les opérations CRUD et les affectations. |
-| Livrable | Interface enseignants complète avec liste, création, édition, affectation |
+| Livrable    | Interface enseignants complète avec liste, création, édition, affectation                            |
 
 **Sous-tâches :**
+
 - [ ] Créer le tableau des enseignants avec pagination
 - [ ] Ajouter la recherche et les filtres (nom, matricule, statut)
 - [ ] Créer le formulaire de création enseignant
@@ -133,12 +140,13 @@ axios.interceptors.response.use(
 
 ### 6. Dark Mode
 
-| Priorité | **MOYENNE** |
-|----------|-------------|
+| Priorité   | **MOYENNE**                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------------- |
 | Description | Implémenter le support du mode sombre avec Tailwind CSS 4 et permettre à l'utilisateur de basculer. |
-| Livrable | Toggle dark mode fonctionnel avec persistence du choix |
+| Livrable    | Toggle dark mode fonctionnel avec persistence du choix                                                |
 
 **Sous-tâches :**
+
 - [ ] Configurer Tailwind CSS 4 pour le dark mode (`@theme` directive)
 - [ ] Créer le composant `ThemeToggle` pour basculer
 - [ ] Définir les couleurs dark mode dans les variables CSS
@@ -151,12 +159,13 @@ axios.interceptors.response.use(
 
 ### 7. Internationalisation (i18n)
 
-| Priorité | **MOYENNE** |
-|----------|-------------|
+| Priorité   | **MOYENNE**                                                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Description | Compléter les fichiers de traduction pour le français et le kirundi. La structure i18n existe mais les traductions sont incomplètes. |
-| Livrable | Application entièrement traduite en français et kirundi |
+| Livrable    | Application entièrement traduite en français et kirundi                                                                               |
 
 **Sous-tâches :**
+
 - [ ] Auditer tous les textes hardcodés dans les composants
 - [ ] Extraire les textes vers les fichiers de locale
 - [ ] Compléter `locales/fr.json` avec toutes les traductions
@@ -170,12 +179,13 @@ axios.interceptors.response.use(
 
 ### 8. Améliorations UX Générales
 
-| Priorité | **BASSE** |
-|----------|----------|
+| Priorité   | **BASSE**                                                           |
+| ----------- | ------------------------------------------------------------------------- |
 | Description | Améliorer l'expérience utilisateur globale avec des détails de polish. |
-| Livrable | Interface plus fluide et professionnelle |
+| Livrable    | Interface plus fluide et professionnelle                                  |
 
 **Sous-tâches :**
+
 - [ ] Ajouter des états de chargement (skeletons) sur les listes
 - [ ] Ajouter des animations de transition entre pages
 - [ ] Améliorer les messages de confirmation (modales)
