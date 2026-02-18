@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Eleve extends Model
 {
-    use HasDataScope, HasFactory, SoftDeletes;
+    use HasDataScope, HasFactory, SoftDeletes, LogsActivity;
 
     // Status constants
     const STATUT_ACTIF = 'actif';
@@ -60,6 +62,15 @@ class Eleve extends Model
     ];
 
     protected $appends = ['nom_complet', 'age'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('eleves')
+            ->dontSubmitEmptyLogs();
+    }
 
     /**
      * Query Scopes

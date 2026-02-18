@@ -9,6 +9,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Statistics\DataCollectionController;
 use App\Http\Controllers\Api\Statistics\CollectionCampaignController;
+use App\Http\Controllers\Api\Statistics\CampagneCollecteController;
+use App\Http\Controllers\Api\Statistics\FormulaireCollecteController;
+use App\Http\Controllers\Api\Statistics\ReponseCollecteController;
 use App\Http\Controllers\Api\Statistics\KpiController;
 use App\Http\Controllers\Api\Statistics\DashboardController;
 use App\Http\Controllers\Api\Statistics\StrategicPlanController;
@@ -31,7 +34,7 @@ Route::middleware(['auth:sanctum'])->prefix('statistics')->name('statistics.')->
     Route::get('data-collections/by-school/{school}', [DataCollectionController::class, 'bySchool'])
         ->name('data-collections.by-school');
 
-    // Collection Campaigns
+    // Collection Campaigns (legacy - kept for compatibility)
     Route::apiResource('campaigns', CollectionCampaignController::class);
     Route::post('campaigns/{campaign}/start', [CollectionCampaignController::class, 'start'])
         ->name('campaigns.start');
@@ -39,6 +42,30 @@ Route::middleware(['auth:sanctum'])->prefix('statistics')->name('statistics.')->
         ->name('campaigns.close');
     Route::get('campaigns/{campaign}/progress', [CollectionCampaignController::class, 'progress'])
         ->name('campaigns.progress');
+
+    // Module Collecte de Données (formulaires dynamiques)
+    Route::apiResource('campagnes-collecte', CampagneCollecteController::class)->parameters(['campagnes-collecte' => 'campagne']);
+    Route::post('campagnes-collecte/{campagne}/ouvrir', [CampagneCollecteController::class, 'start'])
+        ->name('campagnes-collecte.ouvrir');
+    Route::post('campagnes-collecte/{campagne}/fermer', [CampagneCollecteController::class, 'close'])
+        ->name('campagnes-collecte.fermer');
+    Route::get('campagnes-collecte/{campagne}/progression', [CampagneCollecteController::class, 'progress'])
+        ->name('campagnes-collecte.progression');
+    Route::get('campagnes-collecte/{campagne}/ecoles-repondus', [CampagneCollecteController::class, 'ecolesRepondus'])
+        ->name('campagnes-collecte.ecoles-repondus');
+
+    Route::get('campagnes-collecte/{campagne}/formulaires', [FormulaireCollecteController::class, 'index']);
+    Route::post('campagnes-collecte/{campagne}/formulaires', [FormulaireCollecteController::class, 'store']);
+    Route::get('campagnes-collecte/{campagne}/formulaires/{formulaire}', [FormulaireCollecteController::class, 'show']);
+    Route::put('campagnes-collecte/{campagne}/formulaires/{formulaire}', [FormulaireCollecteController::class, 'update']);
+    Route::delete('campagnes-collecte/{campagne}/formulaires/{formulaire}', [FormulaireCollecteController::class, 'destroy'])->name('campagnes-collecte.formulaires.destroy');
+
+    Route::get('reponses-collecte', [ReponseCollecteController::class, 'index']);
+    Route::post('formulaires-collecte/{formulaire}/reponses', [ReponseCollecteController::class, 'store']);
+    Route::post('reponses-collecte/{reponse}/soumettre', [ReponseCollecteController::class, 'submit']);
+    Route::post('reponses-collecte/{reponse}/valider', [ReponseCollecteController::class, 'validateResponse']);
+    Route::get('ecoles/{school}/reponses-collecte', [ReponseCollecteController::class, 'bySchool']);
+    Route::get('campagnes-collecte/{campagne}/reponses/export', [ReponseCollecteController::class, 'export']);
 
     // KPIs
     Route::apiResource('kpis', KpiController::class);
@@ -63,6 +90,10 @@ Route::middleware(['auth:sanctum'])->prefix('statistics')->name('statistics.')->
         ->name('dashboard.provincial');
     Route::get('dashboard/communal/{commune}', [DashboardController::class, 'communal'])
         ->name('dashboard.communal');
+    Route::get('dashboard/ecole/{ecole}', [DashboardController::class, 'ecole'])
+        ->name('dashboard.ecole');
+    Route::post('dashboard/clear-cache', [DashboardController::class, 'clearCache'])
+        ->name('dashboard.clear-cache');
 
     // Strategic Plans
     Route::apiResource('strategic-plans', StrategicPlanController::class);

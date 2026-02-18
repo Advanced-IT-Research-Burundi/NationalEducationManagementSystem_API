@@ -42,6 +42,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // User Management
+    Route::get('users/list', [UserController::class, 'list'])->name('users.list');
     Route::apiResource('users', UserController::class);
     Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
     Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');

@@ -175,4 +175,16 @@ class SchoolController extends Controller
 
         return response()->json($schools);
     }
+
+    /**
+     * Get all schools (for dropdowns).
+     */
+    public function list(): JsonResponse
+    {
+        $this->authorize('viewAny', School::class);
+
+        $schools = School::active()->orderBy('name')->get(['id', 'name', 'code_ecole']);
+
+        return response()->json($schools);
+    }
 }
