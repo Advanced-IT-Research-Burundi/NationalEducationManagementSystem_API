@@ -11,7 +11,7 @@ class StoreCongeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\Ecole::class);
+        return $this->user()->can('create', \App\Models\School::class);
     }
 
     /**

@@ -12,6 +12,6 @@ class EcolesExport implements FromCollection
      */
     public function collection()
     {
-        return Ecole::all();
+        return School::all();
     }
 }

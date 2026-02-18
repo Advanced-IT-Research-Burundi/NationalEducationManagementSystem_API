@@ -14,9 +14,9 @@ class EcoleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', Ecole::class);
+        $this->authorize('viewAny', School::class);
 
-        $query = Ecole::with(['colline', 'zone', 'commune', 'province', 'creator']);
+        $query = School::with(['colline', 'zone', 'commune', 'province', 'creator']);
 
         // Search filter
         if ($request->filled('search')) {
@@ -75,9 +75,9 @@ class EcoleController extends Controller
         $data['pays_id'] = $colline->zone->commune->province->pays_id ?? 1;
 
         $data['created_by'] = Auth::id();
-        $data['statut'] = Ecole::STATUS_BROUILLON;
+        $data['statut'] = School::STATUS_BROUILLON;
 
-        $school = Ecole::create($data);
+        $school = School::create($data);
 
         return response()->json([
             'message' => 'School created successfully',

@@ -11,7 +11,7 @@ class School extends Model
 {
     use \App\Traits\HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes, LogsActivity;
 
-    protected $table = 'ecoles';
+    protected $table = 'schools';
 
     // Workflow status constants
     const STATUS_BROUILLON = 'BROUILLON';

@@ -21,7 +21,7 @@ class Batiment extends Model
      */
     public function ecole(): BelongsTo
     {
-        return $this->belongsTo(Ecole::class);
+        return $this->belongsTo(School::class);
     }
 
     /**
