@@ -54,7 +54,10 @@ return new class extends Migration
             $table->index('matricule');
             $table->index(['nom', 'prenom']);
             $table->index('statut_global');
-            $table->fullText(['nom', 'prenom', 'matricule']);
+
+            if (config('database.default') !== 'sqlite') {
+                $table->fullText(['nom', 'prenom', 'matricule']);
+            }
         });
     }
 

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->foreignId('affecte_par')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->unique(['inscription_id', 'classe_id'], 'unique_affectation');
+            $table->unique(['inscription_id', 'classe_id'], 'unique_affectation_eleve');
             $table->index(['inscription_id', 'est_active']);
             $table->index(['classe_id', 'est_active']);
         });
