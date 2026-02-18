@@ -30,7 +30,7 @@ class StoreEnseignantRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
 
             // Enseignant specific fields
-            'ecole_id' => ['nullable', 'exists:schools,id'],
+            'school_id' => ['nullable', 'exists:schools,id'],
             'matricule' => ['required', 'string', 'max:50', 'unique:enseignants,matricule'],
             'specialite' => ['nullable', 'string', 'max:100'],
             'qualification' => ['nullable', Rule::in(['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])],
@@ -64,8 +64,7 @@ class StoreEnseignantRequest extends FormRequest
             'email.unique' => 'Cet email est déjà utilisé.',
             'password.required' => 'Le mot de passe est requis.',
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
-            'school_id.required' => 'L\'école est requise.',
-            'school_id.exists' => 'L\'école sélectionnée n\'existe pas.',
+            'school_id.nullable' => 'L\'école est requise.',
             'matricule.required' => 'Le matricule est requis.',
             'matricule.unique' => 'Ce matricule existe déjà.',
         ];
