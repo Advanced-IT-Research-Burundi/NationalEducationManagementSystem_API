@@ -177,4 +177,11 @@ class Eleve extends Model
 
         return $newMatricule;
     }
+
+
+    public function ecole()
+    {
+        return $this->belongsTo(School::class, 'school_id');
+    }
+
 }

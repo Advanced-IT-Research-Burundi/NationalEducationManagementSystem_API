@@ -10,7 +10,6 @@
     "license": "MIT",
     "require": {
         "php": "^7.4|^8.0|^8.1|^8.2|^8.3|^8.4|^8.5|^8.6",
-        "darkaonline/l5-swagger": "^10.1",
         "dedoc/scramble": "^0.13.11",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
