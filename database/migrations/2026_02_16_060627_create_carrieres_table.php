@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('enseignant_id')->constrained('enseignants')->onDelete('cascade');
             $table->string('poste');
-            $table->foreignId('ecole_id')->nullable()->constrained('ecoles')->onDelete('set null');
+            $table->foreignId('school_id')->nullable()->constrained('ecoles')->onDelete('set null');
             $table->date('date_debut');
             $table->date('date_fin')->nullable();
             $table->enum('motif_fin', ['MUTATION', 'PROMOTION', 'RETRAITE', 'DEMISSION', 'AUTRE'])->nullable();

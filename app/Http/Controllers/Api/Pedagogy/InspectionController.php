@@ -72,9 +72,9 @@ class InspectionController extends Controller
         ]);
     }
 
-    public function history(string $ecole_id): JsonResponse
+    public function history(string $school_id): JsonResponse
     {
-        $history = Inspection::where('ecole_id', $ecole_id)
+        $history = Inspection::where('school_id', $school_id)
             ->with('inspecteur')
             ->orderBy('date_realisation', 'desc')
             ->get();

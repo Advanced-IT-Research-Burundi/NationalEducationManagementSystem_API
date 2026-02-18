@@ -21,17 +21,17 @@ class StoreBatimentRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // If ecole_id is not provided, try to get it from the authenticated user
-        if (! $this->has('ecole_id')) {
+        // If school_id is not provided, try to get it from the authenticated user
+        if (! $this->has('school_id')) {
             $user = $this->user();
 
             // Try different properties
             $ecoleId = $user->school_id
-                ?? $user->ecole_id
+                ?? $user->school_id
                 ?? ($user->admin_level === 'ECOLE' ? $user->admin_entity_id : null);
 
             if ($ecoleId) {
-                $this->merge(['ecole_id' => $ecoleId]);
+                $this->merge(['school_id' => $ecoleId]);
             }
         }
     }
@@ -44,7 +44,7 @@ class StoreBatimentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ecole_id' => ['nullable', 'exists:ecoles,id'],
+            'school_id' => ['nullable', 'exists:ecoles,id'],
             'nom' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['ACADEMIQUE', 'ADMINISTRATIF', 'SPORTIF', 'AUTRE'])],
             'annee_construction' => ['nullable', 'integer', 'min:1800', 'max:'.(date('Y') + 5)],
@@ -61,8 +61,8 @@ class StoreBatimentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'ecole_id.required' => 'L\'école est requise.',
-            'ecole_id.exists' => 'L\'école sélectionnée n\'existe pas.',
+            'school_id.required' => 'L\'école est requise.',
+            'school_id.exists' => 'L\'école sélectionnée n\'existe pas.',
             'nom.required' => 'Le nom du bâtiment est requis.',
             'type.required' => 'Le type de bâtiment est requis.',
             'type.in' => 'Le type doit être ACADEMIQUE, ADMINISTRATIF, SPORTIF ou AUTRE.',

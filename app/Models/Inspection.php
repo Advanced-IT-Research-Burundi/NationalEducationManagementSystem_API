@@ -12,7 +12,7 @@ class Inspection extends Model
     use HasFactory;
 
     protected $fillable = [
-        'ecole_id',
+        'school_id',
         'inspecteur_id',
         'date_prevue',
         'date_realisation',

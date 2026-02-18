@@ -25,7 +25,7 @@ class StoreEquipementRequest extends FormRequest
     {
         return [
             'salle_id' => ['nullable', 'exists:salles,id'],
-            'ecole_id' => ['required', 'exists:ecoles,id'],
+            'school_id' => ['required', 'exists:ecoles,id'],
             'nom' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['MOBILIER', 'INFORMATIQUE', 'LABORATOIRE', 'SPORT', 'AUTRE'])],
             'marque' => ['nullable', 'string', 'max:100'],
@@ -45,8 +45,8 @@ class StoreEquipementRequest extends FormRequest
     {
         return [
             'salle_id.exists' => 'La salle sélectionnée n\'existe pas.',
-            'ecole_id.required' => 'L\'école est requise.',
-            'ecole_id.exists' => 'L\'école sélectionnée n\'existe pas.',
+            'school_id.required' => 'L\'école est requise.',
+            'school_id.exists' => 'L\'école sélectionnée n\'existe pas.',
             'nom.required' => 'Le nom de l\'équipement est requis.',
             'type.required' => 'Le type d\'équipement est requis.',
             'type.in' => 'Le type doit être MOBILIER, INFORMATIQUE, LABORATOIRE, SPORT ou AUTRE.',

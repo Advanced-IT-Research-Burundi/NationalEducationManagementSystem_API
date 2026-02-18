@@ -27,7 +27,7 @@ class Classe extends Model
         'nom',
         'code',
         'niveau_id',
-        'ecole_id',
+        'school_id',
         'annee_scolaire_id',
         'local',
         'salle',
@@ -52,7 +52,7 @@ class Classe extends Model
 
     public function scopeBySchool($query, int $schoolId)
     {
-        return $query->where('ecole_id', $schoolId);
+        return $query->where('school_id', $schoolId);
     }
 
     public function scopeByNiveau($query, int $niveauId)
@@ -101,12 +101,12 @@ class Classe extends Model
 
     public function school(): BelongsTo
     {
-        return $this->belongsTo(School::class, 'ecole_id');
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     public function ecole(): BelongsTo
     {
-        return $this->belongsTo(School::class, 'ecole_id');
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     public function anneeScolaire(): BelongsTo

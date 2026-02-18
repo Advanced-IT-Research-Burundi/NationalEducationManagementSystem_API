@@ -118,7 +118,7 @@ class CampagneInscriptionPolicy
 
         // School-level users
         if ($user->school_id) {
-            return $campagne->ecole_id === $user->school_id;
+            return $campagne->school_id === $user->school_id;
         }
 
         // Zone-level users

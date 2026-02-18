@@ -16,7 +16,7 @@ class CampagneInscription extends Model
 
     protected $fillable = [
         'annee_scolaire_id',
-        'ecole_id',
+        'school_id',
         'type',
         'date_ouverture',
         'date_cloture',
@@ -34,7 +34,7 @@ class CampagneInscription extends Model
     // Scopes for HasDataScope
     protected static function getScopeColumn(): ?string
     {
-        return 'ecole_id';
+        return 'school_id';
     }
 
     protected static function getScopeRelation(): ?string
@@ -49,7 +49,7 @@ class CampagneInscription extends Model
 
     public function ecole(): BelongsTo
     {
-        return $this->belongsTo(School::class, 'ecole_id');
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     public function inscriptions(): HasMany

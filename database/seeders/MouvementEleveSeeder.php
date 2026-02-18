@@ -158,7 +158,7 @@ class MouvementEleveSeeder extends Seeder
             'annee_scolaire_id' => $anneeScolaireId,
             'type_mouvement' => $type->value,
             'date_mouvement' => now()->subDays(rand(1, 90)),
-            'ecole_origine_id' => $classe->ecole_id,
+            'ecole_origine_id' => $classe->school_id,
             'classe_origine_id' => $classe->id,
             'motif' => $motif,
             'statut' => $statut->value,
@@ -167,7 +167,7 @@ class MouvementEleveSeeder extends Seeder
 
         // Pour les transferts, ajouter une école de destination
         if ($type === TypeMouvement::TransfertSortant) {
-            $otherSchools = array_filter($schoolIds, fn ($id) => $id !== $classe->ecole_id);
+            $otherSchools = array_filter($schoolIds, fn ($id) => $id !== $classe->school_id);
             if (! empty($otherSchools)) {
                 $data['ecole_destination_id'] = $otherSchools[array_rand($otherSchools)];
             }

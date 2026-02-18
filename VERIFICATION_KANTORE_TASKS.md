@@ -66,7 +66,7 @@
 | KPIs nationaux | ✅ | `getNationalKpis()` – ratio élève/enseignant, taux réussite, % filles |
 | Cache | ✅ | `Cache::remember()` 30 min, `clearCache()` |
 | Endpoints dashboard | ✅ | national, provincial, communal, ecole |
-| Filtres | ✅ | annee_scolaire_id, province_id, commune_id, ecole_id, niveau |
+| Filtres | ✅ | annee_scolaire_id, province_id, commune_id, school_id, niveau |
 
 ### ⚠️ Problème identifié
 **StatisticsPage.vue** utilise des **données statiques** (placeholders) au lieu d’appeler l’API `statistics/dashboard/national` et les autres endpoints. Le backend expose des données réelles via `StatisticsService` mais le frontend ne les utilise pas.
@@ -107,7 +107,7 @@
 | Migrations | ✅ | campagnes_collecte, formulaires_collecte, reponses_collecte |
 | Modèles | ✅ | CampagneCollecte, FormulaireCollecte, ReponseCollecte |
 | Formulaires dynamiques | ✅ | Champs JSON, création/édition via FormulaireCollecteFormPage.vue |
-| Soumission par écoles | ✅ | ReponseCollecteController::store avec ecole_id, submit |
+| Soumission par écoles | ✅ | ReponseCollecteController::store avec school_id, submit |
 | Validation hiérarchique | ✅ | Zone → Commune → Province via validateResponse |
 | Taux de réponse | ✅ | CampagneCollecteController::progress |
 | Export | ✅ | ReponseCollecteController::export |

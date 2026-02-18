@@ -248,8 +248,8 @@ class KpiController extends Controller
         if ($request->filled('commune_id')) {
             $filters['commune_id'] = $request->input('commune_id');
         }
-        if ($request->filled('ecole_id')) {
-            $filters['ecole_id'] = $request->input('ecole_id');
+        if ($request->filled('school_id')) {
+            $filters['school_id'] = $request->input('school_id');
         }
         if ($request->filled('niveau')) {
             $filters['niveau'] = $request->input('niveau');

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('enseignants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('ecole_id')->nullable()->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->nullable()->constrained('ecoles')->onDelete('cascade');
             $table->string('matricule')->unique();
             $table->string('specialite')->nullable(); // Mathématiques, Français, etc.
             $table->enum('qualification', ['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])->nullable();
@@ -27,7 +27,7 @@ return new class extends Migration
             $table->softDeletes();
 
             // Un utilisateur ne peut être enseignant que dans une seule école
-            $table->unique(['user_id', 'ecole_id']);
+            $table->unique(['user_id', 'school_id']);
         });
     }
 

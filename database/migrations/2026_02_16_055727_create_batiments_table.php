@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('batiments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ecole_id')->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->constrained('ecoles')->onDelete('cascade');
             $table->string('nom');
             $table->enum('type', ['ACADEMIQUE', 'ADMINISTRATIF', 'SPORTIF', 'AUTRE'])->default('ACADEMIQUE');
             $table->year('annee_construction')->nullable();

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('annee_scolaire_id')
                 ->constrained('annee_scolaires')
                 ->cascadeOnDelete();
-            $table->foreignId('ecole_id')
+            $table->foreignId('school_id')
                 ->constrained('ecoles')
                 ->cascadeOnDelete();
             $table->enum('type', ['nouvelle', 'reinscription']);
@@ -28,7 +28,7 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['annee_scolaire_id', 'ecole_id']);
+            $table->index(['annee_scolaire_id', 'school_id']);
             $table->index('statut');
         });
     }

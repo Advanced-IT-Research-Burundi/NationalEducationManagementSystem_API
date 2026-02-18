@@ -124,7 +124,7 @@ class CampagneCollecteController extends Controller
         $ecolesRepondu = $campagne->reponses()
             ->where('statut', '!=', ReponseCollecte::STATUT_BROUILLON)
             ->distinct()
-            ->count('ecole_id');
+            ->count('school_id');
         $tauxReponse = $totalEcoles > 0 ? round(($ecolesRepondu / $totalEcoles) * 100, 1) : 0;
 
         $parStatut = $campagne->reponses()
@@ -153,11 +153,11 @@ class CampagneCollecteController extends Controller
             ->orderByDesc('soumis_at')
             ->get();
 
-        $parEcole = $reponses->groupBy('ecole_id')->map(function ($items, $ecoleId) {
+        $parEcole = $reponses->groupBy('school_id')->map(function ($items, $ecoleId) {
             $premiere = $items->first();
             $ecole = $premiere->ecole;
             return [
-                'ecole_id' => (int) $ecoleId,
+                'school_id' => (int) $ecoleId,
                 'ecole_name' => $ecole->name ?? $ecole->code_ecole ?? 'École #' . $ecoleId,
                 'code_ecole' => $ecole->code_ecole ?? null,
                 'province' => $ecole->province->name ?? null,

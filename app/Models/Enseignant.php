@@ -40,7 +40,7 @@ class Enseignant extends Model
 
     protected $fillable = [
         'user_id',
-        'ecole_id',
+        'school_id',
         'matricule',
         'specialite',
         'qualification',
@@ -68,7 +68,7 @@ class Enseignant extends Model
 
     public function scopeBySchool($query, int $schoolId)
     {
-        return $query->where('ecole_id', $schoolId);
+        return $query->where('school_id', $schoolId);
     }
 
     public function scopeBySpecialite($query, string $specialite)
@@ -134,7 +134,7 @@ class Enseignant extends Model
 
     public function school(): BelongsTo
     {
-        return $this->belongsTo(School::class, 'ecole_id');
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     public function creator(): BelongsTo

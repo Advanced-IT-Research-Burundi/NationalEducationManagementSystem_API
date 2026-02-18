@@ -75,7 +75,7 @@
 | ------------------- | --------------- | ------------------ | ---------------------------------- |
 | `id`                | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identifiant unique                 |
 | `annee_scolaire_id` | BIGINT UNSIGNED | FK, NOT NULL       | Référence année                    |
-| `ecole_id`          | BIGINT UNSIGNED | FK, NOT NULL       | École concernée                    |
+| `school_id`          | BIGINT UNSIGNED | FK, NOT NULL       | École concernée                    |
 | `type`              | ENUM            | NOT NULL           | 'nouvelle', 'reinscription'        |
 | `date_ouverture`    | DATE            | NOT NULL           | Début campagne                     |
 | `date_cloture`      | DATE            | NOT NULL           | Fin campagne                       |
@@ -122,7 +122,7 @@
 | `eleve_id`           | BIGINT UNSIGNED | FK, NOT NULL       | Référence élève                                     |
 | `campagne_id`        | BIGINT UNSIGNED | FK, NOT NULL       | Référence campagne                                  |
 | `annee_scolaire_id`  | BIGINT UNSIGNED | FK, NOT NULL       | Année scolaire                                      |
-| `ecole_id`           | BIGINT UNSIGNED | FK, NOT NULL       | École d'inscription                                 |
+| `school_id`           | BIGINT UNSIGNED | FK, NOT NULL       | École d'inscription                                 |
 | `niveau_demande_id`  | BIGINT UNSIGNED | FK, NOT NULL       | Niveau demandé                                      |
 | `type_inscription`   | ENUM            | NOT NULL           | 'nouvelle', 'reinscription', 'transfert_entrant'    |
 | `statut`             | ENUM            | NOT NULL           | 'brouillon', 'soumis', 'valide', 'rejete', 'annule' |
@@ -148,7 +148,7 @@
 | `id`                      | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identifiant unique |
 | `code`                    | VARCHAR(20)     | NOT NULL           | Ex: "6A", "5B"     |
 | `libelle`                 | VARCHAR(100)    | NOT NULL           | Nom complet        |
-| `ecole_id`                | BIGINT UNSIGNED | FK, NOT NULL       | École              |
+| `school_id`                | BIGINT UNSIGNED | FK, NOT NULL       | École              |
 | `niveau_id`               | BIGINT UNSIGNED | FK, NOT NULL       | Niveau scolaire    |
 | `annee_scolaire_id`       | BIGINT UNSIGNED | FK, NOT NULL       | Année              |
 | `capacite_max`            | INT UNSIGNED    | NOT NULL           | Capacité maximale  |
@@ -311,7 +311,7 @@ return new class extends Migration
             $table->foreignId('annee_scolaire_id')
                 ->constrained('annee_scolaires')
                 ->cascadeOnDelete();
-            $table->foreignId('ecole_id')
+            $table->foreignId('school_id')
                 ->constrained('ecoles')
                 ->cascadeOnDelete();
             $table->enum('type', ['nouvelle', 'reinscription']);
@@ -326,7 +326,7 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['annee_scolaire_id', 'ecole_id']);
+            $table->index(['annee_scolaire_id', 'school_id']);
             $table->index('statut');
         });
     }
@@ -422,7 +422,7 @@ return new class extends Migration
             $table->foreignId('annee_scolaire_id')
                 ->constrained('annee_scolaires')
                 ->cascadeOnDelete();
-            $table->foreignId('ecole_id')
+            $table->foreignId('school_id')
                 ->constrained('ecoles')
                 ->cascadeOnDelete();
             $table->foreignId('niveau_demande_id')
@@ -457,7 +457,7 @@ return new class extends Migration
 
             $table->unique(['eleve_id', 'annee_scolaire_id']);
             $table->index('statut');
-            $table->index(['ecole_id', 'annee_scolaire_id']);
+            $table->index(['school_id', 'annee_scolaire_id']);
         });
     }
 
@@ -485,7 +485,7 @@ return new class extends Migration
             $table->id();
             $table->string('code', 20);
             $table->string('libelle', 100);
-            $table->foreignId('ecole_id')
+            $table->foreignId('school_id')
                 ->constrained('ecoles')
                 ->cascadeOnDelete();
             $table->foreignId('niveau_id')
@@ -504,9 +504,9 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique([
-                'ecole_id', 'niveau_id', 'code', 'annee_scolaire_id'
+                'school_id', 'niveau_id', 'code', 'annee_scolaire_id'
             ], 'classes_unique_constraint');
-            $table->index(['ecole_id', 'annee_scolaire_id']);
+            $table->index(['school_id', 'annee_scolaire_id']);
         });
     }
 
@@ -792,7 +792,7 @@ class InscriptionPolicy
         if (!$user->can('inscriptions.validate')) {
             return false;
         }
-        if (!$this->isSchoolDirector($user, $inscription->ecole_id)) {
+        if (!$this->isSchoolDirector($user, $inscription->school_id)) {
             return false;
         }
         return $inscription->canValidate();
@@ -803,7 +803,7 @@ class InscriptionPolicy
         if (!$user->can('inscriptions.reject')) {
             return false;
         }
-        if (!$this->isSchoolDirector($user, $inscription->ecole_id)) {
+        if (!$this->isSchoolDirector($user, $inscription->school_id)) {
             return false;
         }
         return $inscription->statut === InscriptionStatut::SOUMIS;
@@ -819,7 +819,7 @@ class InscriptionPolicy
     private function isInUserScope(User $user, Inscription $inscription): bool
     {
         return match ($user->admin_level) {
-            'SCHOOL' => $inscription->ecole_id === $user->admin_entity_id,
+            'SCHOOL' => $inscription->school_id === $user->admin_entity_id,
             'ZONE' => $inscription->ecole->zone_id === $user->admin_entity_id,
             'COMMUNE' => $inscription->ecole->commune_id === $user->admin_entity_id,
             'PROVINCE' => $inscription->ecole->province_id === $user->admin_entity_id,

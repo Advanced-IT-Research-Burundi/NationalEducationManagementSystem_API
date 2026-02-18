@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('inspections', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ecole_id')->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->constrained('ecoles')->onDelete('cascade');
             $table->foreignId('inspecteur_id')->constrained('users')->onDelete('cascade');
             $table->date('date_prevue');
             $table->date('date_realisation')->nullable();

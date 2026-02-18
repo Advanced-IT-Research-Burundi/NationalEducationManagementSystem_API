@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('reponses_collecte', function (Blueprint $table) {
             $table->id();
             $table->foreignId('formulaire_id')->constrained('formulaires_collecte')->onDelete('cascade');
-            $table->foreignId('ecole_id')->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->constrained('ecoles')->onDelete('cascade');
             $table->json('donnees'); // { champ_name: value, ... }
             $table->enum('statut', [
                 'brouillon',
@@ -32,7 +32,7 @@ return new class extends Migration {
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
 
-            $table->unique(['formulaire_id', 'ecole_id']);
+            $table->unique(['formulaire_id', 'school_id']);
         });
     }
 

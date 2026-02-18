@@ -23,7 +23,7 @@ return new class extends Migration
             $table->foreignId('annee_scolaire_id')
                 ->constrained('annee_scolaires')
                 ->cascadeOnDelete();
-            $table->foreignId('ecole_id')
+            $table->foreignId('school_id')
                 ->constrained('ecoles')
                 ->cascadeOnDelete();
             $table->foreignId('niveau_demande_id')
@@ -58,7 +58,7 @@ return new class extends Migration
 
             $table->unique(['eleve_id', 'annee_scolaire_id']);
             $table->index('statut');
-            $table->index(['ecole_id', 'annee_scolaire_id']);
+            $table->index(['school_id', 'annee_scolaire_id']);
         });
     }
 

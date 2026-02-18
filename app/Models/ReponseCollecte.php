@@ -23,7 +23,7 @@ class ReponseCollecte extends Model
 
     protected $fillable = [
         'formulaire_id',
-        'ecole_id',
+        'school_id',
         'donnees',
         'statut',
         'soumis_par',
@@ -57,7 +57,7 @@ class ReponseCollecte extends Model
 
     public function ecole(): BelongsTo
     {
-        return $this->belongsTo(School::class, 'ecole_id');
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     public function soumisPar(): BelongsTo

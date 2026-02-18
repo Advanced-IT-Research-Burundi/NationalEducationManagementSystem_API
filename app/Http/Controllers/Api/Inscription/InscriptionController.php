@@ -16,8 +16,8 @@ class InscriptionController extends Controller
         $query = Inscription::query()
             ->with(['eleve', 'anneeScolaire', 'ecole', 'niveauDemande', 'campagne']);
 
-        if ($request->filled('ecole_id')) {
-            $query->where('ecole_id', $request->ecole_id);
+        if ($request->filled('school_id')) {
+            $query->where('school_id', $request->school_id);
         }
 
         if ($request->filled('annee_scolaire_id')) {
@@ -48,7 +48,7 @@ class InscriptionController extends Controller
         $validated = $request->validate([
             'eleve_id' => 'required|exists:eleves,id',
             'campagne_id' => 'required|exists:campagnes_inscription,id',
-            'ecole_id' => 'required|exists:ecoles,id',
+            'school_id' => 'required|exists:ecoles,id',
             'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
             'niveau_demande_id' => 'required|exists:niveaux_scolaires,id',
             'type_inscription' => ['required', Rule::in(['nouvelle', 'reinscription', 'transfert_entrant'])],

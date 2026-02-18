@@ -40,7 +40,7 @@ class InscriptionEleve extends Model
     protected $fillable = [
         'eleve_id',
         'classe_id',
-        'ecole_id',
+        'school_id',
         'annee_scolaire_id',
         'campagne_id',
         'niveau_demande_id',
@@ -90,7 +90,7 @@ class InscriptionEleve extends Model
         static::creating(function (InscriptionEleve $inscription) {
             if (empty($inscription->numero_inscription)) {
                 $inscription->numero_inscription = self::generateNumeroInscription(
-                    $inscription->ecole_id,
+                    $inscription->school_id,
                     $inscription->annee_scolaire_id
                 );
             }
@@ -113,7 +113,7 @@ class InscriptionEleve extends Model
         $prefix = 'INSCR';
         $year = date('Y');
 
-        $lastInscription = self::where('ecole_id', $ecoleId)
+        $lastInscription = self::where('school_id', $ecoleId)
             ->where('annee_scolaire_id', $anneeScolaireId)
             ->orderBy('id', 'desc')
             ->first();
@@ -153,7 +153,7 @@ class InscriptionEleve extends Model
 
     public function scopeByEcole($query, int $ecoleId): Builder
     {
-        return $query->where('ecole_id', $ecoleId);
+        return $query->where('school_id', $ecoleId);
     }
 
     public function scopeByAnneeScolaire($query, int $anneeScolaireId): Builder
@@ -190,7 +190,7 @@ class InscriptionEleve extends Model
         }
 
         return match ($level) {
-            'ECOLE' => $query->where('ecole_id', $entityId),
+            'ECOLE' => $query->where('school_id', $entityId),
             'ZONE' => $query->whereHas('ecole', fn ($q) => $q->where('zone_id', $entityId)),
             'COMMUNE' => $query->whereHas('ecole', fn ($q) => $q->where('commune_id', $entityId)),
             'PROVINCE' => $query->whereHas('ecole', fn ($q) => $q->where('province_id', $entityId)),

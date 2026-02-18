@@ -23,7 +23,7 @@ class UpdateBatimentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ecole_id' => ['sometimes', 'nullable', 'exists:ecoles,id'],
+            'school_id' => ['sometimes', 'nullable', 'exists:ecoles,id'],
             'nom' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', Rule::in(['ACADEMIQUE', 'ADMINISTRATIF', 'SPORTIF', 'AUTRE'])],
             'annee_construction' => ['nullable', 'integer', 'min:1800', 'max:'.(date('Y') + 5)],
@@ -40,7 +40,7 @@ class UpdateBatimentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'ecole_id.exists' => 'L\'école sélectionnée n\'existe pas.',
+            'school_id.exists' => 'L\'école sélectionnée n\'existe pas.',
             'type.in' => 'Le type doit être ACADEMIQUE, ADMINISTRATIF, SPORTIF ou AUTRE.',
             'annee_construction.min' => 'L\'année de construction doit être supérieure à 1800.',
             'annee_construction.max' => 'L\'année de construction ne peut pas être dans le futur.',

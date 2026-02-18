@@ -21,8 +21,8 @@ class EquipmentController extends Controller
         $query = Equipement::query()->with(['salle', 'ecole']);
 
         // Apply filters
-        if ($request->has('ecole_id')) {
-            $query->where('ecole_id', $request->ecole_id);
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
         }
 
         if ($request->has('salle_id')) {
@@ -100,8 +100,8 @@ class EquipmentController extends Controller
 
         $query = Equipement::query()->with(['salle', 'ecole']);
 
-        if ($request->has('ecole_id')) {
-            $query->where('ecole_id', $request->ecole_id);
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
         }
 
         $perPage = $request->get('per_page', 50);
@@ -115,7 +115,7 @@ class EquipmentController extends Controller
         $this->authorize('viewAny', Equipement::class);
 
         $equipements = Equipement::query()
-            ->where('ecole_id', $school)
+            ->where('school_id', $school)
             ->with('salle')
             ->paginate(20);
 

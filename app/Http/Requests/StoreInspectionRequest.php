@@ -14,7 +14,7 @@ class StoreInspectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ecole_id' => 'required|exists:ecoles,id',
+            'school_id' => 'required|exists:ecoles,id',
             'inspecteur_id' => 'required|exists:users,id',
             'date_prevue' => 'required|date|after_or_equal:today',
             'type' => 'required|in:reguliere,inopinee,thematique',

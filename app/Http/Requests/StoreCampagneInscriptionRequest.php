@@ -25,7 +25,7 @@ class StoreCampagneInscriptionRequest extends FormRequest
     {
         return [
             'annee_scolaire_id' => ['required', 'exists:annee_scolaires,id'],
-            'ecole_id' => ['required', 'exists:ecoles,id'],
+            'school_id' => ['required', 'exists:ecoles,id'],
             'type' => ['required', Rule::in(CampagneType::values())],
             'date_ouverture' => ['required', 'date'],
             'date_cloture' => ['required', 'date', 'after:date_ouverture'],
@@ -42,8 +42,8 @@ class StoreCampagneInscriptionRequest extends FormRequest
         return [
             'annee_scolaire_id.required' => 'L\'année scolaire est requise.',
             'annee_scolaire_id.exists' => 'L\'année scolaire sélectionnée n\'existe pas.',
-            'ecole_id.required' => 'L\'école est requise.',
-            'ecole_id.exists' => 'L\'école sélectionnée n\'existe pas.',
+            'school_id.required' => 'L\'école est requise.',
+            'school_id.exists' => 'L\'école sélectionnée n\'existe pas.',
             'type.required' => 'Le type de campagne est requis.',
             'type.in' => 'Le type de campagne doit être "nouvelle" ou "reinscription".',
             'date_ouverture.required' => 'La date d\'ouverture est requise.',
@@ -65,7 +65,7 @@ class StoreCampagneInscriptionRequest extends FormRequest
             // Check if campagne already exists for this année/école/type
             if (! $validator->errors()->any()) {
                 $exists = \App\Models\CampagneInscription::where('annee_scolaire_id', $this->annee_scolaire_id)
-                    ->where('ecole_id', $this->ecole_id)
+                    ->where('school_id', $this->school_id)
                     ->where('type', $this->type)
                     ->exists();
 

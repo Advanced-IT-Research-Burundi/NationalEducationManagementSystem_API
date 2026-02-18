@@ -18,7 +18,7 @@ class ReponseCollecteController extends Controller
         $campagneId = $request->campagne_id;
         $query = ReponseCollecte::with(['formulaire.campagne', 'ecole', 'soumisPar', 'validePar'])
             ->when($campagneId, fn ($q) => $q->whereHas('formulaire', fn ($sq) => $sq->where('campagne_id', $campagneId)))
-            ->when($request->filled('ecole_id'), fn ($q) => $q->where('ecole_id', $request->ecole_id))
+            ->when($request->filled('school_id'), fn ($q) => $q->where('school_id', $request->school_id))
             ->when($request->filled('formulaire_id'), fn ($q) => $q->where('formulaire_id', $request->formulaire_id))
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->statut))
             ->latest();
@@ -30,7 +30,7 @@ class ReponseCollecteController extends Controller
 
     public function store(Request $request, FormulaireCollecte $formulaire): JsonResponse
     {
-        $ecoleId = $request->ecole_id ?? auth()->user()?->school_id;
+        $ecoleId = $request->school_id ?? auth()->user()?->school_id;
         if (!$ecoleId) {
             return response()->json(['message' => 'École requise'], 422);
         }
@@ -39,23 +39,23 @@ class ReponseCollecteController extends Controller
             return response()->json(['message' => 'Campagne fermée ou non ouverte'], 422);
         }
 
-        $existing = ReponseCollecte::where('formulaire_id', $formulaire->id)->where('ecole_id', $ecoleId)->first();
+        $existing = ReponseCollecte::where('formulaire_id', $formulaire->id)->where('school_id', $ecoleId)->first();
         if ($existing && $existing->statut !== ReponseCollecte::STATUT_BROUILLON) {
             return response()->json(['message' => 'Une réponse existe déjà pour cette école'], 422);
         }
 
         $validated = $request->validate([
             'donnees' => 'required|array',
-            'ecole_id' => 'sometimes|exists:ecoles,id',
+            'school_id' => 'sometimes|exists:ecoles,id',
         ]);
 
         $validated['formulaire_id'] = $formulaire->id;
-        $validated['ecole_id'] = $ecoleId;
+        $validated['school_id'] = $ecoleId;
         $validated['statut'] = ReponseCollecte::STATUT_BROUILLON;
         $validated['created_by'] = auth()->id();
 
         $reponse = ReponseCollecte::updateOrCreate(
-            ['formulaire_id' => $formulaire->id, 'ecole_id' => $ecoleId],
+            ['formulaire_id' => $formulaire->id, 'school_id' => $ecoleId],
             $validated
         );
 
@@ -143,7 +143,7 @@ class ReponseCollecteController extends Controller
     public function bySchool(School $school, Request $request): JsonResponse
     {
         $reponses = ReponseCollecte::with(['formulaire.campagne'])
-            ->where('ecole_id', $school->id)
+            ->where('school_id', $school->id)
             ->when($request->filled('campagne_id'), fn ($q) => $q->whereHas('formulaire', fn ($sq) => $sq->where('campagne_id', $request->campagne_id)))
             ->latest()
             ->paginate($request->get('per_page', 15));

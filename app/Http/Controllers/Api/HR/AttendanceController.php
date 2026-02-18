@@ -85,7 +85,7 @@ class AttendanceController extends Controller
     {
         $query = Presence::query()
             ->whereHas('enseignant', function ($q) use ($school) {
-                $q->where('ecole_id', $school);
+                $q->where('school_id', $school);
             })
             ->with('enseignant');
 

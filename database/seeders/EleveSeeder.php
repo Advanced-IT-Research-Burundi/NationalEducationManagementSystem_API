@@ -91,7 +91,7 @@ class EleveSeeder extends Seeder
 
         foreach ($classes as $classe) {
             // Vérifier que la classe a une école
-            if (! $classe->ecole_id) {
+            if (! $classe->school_id) {
                 continue;
             }
 
@@ -123,13 +123,13 @@ class EleveSeeder extends Seeder
      */
     private function createCampagnes(AnneeScolaire $anneeScolaire, $classes): void
     {
-        $ecoleIds = $classes->pluck('ecole_id')->unique()->filter();
+        $ecoleIds = $classes->pluck('school_id')->unique()->filter();
 
         foreach ($ecoleIds as $ecoleId) {
             CampagneInscription::firstOrCreate(
                 [
                     'annee_scolaire_id' => $anneeScolaire->id,
-                    'ecole_id' => $ecoleId,
+                    'school_id' => $ecoleId,
                     'type' => 'nouvelle',
                 ],
                 [
@@ -144,7 +144,7 @@ class EleveSeeder extends Seeder
             CampagneInscription::firstOrCreate(
                 [
                     'annee_scolaire_id' => $anneeScolaire->id,
-                    'ecole_id' => $ecoleId,
+                    'school_id' => $ecoleId,
                     'type' => 'reinscription',
                 ],
                 [
@@ -197,7 +197,7 @@ class EleveSeeder extends Seeder
     private function createInscription(Eleve $eleve, Classe $classe, AnneeScolaire $anneeScolaire): ?Inscription
     {
         $campagne = CampagneInscription::where('annee_scolaire_id', $anneeScolaire->id)
-            ->where('ecole_id', $classe->ecole_id)
+            ->where('school_id', $classe->school_id)
             ->first();
 
         if (! $campagne) {
@@ -207,7 +207,7 @@ class EleveSeeder extends Seeder
         $inscription = Inscription::create([
             'numero_inscription' => $this->generateNumeroInscription(),
             'eleve_id' => $eleve->id,
-            'ecole_id' => $classe->ecole_id,
+            'school_id' => $classe->school_id,
             'annee_scolaire_id' => $anneeScolaire->id,
             'campagne_id' => $campagne->id,
             'niveau_demande_id' => $classe->niveau_id,

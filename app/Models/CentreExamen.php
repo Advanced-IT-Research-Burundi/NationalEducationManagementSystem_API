@@ -12,7 +12,7 @@ class CentreExamen extends Model
     protected $table = 'centres_examen';
 
     protected $fillable = [
-        'ecole_id',
+        'school_id',
         'session_id',
         'capacite',
         'responsable_id',
@@ -20,7 +20,7 @@ class CentreExamen extends Model
 
     public function ecole()
     {
-        return $this->belongsTo(School::class, 'ecole_id');
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     public function session()

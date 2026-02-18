@@ -22,8 +22,8 @@ class BuildingController extends Controller
         $query = Batiment::query()->with(['ecole']);
 
         // Apply filters
-        if ($request->has('ecole_id')) {
-            $query->where('ecole_id', $request->ecole_id);
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
         }
 
         if ($request->has('type')) {
@@ -92,7 +92,7 @@ class BuildingController extends Controller
         $this->authorize('viewAny', Batiment::class);
 
         $batiments = Batiment::query()
-            ->where('ecole_id', $school)
+            ->where('school_id', $school)
             ->with('salles')
             ->paginate(20);
 

@@ -181,14 +181,14 @@ class DashboardController extends Controller
     public function ecole(Request $request, string $ecole): JsonResponse
     {
         $filters = array_merge($this->extractFilters($request), [
-            'ecole_id' => $ecole,
+            'school_id' => $ecole,
         ]);
 
         try {
             $data = $this->statisticsService->getDashboardData($filters);
             return response()->json([
                 'niveau' => 'ecole',
-                'ecole_id' => $ecole,
+                'school_id' => $ecole,
                 'data' => $data,
             ]);
         } catch (\Exception $e) {

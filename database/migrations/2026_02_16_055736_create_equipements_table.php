@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('equipements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('salle_id')->nullable()->constrained('salles')->onDelete('set null');
-            $table->foreignId('ecole_id')->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->constrained('ecoles')->onDelete('cascade');
             $table->string('nom');
             $table->enum('type', ['MOBILIER', 'INFORMATIQUE', 'LABORATOIRE', 'SPORT', 'AUTRE'])->default('MOBILIER');
             $table->string('marque')->nullable();

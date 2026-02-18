@@ -38,7 +38,7 @@ return new class extends Migration
             $table->foreignId('zone_id')->nullable();
             $table->foreignId('colline_id')->nullable();
             $table->foreignId('school_id')->nullable();
-            $table->foreignId('ecole_id')->nullable();
+            $table->foreignId('school_id')->nullable();
 
             $table->rememberToken();
             $table->timestamps();

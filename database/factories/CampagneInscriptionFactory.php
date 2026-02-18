@@ -29,7 +29,7 @@ class CampagneInscriptionFactory extends Factory
 
         return [
             'annee_scolaire_id' => AnneeScolaire::factory(),
-            'ecole_id' => Ecole::factory(),
+            'school_id' => Ecole::factory(),
             'type' => fake()->randomElement(CampagneType::cases()),
             'date_ouverture' => $dateOuverture,
             'date_cloture' => $dateCloture,
@@ -100,7 +100,7 @@ class CampagneInscriptionFactory extends Factory
     public function forEcole(Ecole $ecole): static
     {
         return $this->state(fn (array $attributes) => [
-            'ecole_id' => $ecole->id,
+            'school_id' => $ecole->id,
         ]);
     }
 

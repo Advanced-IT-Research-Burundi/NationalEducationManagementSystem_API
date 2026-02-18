@@ -26,7 +26,7 @@ class UpdateEquipementRequest extends FormRequest
 
         return [
             'salle_id' => ['nullable', 'exists:salles,id'],
-            'ecole_id' => ['sometimes', 'exists:ecoles,id'],
+            'school_id' => ['sometimes', 'exists:ecoles,id'],
             'nom' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', Rule::in(['MOBILIER', 'INFORMATIQUE', 'LABORATOIRE', 'SPORT', 'AUTRE'])],
             'marque' => ['nullable', 'string', 'max:100'],
@@ -46,7 +46,7 @@ class UpdateEquipementRequest extends FormRequest
     {
         return [
             'salle_id.exists' => 'La salle sélectionnée n\'existe pas.',
-            'ecole_id.exists' => 'L\'école sélectionnée n\'existe pas.',
+            'school_id.exists' => 'L\'école sélectionnée n\'existe pas.',
             'type.in' => 'Le type doit être MOBILIER, INFORMATIQUE, LABORATOIRE, SPORT ou AUTRE.',
             'numero_serie.unique' => 'Ce numéro de série existe déjà.',
             'date_acquisition.before_or_equal' => 'La date d\'acquisition ne peut pas être dans le futur.',

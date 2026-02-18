@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('nom'); // 7ème A, 7ème B, 8ème A, etc.
             $table->string('code')->nullable(); // Code unique de la classe
             $table->foreignId('niveau_id')->constrained('niveaux_scolaires')->onDelete('cascade');
-            $table->foreignId('ecole_id')->nullable()->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->nullable()->constrained('ecoles')->onDelete('cascade');
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires')->onDelete('cascade');
             $table->foreignId('niveau_scolaire_id')->nullable()->constrained('niveaux_scolaires')->onDelete('cascade');
             $table->foreignId('enseignant_principal_id')->nullable()->constrained('users')->nullOnDelete();
@@ -29,8 +29,8 @@ return new class extends Migration
             $table->softDeletes();
 
             // Index pour recherche rapide
-            $table->index(['ecole_id', 'niveau_id', 'annee_scolaire_id']);
-            $table->unique(['ecole_id', 'nom', 'annee_scolaire_id'], 'unique_class_per_school_year');
+            $table->index(['school_id', 'niveau_id', 'annee_scolaire_id']);
+            $table->unique(['school_id', 'nom', 'annee_scolaire_id'], 'unique_class_per_school_year');
         });
     }
 

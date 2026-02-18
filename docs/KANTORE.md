@@ -27,7 +27,7 @@ Responsable de l'**implémentation des modules métier** du système : Pédagogi
 
 **Modèle de données suggéré :**
 ```
-Inspection: id, ecole_id, inspecteur_id, date_prevue, date_realisation,
+Inspection: id, school_id, inspecteur_id, date_prevue, date_realisation,
             type (reguliere, inopinee, thematique), statut, rapport, note_globale
 StandardQualite: id, code, libelle, description, criteres (JSON), poids
 Formation: id, titre, description, date_debut, date_fin, formateur_id,
@@ -58,7 +58,7 @@ Formation: id, titre, description, date_debut, date_fin, formateur_id,
 ```
 Examen: id, code, libelle, niveau_id, annee_scolaire_id, type (national, provincial)
 SessionExamen: id, examen_id, date_debut, date_fin, statut
-CentreExamen: id, ecole_id, session_id, capacite, responsable_id
+CentreExamen: id, school_id, session_id, capacite, responsable_id
 InscriptionExamen: id, eleve_id, session_id, centre_id, numero_anonymat, statut
 Resultat: id, inscription_examen_id, matiere, note, mention, deliberation
 Certificat: id, resultat_id, numero_unique, date_emission, qr_code

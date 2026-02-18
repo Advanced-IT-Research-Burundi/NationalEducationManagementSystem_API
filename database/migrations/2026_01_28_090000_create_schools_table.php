@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ecoles', function (Blueprint $table) {
+        Schema::create('schools', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->enum('type_ecole', ['PUBLIQUE', 'PRIVEE', 'ECC', 'AUTRE'])->nullable();
             $table->enum('niveau', ['FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])->nullable();
             $table->string('code_ecole')->nullable()->unique();
-            
+
             $table->foreignId('colline_id')->constrained('collines')->onDelete('cascade');
             $table->foreignId('zone_id')->nullable()->constrained('zones')->onDelete('cascade');
             $table->foreignId('commune_id')->nullable()->constrained('communes')->onDelete('cascade');

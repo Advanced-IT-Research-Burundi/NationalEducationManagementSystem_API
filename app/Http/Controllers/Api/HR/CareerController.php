@@ -21,8 +21,8 @@ class CareerController extends Controller
             $query->where('enseignant_id', $request->enseignant_id);
         }
 
-        if ($request->has('ecole_id')) {
-            $query->where('ecole_id', $request->ecole_id);
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
         }
 
         $perPage = $request->get('per_page', 20);
@@ -50,7 +50,7 @@ class CareerController extends Controller
     {
         $request->validate([
             'nouveau_poste' => ['required', 'string', 'max:255'],
-            'ecole_id' => ['nullable', 'exists:ecoles,id'],
+            'school_id' => ['nullable', 'exists:ecoles,id'],
             'date_debut' => ['required', 'date'],
         ]);
 
@@ -66,7 +66,7 @@ class CareerController extends Controller
         $carriere = Carriere::create([
             'enseignant_id' => $teacher->id,
             'poste' => $request->nouveau_poste,
-            'ecole_id' => $request->ecole_id ?? $teacher->ecole_id,
+            'school_id' => $request->school_id ?? $teacher->school_id,
             'date_debut' => $request->date_debut,
         ]);
 

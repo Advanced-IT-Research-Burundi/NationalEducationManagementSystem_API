@@ -25,7 +25,7 @@ class InscriptionUpdateRequest extends FormRequest
             /* INSCRIPTION */
             'inscription.eleve_id' => ['sometimes', 'exists:eleves,id'],
             'inscription.classe_id' => ['sometimes', 'exists:classes,id'],
-            'inscription.ecole_id' => ['sometimes', 'exists:ecoles,id'],
+            'inscription.school_id' => ['sometimes', 'exists:ecoles,id'],
             'inscription.annee_scolaire_id' => ['sometimes', 'exists:annee_scolaires,id'],
             'inscription.niveau_demande_id' => ['sometimes', 'exists:niveaux_scolaires,id'],
             'inscription.date_inscription' => ['sometimes', 'date'],

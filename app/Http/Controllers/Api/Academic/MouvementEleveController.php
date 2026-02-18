@@ -60,8 +60,8 @@ class MouvementEleveController extends Controller
         }
 
         // Filter by école
-        if ($request->filled('ecole_id')) {
-            $ecoleId = $request->ecole_id;
+        if ($request->filled('school_id')) {
+            $ecoleId = $request->school_id;
             $query->where(function ($q) use ($ecoleId) {
                 $q->where('ecole_origine_id', $ecoleId)
                     ->orWhere('ecole_destination_id', $ecoleId);
@@ -100,7 +100,7 @@ class MouvementEleveController extends Controller
                     ->first();
 
                 if ($activeInscription) {
-                    $data['ecole_origine_id'] = $activeInscription->ecole_id;
+                    $data['ecole_origine_id'] = $activeInscription->school_id;
                     $data['classe_origine_id'] = $activeInscription->classe_id;
                 }
             }
@@ -305,8 +305,8 @@ class MouvementEleveController extends Controller
     {
         $query = MouvementEleve::forCurrentUser();
 
-        if ($request->filled('ecole_id')) {
-            $ecoleId = $request->ecole_id;
+        if ($request->filled('school_id')) {
+            $ecoleId = $request->school_id;
             $query->where(function ($q) use ($ecoleId) {
                 $q->where('ecole_origine_id', $ecoleId)
                     ->orWhere('ecole_destination_id', $ecoleId);

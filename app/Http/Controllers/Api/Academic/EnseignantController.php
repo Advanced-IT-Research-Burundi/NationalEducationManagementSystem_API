@@ -72,8 +72,8 @@ class EnseignantController extends Controller
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'admin_level' => 'ECOLE',
-                'admin_entity_id' => $data['ecole_id'],
-                'ecole_id' => $data['ecole_id'] ?? null,
+                'admin_entity_id' => $data['school_id'],
+                'school_id' => $data['school_id'] ?? null,
                 'created_by' => Auth::id(),
             ]);
 
@@ -83,7 +83,7 @@ class EnseignantController extends Controller
             // Create enseignant profile
             $enseignant = Enseignant::create([
                 'user_id' => $user->id,
-                'ecole_id' => $data['ecole_id'],
+                'school_id' => $data['school_id'],
                 'matricule' => $data['matricule'],
                 'specialite' => $data['specialite'] ?? null,
                 'qualification' => $data['qualification'] ?? null,

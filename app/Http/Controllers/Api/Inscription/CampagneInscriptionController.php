@@ -14,8 +14,8 @@ class CampagneInscriptionController extends Controller
     {
         $query = CampagneInscription::query()->with(['anneeScolaire', 'ecole']);
 
-        if ($request->filled('ecole_id')) {
-            $query->where('ecole_id', $request->ecole_id);
+        if ($request->filled('school_id')) {
+            $query->where('school_id', $request->school_id);
         }
 
         if ($request->filled('annee_scolaire_id')) {
@@ -35,7 +35,7 @@ class CampagneInscriptionController extends Controller
     {
         $validated = $request->validate([
             'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-            'ecole_id' => 'required|exists:ecoles,id',
+            'school_id' => 'required|exists:ecoles,id',
             'type' => 'required|in:nouvelle,reinscription',
             'date_ouverture' => 'required|date',
             'date_cloture' => 'required|date|after:date_ouverture',

@@ -27,7 +27,7 @@ Responsable des **modules secondaires backend**, de l'**infrastructure technique
 
 **Modèle de données suggéré :**
 ```
-Batiment: id, ecole_id, nom, type, annee_construction, superficie,
+Batiment: id, school_id, nom, type, annee_construction, superficie,
           nombre_etages, etat (bon, moyen, mauvais, dangereux)
 Salle: id, batiment_id, numero, type (classe, laboratoire, bureau, sanitaire),
        capacite, superficie, etat
@@ -58,7 +58,7 @@ Maintenance: id, equipement_id/batiment_id, type (preventive, corrective),
 
 **Modèle de données suggéré :**
 ```
-Carriere: id, enseignant_id, poste, ecole_id, date_debut, date_fin,
+Carriere: id, enseignant_id, poste, school_id, date_debut, date_fin,
           motif_fin (mutation, promotion, retraite, demission)
 Presence: id, enseignant_id, date, heure_arrivee, heure_depart,
           statut (present, absent_justifie, absent_non_justifie)

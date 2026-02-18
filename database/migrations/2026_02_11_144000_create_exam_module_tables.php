@@ -38,7 +38,7 @@ return new class extends Migration {
 
         Schema::create('centres_examen', function (Blueprint $blueprint) {
             $blueprint->id();
-            $blueprint->foreignId('ecole_id')->constrained('ecoles');
+            $blueprint->foreignId('school_id')->constrained('ecoles');
             $blueprint->foreignId('session_id')->constrained('sessions_examen')->onDelete('cascade');
             $blueprint->integer('capacite');
             $blueprint->foreignId('responsable_id')->constrained('users');

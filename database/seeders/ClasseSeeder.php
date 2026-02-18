@@ -73,7 +73,7 @@ class ClasseSeeder extends Seeder
 
                     Classe::updateOrCreate(
                         [
-                            'ecole_id' => $school->id,
+                            'school_id' => $school->id,
                             'niveau_id' => $niveau->id,
                             'annee_scolaire_id' => $anneeScolaire->id,
                             'code' => $code,
