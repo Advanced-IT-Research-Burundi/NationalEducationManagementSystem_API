@@ -14,7 +14,7 @@ return new class extends Migration
                 ->constrained('annee_scolaires')
                 ->cascadeOnDelete();
             $table->foreignId('school_id')
-                ->constrained('ecoles')
+                ->constrained('schools')
                 ->cascadeOnDelete();
             $table->enum('type', ['nouvelle', 'reinscription']);
             $table->date('date_ouverture');

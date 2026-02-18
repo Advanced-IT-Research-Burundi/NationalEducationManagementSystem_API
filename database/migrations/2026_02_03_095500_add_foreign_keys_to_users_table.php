@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreign('commune_id')->references('id')->on('communes')->onDelete('set null');
             $table->foreign('zone_id')->references('id')->on('zones')->onDelete('set null');
             $table->foreign('colline_id')->references('id')->on('collines')->onDelete('set null');
-            $table->foreign('school_id')->references('id')->on('ecoles')->onDelete('set null');
+            $table->foreign('school_id')->references('id')->on('schools')->onDelete('set null');
         });
     }
 

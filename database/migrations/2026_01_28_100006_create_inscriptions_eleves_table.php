@@ -24,7 +24,7 @@ return new class extends Migration
                 ->constrained('annee_scolaires')
                 ->cascadeOnDelete();
             $table->foreignId('school_id')
-                ->constrained('ecoles')
+                ->constrained('schools')
                 ->cascadeOnDelete();
             $table->foreignId('niveau_demande_id')
                 ->constrained('niveaux_scolaires') // Note: need to ensure niveaux_scolaires is the table name, migration said 'niveaux'. Doc says 'niveaux_scolaires'.

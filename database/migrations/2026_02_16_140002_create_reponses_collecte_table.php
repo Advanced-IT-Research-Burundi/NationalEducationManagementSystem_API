@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('reponses_collecte', function (Blueprint $table) {
             $table->id();
             $table->foreignId('formulaire_id')->constrained('formulaires_collecte')->onDelete('cascade');
-            $table->foreignId('school_id')->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
             $table->json('donnees'); // { champ_name: value, ... }
             $table->enum('statut', [
                 'brouillon',

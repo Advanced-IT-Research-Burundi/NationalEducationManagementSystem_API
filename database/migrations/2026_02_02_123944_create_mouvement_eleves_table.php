@@ -17,8 +17,8 @@ return new class extends Migration
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires')->cascadeOnDelete();
             $table->enum('type_mouvement', ['transfert_sortant','transfert_entrant','abandon','exclusion','deces','passage','redoublement','reintegration']);
             $table->date('date_mouvement');
-            $table->foreignId('ecole_origine_id')->nullable()->constrained('ecoles')->nullOnDelete();
-            $table->foreignId('ecole_destination_id')->nullable()->constrained('ecoles')->nullOnDelete();
+            $table->foreignId('ecole_origine_id')->nullable()->constrained('schools')->nullOnDelete();
+            $table->foreignId('ecole_destination_id')->nullable()->constrained('schools')->nullOnDelete();
             $table->foreignId('classe_origine_id')->nullable()->constrained('classes')->nullOnDelete();
             $table->text('motif')->nullable();
             $table->string('document_reference', 255)->nullable();

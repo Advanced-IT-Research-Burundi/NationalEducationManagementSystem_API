@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('enseignants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('school_id')->nullable()->constrained('ecoles')->onDelete('cascade');
+            $table->foreignId('school_id')->nullable()->constrained('schools')->onDelete('cascade');
             $table->string('matricule')->unique();
             $table->string('specialite')->nullable(); // Mathématiques, Français, etc.
             $table->enum('qualification', ['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])->nullable();

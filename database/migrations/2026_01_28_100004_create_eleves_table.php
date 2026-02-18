@@ -35,11 +35,11 @@ return new class extends Migration
             $table->string('type_handicap', 100)->nullable();
             $table->foreignId('ecole_origine_id')
                 ->nullable()
-                ->constrained('ecoles')
+                ->constrained('schools')
                 ->nullOnDelete();
             $table->foreignId('school_id')
                 ->nullable()
-                ->constrained('ecoles')
+                ->constrained('schools')
                 ->nullOnDelete();
             $table->foreignId('created_by')
                 ->nullable()
