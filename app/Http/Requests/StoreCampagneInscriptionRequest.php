@@ -25,7 +25,7 @@ class StoreCampagneInscriptionRequest extends FormRequest
     {
         return [
             'annee_scolaire_id' => ['required', 'exists:annee_scolaires,id'],
-            'school_id' => ['required', 'exists:ecoles,id'],
+            'school_id' => ['required', 'exists:schools,id'],
             'type' => ['required', Rule::in(CampagneType::values())],
             'date_ouverture' => ['required', 'date'],
             'date_cloture' => ['required', 'date', 'after:date_ouverture'],

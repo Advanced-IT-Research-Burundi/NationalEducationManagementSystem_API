@@ -44,7 +44,7 @@ class StoreBatimentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'school_id' => ['nullable', 'exists:ecoles,id'],
+            'school_id' => ['nullable', 'exists:schools,id'],
             'nom' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['ACADEMIQUE', 'ADMINISTRATIF', 'SPORTIF', 'AUTRE'])],
             'annee_construction' => ['nullable', 'integer', 'min:1800', 'max:'.(date('Y') + 5)],
