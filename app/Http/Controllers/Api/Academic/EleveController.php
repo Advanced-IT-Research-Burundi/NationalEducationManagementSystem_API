@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEleveRequest;
 use App\Http\Requests\StoreInscriptionRequest;
 use App\Http\Requests\UpdateEleveRequest;
+use App\Http\Resources\EleveResource;
 use App\Models\Classe;
 use App\Models\Eleve;
 use App\Models\Inscription;
@@ -127,14 +128,26 @@ class EleveController extends Controller
     /**
      * Display the specified eleve.
      */
-    public function show(Eleve $eleve): JsonResponse
-    {
-        $this->authorize('view', $eleve);
 
-        return response()->json(
-            $eleve->load(['ecole', 'creator', 'classes', 'inscriptions.classe.niveau'])
-        );
-    }
+public function show($id): JsonResponse
+{
+   // $this->authorize('view', $eleve);
+
+    $eleve = Eleve::findOrFail($id);
+
+    $eleve->load([
+        'ecole',
+        'ecoleOrigine',
+        'creator',
+        'classes',
+        'inscriptions.classe.niveau'
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'data' => new EleveResource($eleve)
+    ]);
+}
 
     /**
      * Update the specified eleve.

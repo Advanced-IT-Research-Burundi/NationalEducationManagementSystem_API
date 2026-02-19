@@ -30,11 +30,11 @@ class StoreEleveRequest extends FormRequest
             'date_naissance' => ['nullable', 'date', 'before:today'],
             'lieu_naissance' => ['required', 'string', 'max:150'],
             'sexe' => ['required', Rule::in(['M', 'F'])],
-            'nom_pere' => ['nullable', 'string', 'max:100'],
-            'nom_mere' => ['nullable', 'string', 'max:100'],
+            'nom_pere' => ['nullable', 'string', 'max:150'],
+            'nom_mere' => ['nullable', 'string', 'max:150'],
             'contact_parent' => ['nullable', 'string', 'max:20'],
             'adresse' => ['nullable', 'string', 'max:500'],
-            'school_id' => ['required', 'exists:ecoles,id'],
+            'school_id' => ['required', 'exists:schools,id'],
             'statut' => ['nullable', Rule::in(['INSCRIT', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])],
 
             // Optional: auto-enroll in a class

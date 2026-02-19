@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Colline;
+use App\Models\School;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ class StoreSchoolRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\School::class);
+        return $this->user()->can('create', Schoo::class);
     }
 
     /**
