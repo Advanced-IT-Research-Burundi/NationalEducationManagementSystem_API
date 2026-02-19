@@ -20,6 +20,7 @@ class InscriptionController extends Controller
             $query->where('school_id', $request->school_id);
         }
 
+
         if ($request->filled('annee_scolaire_id')) {
             $query->where('annee_scolaire_id', $request->annee_scolaire_id);
         }
@@ -32,6 +33,7 @@ class InscriptionController extends Controller
             $search = $request->search;
             $query->whereHas('eleve', function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
+                  ->orWhere('numero_inscription', 'like', "%{$search}%")
                   ->orWhere('prenom', 'like', "%{$search}%")
                   ->orWhere('matricule', 'like', "%{$search}%");
             });

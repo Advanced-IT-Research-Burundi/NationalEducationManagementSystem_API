@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasDataScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -9,7 +10,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class School extends Model
 {
-    use \App\Traits\HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes, LogsActivity;
+    use HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes, LogsActivity;
 
     protected $table = 'schools';
 

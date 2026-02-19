@@ -6,12 +6,12 @@
  * Inspection Management, Quality Standards, Pedagogical Support, Teacher Training
  */
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Pedagogy\FormationController;
 use App\Http\Controllers\Api\Pedagogy\InspectionController;
 use App\Http\Controllers\Api\Pedagogy\InspectionReportController;
-use App\Http\Controllers\Api\Pedagogy\StandardQualiteController;
-use App\Http\Controllers\Api\Pedagogy\FormationController;
 use App\Http\Controllers\Api\Pedagogy\PedagogicalNoteController;
+use App\Http\Controllers\Api\Pedagogy\StandardQualiteController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,7 +35,8 @@ Route::middleware(['auth:sanctum'])->prefix('pedagogy')->name('pedagogy.')->grou
         ->name('inspection-reports.approve');
 
     // Quality Standards (Standards de Qualité)
-    Route::apiResource('standards-qualite', StandardQualiteController::class);
+    Route::apiResource('standards-qualite', StandardQualiteController::class)
+        ->parameters(['standards-qualite' => 'standardQualite']);
     Route::get('standards-qualite/{standardQualite}/criteria', [StandardQualiteController::class, 'criteria'])
         ->name('standards-qualite.criteria');
 

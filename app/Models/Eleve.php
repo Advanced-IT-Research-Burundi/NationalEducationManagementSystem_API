@@ -134,6 +134,11 @@ class Eleve extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function classes(): BelongsTo
+    {
+        return $this->belongsTo(Classe::class, 'classe_id');
+    }
+
     public function inscriptions(): HasMany
     {
         return $this->hasMany(Inscription::class);

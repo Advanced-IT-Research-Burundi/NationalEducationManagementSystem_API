@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEcoleRequest;
 use App\Http\Requests\UpdateEcoleRequest;
 use App\Models\Ecole;
+use App\Models\School;
+use Illuminate\Container\Attributes\Auth;
 
 class EcoleController extends Controller
 {
