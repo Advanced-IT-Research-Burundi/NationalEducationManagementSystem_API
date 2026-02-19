@@ -181,10 +181,10 @@ class StatisticsService
 
             // Gender distribution by province
             $genderByProvince = DB::table('eleves')
-                ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id')
-                ->join('provinces', 'ecoles.province_id', '=', 'provinces.id')
+                ->join('schools', 'eleves.school_id', '=', 'schools.id')
+                ->join('provinces', 'schools.province_id', '=', 'provinces.id')
                 ->where('eleves.statut_global', 'actif')
-                ->where('ecoles.statut', 'ACTIVE')
+                ->where('schools.statut', 'ACTIVE')
                 ->select(
                     'provinces.name as province',
                     'eleves.sexe',
@@ -241,16 +241,16 @@ class StatisticsService
             if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
                 $resultatsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
-                    ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id');
+                    ->join('schools', 'eleves.school_id', '=', 'schools.id');
 
                 if (!empty($filters['province_id'])) {
-                    $resultatsQuery->where('ecoles.province_id', $filters['province_id']);
+                    $resultatsQuery->where('schools.province_id', $filters['province_id']);
                 }
                 if (!empty($filters['commune_id'])) {
-                    $resultatsQuery->where('ecoles.commune_id', $filters['commune_id']);
+                    $resultatsQuery->where('schools.commune_id', $filters['commune_id']);
                 }
                 if (!empty($filters['school_id'])) {
-                    $resultatsQuery->where('ecoles.id', $filters['school_id']);
+                    $resultatsQuery->where('schools.id', $filters['school_id']);
                 }
             }
 
@@ -278,15 +278,15 @@ class StatisticsService
             if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
                 $studentsResultsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
-                    ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id');
+                    ->join('schools', 'eleves.school_id', '=', 'schools.id');
                 if (!empty($filters['province_id'])) {
-                    $studentsResultsQuery->where('ecoles.province_id', $filters['province_id']);
+                    $studentsResultsQuery->where('schools.province_id', $filters['province_id']);
                 }
                 if (!empty($filters['commune_id'])) {
-                    $studentsResultsQuery->where('ecoles.commune_id', $filters['commune_id']);
+                    $studentsResultsQuery->where('schools.commune_id', $filters['commune_id']);
                 }
                 if (!empty($filters['school_id'])) {
-                    $studentsResultsQuery->where('ecoles.id', $filters['school_id']);
+                    $studentsResultsQuery->where('schools.id', $filters['school_id']);
                 }
             }
 
@@ -431,17 +431,17 @@ class StatisticsService
                 $ecoles = School::query()->where('statut', 'ACTIVE')->where('province_id', $province->id)->count();
 
                 $eleves = DB::table('eleves')
-                    ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id')
+                    ->join('schools', 'eleves.school_id', '=', 'schools.id')
                     ->where('eleves.statut_global', 'actif')
-                    ->where('ecoles.statut', 'ACTIVE')
-                    ->where('ecoles.province_id', $province->id)
+                    ->where('schools.statut', 'ACTIVE')
+                    ->where('schools.province_id', $province->id)
                     ->count();
 
                 $enseignants = DB::table('enseignants')
-                    ->join('ecoles', 'enseignants.school_id', '=', 'ecoles.id')
+                    ->join('schools', 'enseignants.school_id', '=', 'schools.id')
                     ->where('enseignants.statut', 'ACTIF')
-                    ->where('ecoles.statut', 'ACTIVE')
-                    ->where('ecoles.province_id', $province->id)
+                    ->where('schools.statut', 'ACTIVE')
+                    ->where('schools.province_id', $province->id)
                     ->count();
 
                 // Enseignant duplicate check

@@ -26,7 +26,7 @@ class StoreSchoolRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'code_ecole' => ['nullable', 'string', 'max:50', 'unique:ecoles,code_ecole'],
+            'code_ecole' => ['nullable', 'string', 'max:50', 'unique:schools,code_ecole'],
             'type_ecole' => ['required', Rule::in(['PUBLIQUE', 'PRIVEE', 'ECC', 'AUTRE'])],
             'niveau' => ['required', Rule::in(['FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],

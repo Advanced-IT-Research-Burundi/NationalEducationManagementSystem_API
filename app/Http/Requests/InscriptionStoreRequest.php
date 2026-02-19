@@ -27,7 +27,7 @@ class InscriptionStoreRequest extends FormRequest
              =======================*/
             'inscription.eleve_id' => ['required', 'exists:eleves,id'],
             'inscription.classe_id' => ['required', 'exists:classes,id'],
-            'inscription.school_id' => ['required', 'exists:ecoles,id'],
+            'inscription.school_id' => ['required', 'exists:schools,id'],
             'inscription.annee_scolaire_id' => ['required', 'exists:annee_scolaires,id'],
             'inscription.niveau_demande_id' => ['required', 'exists:niveaux_scolaires,id'],
             'inscription.date_inscription' => ['required', 'date'],

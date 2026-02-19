@@ -46,7 +46,7 @@ class ReponseCollecteController extends Controller
 
         $validated = $request->validate([
             'donnees' => 'required|array',
-            'school_id' => 'sometimes|exists:ecoles,id',
+            'school_id' => 'sometimes|exists:schools,id',
         ]);
 
         $validated['formulaire_id'] = $formulaire->id;
