@@ -182,7 +182,7 @@ class EleveSeeder extends Seeder
             'adresse' => 'Quartier '.['Rohero', 'Kinama', 'Kamenge', 'Musaga', 'Bwiza', 'Ngagara', 'Cibitoke'][rand(0, 6)],
             'nom_pere' => $this->noms[array_rand($this->noms)].' '.$this->prenoms['M'][array_rand($this->prenoms['M'])],
             'nom_mere' => $this->noms[array_rand($this->noms)].' '.$this->prenoms['F'][array_rand($this->prenoms['F'])],
-            'contact_tuteur' => '+257 '.rand(61, 79).' '.rand(100, 999).' '.rand(100, 999),
+            'contact_tuteur' => '+257'.rand(61, 79).rand(100, 999).rand(100, 999),
             'nom_tuteur' => rand(0, 3) === 0 ? $this->noms[array_rand($this->noms)].' '.$this->prenoms[rand(0, 1) ? 'M' : 'F'][array_rand($this->prenoms['M'])] : null,
             'est_orphelin' => rand(0, 20) === 0, // 5% orphelins
             'a_handicap' => rand(0, 50) === 0, // 2% handicap

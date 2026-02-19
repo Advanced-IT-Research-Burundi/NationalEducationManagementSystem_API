@@ -27,7 +27,7 @@ return new class extends Migration
             $table->text('adresse')->nullable();
             $table->string('nom_pere', 200)->nullable();
             $table->string('nom_mere', 200)->nullable();
-            $table->string('contact_tuteur', 20)->nullable();
+            $table->string('contact_tuteur', 255)->nullable();
             $table->string('nom_tuteur', 200)->nullable();
             $table->string('photo_path', 255)->nullable();
             $table->boolean('est_orphelin')->default(false);
