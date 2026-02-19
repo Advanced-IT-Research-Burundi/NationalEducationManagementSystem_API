@@ -28,7 +28,7 @@ class UpdateMouvementEleveRequest extends FormRequest
             'date_mouvement' => ['sometimes', 'date', 'before_or_equal:today'],
             'ecole_destination_id' => [
                 'nullable',
-                'exists:ecoles,id',
+                'exists:schools,id',
                 'different:ecole_origine_id',
             ],
             'motif' => ['sometimes', 'string', 'min:10', 'max:1000'],

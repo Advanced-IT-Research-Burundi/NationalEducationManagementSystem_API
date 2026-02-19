@@ -42,7 +42,7 @@ class StatisticsService
     }
 
     /**
-     * Apply geographic filters to a query on the 'ecoles' table
+     * Apply geographic filters to a query on the 'schools' table
      */
     protected function applyGeoFilters($query, array $filters, string $tableAlias = '')
     {
@@ -71,23 +71,23 @@ class StatisticsService
     {
         return Cache::remember($this->cacheKey('global', $filters), self::CACHE_TTL, function () use ($filters) {
             // Total schools
-            $ecolesQuery = School::query()->where('statut', 'ACTIVE');
-            $this->applyGeoFilters($ecolesQuery, $filters);
-            $totalEcoles = $ecolesQuery->count();
+            $schoolsQuery = School::query()->where('statut', 'ACTIVE');
+            $this->applyGeoFilters($schoolsQuery, $filters);
+            $totalEcoles = $schoolsQuery->count();
 
             // Schools by type
-            $ecolesParTypeQuery = School::query()->where('statut', 'ACTIVE');
-            $this->applyGeoFilters($ecolesParTypeQuery, $filters);
-            $ecolesParType = $ecolesParTypeQuery
+            $schoolsParTypeQuery = School::query()->where('statut', 'ACTIVE');
+            $this->applyGeoFilters($schoolsParTypeQuery, $filters);
+            $schoolsParType = $schoolsParTypeQuery
                 ->select('type_ecole', DB::raw('COUNT(*) as total'))
                 ->groupBy('type_ecole')
                 ->pluck('total', 'type_ecole')
                 ->toArray();
 
             // Schools by niveau
-            $ecolesParNiveauQuery = School::query()->where('statut', 'ACTIVE');
-            $this->applyGeoFilters($ecolesParNiveauQuery, $filters);
-            $ecolesParNiveau = $ecolesParNiveauQuery
+            $schoolsParNiveauQuery = School::query()->where('statut', 'ACTIVE');
+            $this->applyGeoFilters($schoolsParNiveauQuery, $filters);
+            $schoolsParNiveau = $schoolsParNiveauQuery
                 ->select('niveau', DB::raw('COUNT(*) as total'))
                 ->groupBy('niveau')
                 ->pluck('total', 'niveau')
@@ -114,11 +114,11 @@ class StatisticsService
             $totalEnseignants = $enseignantsQuery->count();
 
             return [
-                'total_ecoles' => $totalEcoles,
+                'total_schools' => $totalEcoles,
                 'total_eleves' => $totalEleves,
                 'total_enseignants' => $totalEnseignants,
-                'ecoles_par_type' => $ecolesParType,
-                'ecoles_par_niveau' => $ecolesParNiveau,
+                'schools_par_type' => $schoolsParType,
+                'schools_par_niveau' => $schoolsParNiveau,
             ];
         });
     }
@@ -181,10 +181,10 @@ class StatisticsService
 
             // Gender distribution by province
             $genderByProvince = DB::table('eleves')
-                ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id')
-                ->join('provinces', 'ecoles.province_id', '=', 'provinces.id')
+                ->join('schools', 'eleves.school_id', '=', 'schools.id')
+                ->join('provinces', 'schools.province_id', '=', 'provinces.id')
                 ->where('eleves.statut_global', 'actif')
-                ->where('ecoles.statut', 'ACTIVE')
+                ->where('schools.statut', 'ACTIVE')
                 ->select(
                     'provinces.name as province',
                     'eleves.sexe',
@@ -237,20 +237,20 @@ class StatisticsService
                 $resultatsQuery->where('examens.annee_scolaire_id', $filters['annee_scolaire_id']);
             }
 
-            // Apply geo filters via eleves -> ecoles
+            // Apply geo filters via eleves -> schools
             if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
                 $resultatsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
-                    ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id');
+                    ->join('schools', 'eleves.school_id', '=', 'schools.id');
 
                 if (!empty($filters['province_id'])) {
-                    $resultatsQuery->where('ecoles.province_id', $filters['province_id']);
+                    $resultatsQuery->where('schools.province_id', $filters['province_id']);
                 }
                 if (!empty($filters['commune_id'])) {
-                    $resultatsQuery->where('ecoles.commune_id', $filters['commune_id']);
+                    $resultatsQuery->where('schools.commune_id', $filters['commune_id']);
                 }
                 if (!empty($filters['school_id'])) {
-                    $resultatsQuery->where('ecoles.id', $filters['school_id']);
+                    $resultatsQuery->where('schools.id', $filters['school_id']);
                 }
             }
 
@@ -278,15 +278,15 @@ class StatisticsService
             if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
                 $studentsResultsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
-                    ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id');
+                    ->join('schools', 'eleves.school_id', '=', 'schools.id');
                 if (!empty($filters['province_id'])) {
-                    $studentsResultsQuery->where('ecoles.province_id', $filters['province_id']);
+                    $studentsResultsQuery->where('schools.province_id', $filters['province_id']);
                 }
                 if (!empty($filters['commune_id'])) {
-                    $studentsResultsQuery->where('ecoles.commune_id', $filters['commune_id']);
+                    $studentsResultsQuery->where('schools.commune_id', $filters['commune_id']);
                 }
                 if (!empty($filters['school_id'])) {
-                    $studentsResultsQuery->where('ecoles.id', $filters['school_id']);
+                    $studentsResultsQuery->where('schools.id', $filters['school_id']);
                 }
             }
 
@@ -351,7 +351,7 @@ class StatisticsService
                 'ratio_eleve_enseignant' => $ratioEleveEnseignant,
                 'taux_reussite' => $performanceStats['taux_reussite'],
                 'pourcentage_filles' => $inscriptionStats['repartition_genre']['pourcentage_filles'],
-                'total_ecoles' => $globalStats['total_ecoles'],
+                'total_schools' => $globalStats['total_schools'],
                 'total_eleves' => $globalStats['total_eleves'],
                 'total_enseignants' => $globalStats['total_enseignants'],
                 // taux_scolarisation requires population data (not available)
@@ -428,20 +428,20 @@ class StatisticsService
             foreach ($provinces as $province) {
                 $localFilters = array_merge($filters, ['province_id' => $province->id]);
 
-                $ecoles = School::query()->where('statut', 'ACTIVE')->where('province_id', $province->id)->count();
+                $schools = School::query()->where('statut', 'ACTIVE')->where('province_id', $province->id)->count();
 
                 $eleves = DB::table('eleves')
-                    ->join('ecoles', 'eleves.school_id', '=', 'ecoles.id')
+                    ->join('schools', 'eleves.school_id', '=', 'schools.id')
                     ->where('eleves.statut_global', 'actif')
-                    ->where('ecoles.statut', 'ACTIVE')
-                    ->where('ecoles.province_id', $province->id)
+                    ->where('schools.statut', 'ACTIVE')
+                    ->where('schools.province_id', $province->id)
                     ->count();
 
                 $enseignants = DB::table('enseignants')
-                    ->join('ecoles', 'enseignants.school_id', '=', 'ecoles.id')
+                    ->join('schools', 'enseignants.school_id', '=', 'schools.id')
                     ->where('enseignants.statut', 'ACTIF')
-                    ->where('ecoles.statut', 'ACTIVE')
-                    ->where('ecoles.province_id', $province->id)
+                    ->where('schools.statut', 'ACTIVE')
+                    ->where('schools.province_id', $province->id)
                     ->count();
 
                 // Enseignant duplicate check
@@ -460,7 +460,7 @@ class StatisticsService
                 $repartition[] = [
                     'province_id' => $province->id,
                     'province' => $province->name,
-                    'total_ecoles' => $ecoles,
+                    'total_schools' => $schools,
                     'total_eleves' => $eleves,
                     'total_enseignants' => $enseignants,
                     'ratio_eleve_enseignant' => $ratio,

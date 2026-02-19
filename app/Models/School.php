@@ -72,7 +72,7 @@ class School extends Model
         return LogOptions::defaults()
             ->logFillable()
             ->logOnlyDirty()
-            ->useLogName('ecoles')
+            ->useLogName('schools')
             ->dontSubmitEmptyLogs();
     }
 
@@ -226,4 +226,5 @@ class School extends Model
     {
         return $this->hasMany(Eleve::class);
     }
+
 }

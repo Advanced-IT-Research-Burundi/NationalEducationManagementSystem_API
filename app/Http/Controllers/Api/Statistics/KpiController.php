@@ -33,10 +33,10 @@ class KpiController extends Controller
 
             $kpiList = [
                 [
-                    'id' => 'total_ecoles',
+                    'id' => 'total_schools',
                     'name' => 'Total Établissements',
                     'category' => 'global',
-                    'value' => $kpis['total_ecoles'],
+                    'value' => $kpis['total_schools'],
                     'unit' => 'nombre',
                     'description' => 'Nombre total d\'établissements scolaires actifs',
                 ],
@@ -89,10 +89,10 @@ class KpiController extends Controller
                     'description' => 'Taux de scolarisation national (nécessite données population)',
                 ],
                 [
-                    'id' => 'ecoles_par_type',
+                    'id' => 'schools_par_type',
                     'name' => 'Écoles par Type',
                     'category' => 'global',
-                    'value' => $global['ecoles_par_type'],
+                    'value' => $global['schools_par_type'],
                     'unit' => 'répartition',
                     'description' => 'Répartition des écoles par type (publique, privée, etc.)',
                 ],

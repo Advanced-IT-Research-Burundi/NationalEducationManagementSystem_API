@@ -48,7 +48,7 @@ class InscriptionController extends Controller
         $validated = $request->validate([
             'eleve_id' => 'required|exists:eleves,id',
             'campagne_id' => 'required|exists:campagnes_inscription,id',
-            'school_id' => 'required|exists:ecoles,id',
+            'school_id' => 'required|exists:schools,id',
             'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
             'niveau_demande_id' => 'required|exists:niveaux_scolaires,id',
             'type_inscription' => ['required', Rule::in(['nouvelle', 'reinscription', 'transfert_entrant'])],

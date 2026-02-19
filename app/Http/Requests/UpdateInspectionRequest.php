@@ -14,7 +14,7 @@ class UpdateInspectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'school_id' => 'sometimes|exists:ecoles,id',
+            'school_id' => 'sometimes|exists:schools,id',
             'inspecteur_id' => 'sometimes|exists:users,id',
             'date_prevue' => 'sometimes|date',
             'date_realisation' => 'sometimes|nullable|date',

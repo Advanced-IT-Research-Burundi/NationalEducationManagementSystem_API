@@ -32,7 +32,7 @@ class AuditLogController extends Controller
             $query->where('subject_type', $request->subject_type);
         }
 
-        // Filter by log name (ecoles, eleves, users, inscriptions_eleves)
+        // Filter by log name (schools, eleves, users, inscriptions_eleves)
         if ($request->filled('log_name')) {
             $query->inLog($request->log_name);
         }

@@ -51,8 +51,8 @@ Route::middleware(['auth:sanctum'])->prefix('statistics')->name('statistics.')->
         ->name('campagnes-collecte.fermer');
     Route::get('campagnes-collecte/{campagne}/progression', [CampagneCollecteController::class, 'progress'])
         ->name('campagnes-collecte.progression');
-    Route::get('campagnes-collecte/{campagne}/ecoles-repondus', [CampagneCollecteController::class, 'ecolesRepondus'])
-        ->name('campagnes-collecte.ecoles-repondus');
+    Route::get('campagnes-collecte/{campagne}/schools-repondus', [CampagneCollecteController::class, 'schoolsRepondus'])
+        ->name('campagnes-collecte.schools-repondus');
 
     Route::get('campagnes-collecte/{campagne}/formulaires', [FormulaireCollecteController::class, 'index']);
     Route::post('campagnes-collecte/{campagne}/formulaires', [FormulaireCollecteController::class, 'store']);
@@ -64,7 +64,7 @@ Route::middleware(['auth:sanctum'])->prefix('statistics')->name('statistics.')->
     Route::post('formulaires-collecte/{formulaire}/reponses', [ReponseCollecteController::class, 'store']);
     Route::post('reponses-collecte/{reponse}/soumettre', [ReponseCollecteController::class, 'submit']);
     Route::post('reponses-collecte/{reponse}/valider', [ReponseCollecteController::class, 'validateResponse']);
-    Route::get('ecoles/{school}/reponses-collecte', [ReponseCollecteController::class, 'bySchool']);
+    Route::get('schools/{school}/reponses-collecte', [ReponseCollecteController::class, 'bySchool']);
     Route::get('campagnes-collecte/{campagne}/reponses/export', [ReponseCollecteController::class, 'export']);
 
     // KPIs

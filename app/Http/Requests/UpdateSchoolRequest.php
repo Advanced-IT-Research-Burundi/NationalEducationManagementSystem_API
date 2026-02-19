@@ -27,7 +27,7 @@ class UpdateSchoolRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'code_ecole' => ['nullable', 'string', 'max:50', Rule::unique('ecoles', 'code_ecole')->ignore($schoolId)],
+            'code_ecole' => ['nullable', 'string', 'max:50', Rule::unique('schools', 'code_ecole')->ignore($schoolId)],
             'type_ecole' => ['sometimes', Rule::in(['PUBLIQUE', 'PRIVEE', 'ECC', 'AUTRE'])],
             'niveau' => ['sometimes', Rule::in(['FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],

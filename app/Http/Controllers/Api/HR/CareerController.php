@@ -50,7 +50,7 @@ class CareerController extends Controller
     {
         $request->validate([
             'nouveau_poste' => ['required', 'string', 'max:255'],
-            'school_id' => ['nullable', 'exists:ecoles,id'],
+            'school_id' => ['nullable', 'exists:schools,id'],
             'date_debut' => ['required', 'date'],
         ]);
 

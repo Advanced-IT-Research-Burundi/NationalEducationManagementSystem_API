@@ -27,7 +27,7 @@ class InscriptionStoreRequest extends FormRequest
              =======================*/
             'inscription.eleve_id' => ['required', 'exists:eleves,id'],
             'inscription.classe_id' => ['required', 'exists:classes,id'],
-            'inscription.school_id' => ['required', 'exists:ecoles,id'],
+            'inscription.school_id' => ['required', 'exists:schools,id'],
             'inscription.annee_scolaire_id' => ['required', 'exists:annee_scolaires,id'],
             'inscription.niveau_demande_id' => ['required', 'exists:niveaux_scolaires,id'],
             'inscription.date_inscription' => ['required', 'date'],
@@ -57,7 +57,7 @@ class InscriptionStoreRequest extends FormRequest
                 'in:transfert_sortant,transfert_entrant,abandon,exclusion,deces,passage,redoublement,reintegration'
             ],
             'mouvement.date_mouvement' => ['required', 'date'],
-            'mouvement.ecole_origine_id' => ['nullable', 'exists:ecoles,id'],
+            'mouvement.ecole_origine_id' => ['nullable', 'exists:schools,id'],
             'mouvement.classe_origine_id' => ['nullable', 'exists:classes,id'],
             'mouvement.motif' => ['required', 'string', 'min:5'],
             'mouvement.document_reference' => ['nullable', 'string'],

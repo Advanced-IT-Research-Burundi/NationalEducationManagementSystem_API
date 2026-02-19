@@ -121,11 +121,11 @@ class CampagneCollecteController extends Controller
     {
         $totalEcoles = \App\Models\School::where('statut', 'ACTIVE')->count();
         // Écoles ayant au moins une réponse soumise (exclut brouillon)
-        $ecolesRepondu = $campagne->reponses()
+        $schoolsRepondu = $campagne->reponses()
             ->where('statut', '!=', ReponseCollecte::STATUT_BROUILLON)
             ->distinct()
             ->count('school_id');
-        $tauxReponse = $totalEcoles > 0 ? round(($ecolesRepondu / $totalEcoles) * 100, 1) : 0;
+        $tauxReponse = $totalEcoles > 0 ? round(($schoolsRepondu / $totalEcoles) * 100, 1) : 0;
 
         $parStatut = $campagne->reponses()
             ->selectRaw('statut, count(*) as count')
@@ -134,8 +134,8 @@ class CampagneCollecteController extends Controller
 
         return response()->json([
             'data' => [
-                'total_ecoles' => $totalEcoles,
-                'ecoles_repondu' => $ecolesRepondu,
+                'total_schools' => $totalEcoles,
+                'schools_repondu' => $schoolsRepondu,
                 'taux_reponse' => $tauxReponse,
                 'par_statut' => $parStatut,
             ],
@@ -145,17 +145,17 @@ class CampagneCollecteController extends Controller
     /**
      * Liste des écoles ayant répondu à la campagne
      */
-    public function ecolesRepondus(CampagneCollecte $campagne): JsonResponse
+    public function schoolsRepondus(CampagneCollecte $campagne): JsonResponse
     {
         $reponses = $campagne->reponses()
-            ->with(['ecole:id,name,code_ecole,province_id', 'ecole.province:id,name', 'formulaire:id,titre', 'soumisPar:id,name,email'])
+            ->with(['school:id,name,code_ecole,province_id', 'school.province:id,name', 'formulaire:id,titre', 'soumisPar:id,name,email'])
             ->where('statut', '!=', ReponseCollecte::STATUT_BROUILLON)
             ->orderByDesc('soumis_at')
             ->get();
 
         $parEcole = $reponses->groupBy('school_id')->map(function ($items, $ecoleId) {
             $premiere = $items->first();
-            $ecole = $premiere->ecole;
+            $ecole = $premiere->school;
             return [
                 'school_id' => (int) $ecoleId,
                 'ecole_name' => $ecole->name ?? $ecole->code_ecole ?? 'École #' . $ecoleId,
