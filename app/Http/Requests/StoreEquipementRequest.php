@@ -25,7 +25,7 @@ class StoreEquipementRequest extends FormRequest
     {
         return [
             'salle_id' => ['nullable', 'exists:salles,id'],
-            'school_id' => ['required', 'exists:ecoles,id'],
+            'school_id' => ['required', 'exists:schools,id'],
             'nom' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['MOBILIER', 'INFORMATIQUE', 'LABORATOIRE', 'SPORT', 'AUTRE'])],
             'marque' => ['nullable', 'string', 'max:100'],

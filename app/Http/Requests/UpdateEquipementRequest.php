@@ -26,7 +26,7 @@ class UpdateEquipementRequest extends FormRequest
 
         return [
             'salle_id' => ['nullable', 'exists:salles,id'],
-            'school_id' => ['sometimes', 'exists:ecoles,id'],
+            'school_id' => ['sometimes', 'exists:schools,id'],
             'nom' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', Rule::in(['MOBILIER', 'INFORMATIQUE', 'LABORATOIRE', 'SPORT', 'AUTRE'])],
             'marque' => ['nullable', 'string', 'max:100'],

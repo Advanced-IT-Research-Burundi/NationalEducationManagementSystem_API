@@ -23,7 +23,7 @@ class UpdateBatimentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'school_id' => ['sometimes', 'nullable', 'exists:ecoles,id'],
+            'school_id' => ['sometimes', 'nullable', 'exists:schools,id'],
             'nom' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', Rule::in(['ACADEMIQUE', 'ADMINISTRATIF', 'SPORTIF', 'AUTRE'])],
             'annee_construction' => ['nullable', 'integer', 'min:1800', 'max:'.(date('Y') + 5)],

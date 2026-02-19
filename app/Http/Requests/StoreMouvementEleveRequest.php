@@ -28,10 +28,10 @@ class StoreMouvementEleveRequest extends FormRequest
             'annee_scolaire_id' => ['required', 'exists:annee_scolaires,id'],
             'type_mouvement' => ['required', Rule::enum(TypeMouvement::class)],
             'date_mouvement' => ['required', 'date', 'before_or_equal:today'],
-            'ecole_origine_id' => ['nullable', 'exists:ecoles,id'],
+            'ecole_origine_id' => ['nullable', 'exists:schools,id'],
             'ecole_destination_id' => [
                 'nullable',
-                'exists:ecoles,id',
+                'exists:schools,id',
                 'different:ecole_origine_id',
             ],
             'classe_origine_id' => ['nullable', 'exists:classes,id'],
