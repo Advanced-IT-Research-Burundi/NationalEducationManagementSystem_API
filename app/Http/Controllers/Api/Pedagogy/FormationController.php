@@ -86,7 +86,7 @@ class FormationController extends Controller
 
     public function participants(Formation $formation): JsonResponse
     {
-        $formation->load(['participants.roles', 'participants.school', 'participantsEleves.school', 'participantsEleves.inscriptionsEleves.classe']);
+        $formation->load(['participants.roles', 'participants.school', 'participantsEleves.school', 'participantsEleves.inscriptions.classe']);
         $userParticipants = $formation->participants->map(fn ($p) => [
             'id' => $p->id,
             'user_id' => $p->id,
@@ -109,7 +109,7 @@ class FormationController extends Controller
             'role' => 'Élève',
             'ecole' => $e->school,
             'etablissement' => $e->school?->name ?? null,
-            'classe' => $e->inscriptionsEleves->sortByDesc('id')->first()?->classe ?? null,
+            'classe' => $e->inscriptions->sortByDesc('id')->first()?->classe ?? null,
         ]);
 
         return response()->json([
