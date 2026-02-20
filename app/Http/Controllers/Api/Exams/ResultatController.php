@@ -69,4 +69,40 @@ class ResultatController extends Controller
             'message' => 'Moyennes calculées avec succès'
         ]);
     }
+
+    /**
+     * Get aggregated results for report cards (bulletins).
+     */
+    public function bulletins(Request $request): JsonResponse
+    {
+        $query = Resultat::with(['inscription.eleve', 'inscription.session.examen']);
+
+        // Filter by school year
+        if ($request->filled('annee_scolaire_id')) {
+            $query->whereHas('inscription.session.examen', function ($q) use ($request) {
+                $q->where('annee_scolaire_id', $request->annee_scolaire_id);
+            });
+        }
+
+        $resultats = $query->get();
+
+        // Group by student
+        $bulletins = $resultats->groupBy('inscription.eleve_id')->map(function ($group) {
+            $eleve = $group->first()->inscription->eleve;
+            $avg = $group->avg('note');
+            
+            return [
+                'student' => $eleve->nom . ' ' . $eleve->prenom,
+                'class' => 'N/A', // Classes relationship needs to be checked
+                'trimester' => 'T1', // Mocked
+                'average' => round($avg, 2),
+                'rank' => 0, // Needs more complex logic
+                'total' => 1 // Needs more complex logic
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $bulletins
+        ]);
+    }
 }

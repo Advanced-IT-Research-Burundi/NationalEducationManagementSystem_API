@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\Academic\EleveController;
 use App\Http\Controllers\Api\Academic\EnseignantController;
 use App\Http\Controllers\Api\Academic\MouvementEleveController;
 use App\Http\Controllers\Api\Academic\NiveauController;
+use App\Http\Controllers\Api\Academic\MatiereController;
+use App\Http\Controllers\Api\Exams\ResultatController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -67,4 +69,10 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::apiResource('mouvements-eleve', MouvementEleveController::class)->parameters([
         'mouvements-eleve' => 'mouvement_eleve',
     ]);
+
+    // Matières (Dynamic extraction)
+    Route::get('matieres', [MatiereController::class, 'index'])->name('matieres.index');
+
+    // Bulletins (Averaged results)
+    Route::get('bulletins', [ResultatController::class, 'bulletins'])->name('bulletins.index');
 });

@@ -27,8 +27,8 @@ class UpdateClasseRequest extends FormRequest
         return [
             'nom' => ['sometimes', 'string', 'max:100'],
             'code' => ['nullable', 'string', 'max:50'],
-            'niveau_id' => ['sometimes', 'exists:niveaux,id'],
-            'annee_scolaire' => ['sometimes', 'string', 'regex:/^\d{4}-\d{4}$/'],
+            'niveau_id' => ['sometimes', 'exists:niveaux_scolaires,id'],
+            'annee_scolaire_id' => ['sometimes', 'exists:annee_scolaires,id'],
             'local' => ['nullable', 'string', 'max:50'],
             'capacite' => ['nullable', 'integer', 'min:1', 'max:200'],
             'statut' => ['sometimes', Rule::in(['ACTIVE', 'INACTIVE', 'ARCHIVEE'])],
