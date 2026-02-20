@@ -17,5 +17,5 @@ jobs:
         #server: ftp.cloud209.cloudwebhosting.com ftp.clskycompany.com
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
+        password: k}J+Yl8.rNOO%}v)
         server-dir: ./
