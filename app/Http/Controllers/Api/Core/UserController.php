@@ -20,6 +20,14 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
+        // Apply Data Scope automatically via AdminScope or manually if needed.
+        // Since we implemented AdminScope globally, User::all() or User::paginate() 
+        // will already be filtered by the logged-in user's administrative level.
+
+        $users = User::with(['role', 'creator'])->paginate(15);
+
+        return sendResponse($users, 'Users retrieved successfully');
+
         $users = User::with(['roles', 'creator'])->paginate(15);
 
         return response()->json($users);
@@ -136,5 +144,17 @@ class UserController extends Controller
         $user->save();
 
         return response()->json(['message' => 'Password reset successfully']);
+    }
+
+    /**
+     * Get all users (for dropdowns).
+     */
+    public function list(): JsonResponse
+    {
+        $this->authorize('viewAny', User::class);
+
+        $users = User::where('statut', 'actif')->orderBy('name')->get(['id', 'name']);
+
+        return response()->json($users);
     }
 }

@@ -30,7 +30,7 @@ class PermissionController extends Controller
 
         $permission = Permission::create(['name' => $validated['name'], 'guard_name' => 'web']);
 
-        return response()->json($permission, 201);
+        return sendResponse($permission, 'Permission created successfully');
     }
 
     /**
@@ -56,7 +56,7 @@ class PermissionController extends Controller
 
         $permission->update($validated);
 
-        return response()->json($permission);
+        return sendResponse($permission, 'Permission updated successfully');
     }
 
     /**
@@ -67,6 +67,6 @@ class PermissionController extends Controller
         $permission = Permission::findOrFail($id);
         $permission->delete();
 
-        return response()->json(null, 204);
+        return sendResponse(null, 'Permission deleted successfully');
     }
 }

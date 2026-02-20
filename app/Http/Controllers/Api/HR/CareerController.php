@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\HR;
 
 use App\Http\Controllers\Controller;
+use App\Models\Carriere;
+use App\Models\Enseignant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,23 +13,90 @@ use Illuminate\Http\Request;
  */
 class CareerController extends Controller
 {
-    public function show(string $teacher): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        return response()->json(['message' => 'Teacher career - pending implementation'], 501);
+        $query = Carriere::query()->with(['enseignant', 'ecole']);
+
+        if ($request->has('enseignant_id')) {
+            $query->where('enseignant_id', $request->enseignant_id);
+        }
+
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
+        }
+
+        $perPage = $request->get('per_page', 20);
+        $carrieres = $query->orderBy('date_debut', 'desc')->paginate($perPage);
+
+        return response()->json($carrieres);
     }
 
-    public function promote(Request $request, string $teacher): JsonResponse
+    public function show(Enseignant $teacher): JsonResponse
     {
-        return response()->json(['message' => 'Promote teacher - pending implementation'], 501);
+        $carriere = Carriere::query()
+            ->where('enseignant_id', $teacher->id)
+            ->whereNull('date_fin')
+            ->with(['enseignant', 'ecole'])
+            ->first();
+
+        if (! $carriere) {
+            return response()->json(['message' => 'Aucune carrière active trouvée'], 404);
+        }
+
+        return response()->json(['data' => $carriere]);
     }
 
-    public function history(string $teacher): JsonResponse
+    public function promote(Request $request, Enseignant $teacher): JsonResponse
     {
-        return response()->json(['message' => 'Career history - pending implementation'], 501);
+        $request->validate([
+            'nouveau_poste' => ['required', 'string', 'max:255'],
+            'school_id' => ['nullable', 'exists:schools,id'],
+            'date_debut' => ['required', 'date'],
+        ]);
+
+        // Close current career
+        Carriere::where('enseignant_id', $teacher->id)
+            ->whereNull('date_fin')
+            ->update([
+                'date_fin' => now(),
+                'motif_fin' => 'PROMOTION',
+            ]);
+
+        // Create new career
+        $carriere = Carriere::create([
+            'enseignant_id' => $teacher->id,
+            'poste' => $request->nouveau_poste,
+            'school_id' => $request->school_id ?? $teacher->school_id,
+            'date_debut' => $request->date_debut,
+        ]);
+
+        $carriere->load(['enseignant', 'ecole']);
+
+        return response()->json([
+            'message' => 'Promotion effectuée avec succès',
+            'data' => $carriere,
+        ]);
+    }
+
+    public function history(Enseignant $teacher): JsonResponse
+    {
+        $carrieres = Carriere::query()
+            ->where('enseignant_id', $teacher->id)
+            ->with('ecole')
+            ->orderBy('date_debut', 'desc')
+            ->paginate(20);
+
+        return response()->json($carrieres);
     }
 
     public function grades(): JsonResponse
     {
-        return response()->json(['message' => 'Career grades - pending implementation'], 501);
+        $grades = Carriere::query()
+            ->select('poste')
+            ->distinct()
+            ->orderBy('poste')
+            ->pluck('poste');
+
+        return response()->json(['data' => $grades]);
     }
 }

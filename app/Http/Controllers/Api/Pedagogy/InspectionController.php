@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\Pedagogy;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreInspectionRequest;
+use App\Http\Requests\UpdateInspectionRequest;
+use App\Models\Inspection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -10,59 +13,74 @@ use Illuminate\Http\Request;
  * Inspection Controller
  *
  * Manages pedagogical inspections of schools.
- * TODO: Implement full CRUD when Inspection model is created.
  */
 class InspectionController extends Controller
 {
     public function index(): JsonResponse
     {
+        $inspections = Inspection::with(['ecole', 'inspecteur'])->paginate(15);
+
         return response()->json([
             'message' => 'Module Pedagogy - Inspections',
-            'status' => 'pending_implementation',
-            'data' => [],
+            'data' => $inspections,
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreInspectionRequest $request): JsonResponse
     {
+        $inspection = Inspection::create($request->validated());
+
         return response()->json([
-            'message' => 'Inspection creation - pending implementation',
-        ], 501);
+            'message' => 'Inspection creation réussie',
+            'data' => $inspection->load(['ecole', 'inspecteur']),
+        ], 201);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Inspection $inspection): JsonResponse
     {
         return response()->json([
-            'message' => 'Inspection details - pending implementation',
-            'id' => $id,
-        ], 501);
+            'data' => $inspection->load(['ecole', 'inspecteur']),
+        ]);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateInspectionRequest $request, Inspection $inspection): JsonResponse
     {
+        $inspection->update($request->validated());
+
         return response()->json([
-            'message' => 'Inspection update - pending implementation',
-        ], 501);
+            'message' => 'Inspection mise à jour réussie',
+            'data' => $inspection->load(['ecole', 'inspecteur']),
+        ]);
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(Inspection $inspection): JsonResponse
     {
+        $inspection->delete();
+
         return response()->json([
-            'message' => 'Inspection deletion - pending implementation',
-        ], 501);
+            'message' => 'Inspection supprimée réussie',
+        ]);
     }
 
-    public function validateInspection(string $id): JsonResponse
+    public function validateInspection(Inspection $inspection): JsonResponse
     {
+        $inspection->update(['statut' => 'terminee']);
+
         return response()->json([
-            'message' => 'Inspection validation - pending implementation',
-        ], 501);
+            'message' => 'Inspection validée avec succès',
+            'data' => $inspection,
+        ]);
     }
 
-    public function history(string $id): JsonResponse
+    public function history(string $school_id): JsonResponse
     {
+        $history = Inspection::where('school_id', $school_id)
+            ->with('inspecteur')
+            ->orderBy('date_realisation', 'desc')
+            ->get();
+
         return response()->json([
-            'message' => 'Inspection history - pending implementation',
-        ], 501);
+            'data' => $history,
+        ]);
     }
 }

@@ -3,5 +3,6 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    $base_url = \URL::to('/');
+    return redirect('' . $base_url . '/docs/api#/');
 });

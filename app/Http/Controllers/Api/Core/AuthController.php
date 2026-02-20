@@ -41,7 +41,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user->load('roles', 'permissions', 'pays', 'ministere', 'province', 'commune', 'zone', 'colline', 'school'),
+            'user' => $user->load('roles', 'permissions', 'pays', 'ministere', 'province', 'commune', 'zone', 'colline', 'ecole'),
         ]);
     }
 

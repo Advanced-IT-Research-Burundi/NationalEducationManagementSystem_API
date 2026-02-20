@@ -7,12 +7,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, LogsActivity, Notifiable;
+
+    /**
+     * Guard name for Spatie Permission.
+     */
+    protected string $guard_name = 'api';
 
     /**
      * The attributes that are mass assignable.
@@ -60,6 +67,16 @@ class User extends Authenticatable
         ];
     }
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->logExcept(['password', 'remember_token'])
+            ->useLogName('users')
+            ->dontSubmitEmptyLogs();
+    }
+
     // Relationships
     // Note: role() relationship might key conflict with Spatie's roles() if not careful,
     // but Spatie uses permissions based system.
@@ -103,6 +120,11 @@ class User extends Authenticatable
     }
 
     public function school()
+    {
+        return $this->belongsTo(School::class);
+    }
+
+    public function ecole()
     {
         return $this->belongsTo(School::class);
     }
@@ -177,5 +199,7 @@ class User extends Authenticatable
             'ECOLE' => $school->id === $this->admin_entity_id,
             default => false,
         };
+
+        
     }
 }

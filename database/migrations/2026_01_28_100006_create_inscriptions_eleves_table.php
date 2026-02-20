@@ -11,21 +11,54 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inscriptions_eleves', function (Blueprint $table) {
+        Schema::create('inscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('eleve_id')->constrained('eleves')->onDelete('cascade');
-            $table->foreignId('classe_id')->constrained('classes')->onDelete('cascade');
-            $table->string('annee_scolaire'); // 2025-2026
+            $table->string('numero_inscription', 30)->unique();
+            $table->foreignId('eleve_id')
+                ->constrained('eleves')
+                ->cascadeOnDelete();
+            $table->foreignId('campagne_id')
+                ->constrained('campagnes_inscription')
+                ->cascadeOnDelete();
+            $table->foreignId('annee_scolaire_id')
+                ->constrained('annee_scolaires')
+                ->cascadeOnDelete();
+            $table->foreignId('school_id')
+                ->constrained('schools')
+                ->cascadeOnDelete();
+            $table->foreignId('niveau_demande_id')
+                ->constrained('niveaux_scolaires') // Note: need to ensure niveaux_scolaires is the table name, migration said 'niveaux'. Doc says 'niveaux_scolaires'.
+                ->cascadeOnDelete();
+            $table->enum('type_inscription', [
+                'nouvelle', 'reinscription', 'transfert_entrant'
+            ]);
+            $table->enum('statut', [
+                'brouillon', 'soumis', 'valide', 'rejete', 'annule'
+            ])->default('brouillon');
             $table->date('date_inscription');
-            $table->enum('statut', ['ACTIVE', 'TRANSFEREE', 'TERMINEE', 'ANNULEE'])->default('ACTIVE');
-            $table->integer('numero_ordre')->nullable(); // Numéro d'ordre dans la classe
+            $table->timestamp('date_soumission')->nullable();
+            $table->timestamp('date_validation')->nullable();
+            $table->text('motif_rejet')->nullable();
+            $table->boolean('est_redoublant')->default(false);
+            $table->json('pieces_fournies')->nullable();
             $table->text('observations')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('soumis_par')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+            $table->foreignId('valide_par')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+            $table->foreignId('created_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->timestamps();
-            $table->softDeletes();
 
-            // Un élève ne peut être inscrit qu'une fois dans une classe pour une année
-            $table->unique(['eleve_id', 'classe_id', 'annee_scolaire'], 'unique_inscription');
+            $table->unique(['eleve_id', 'annee_scolaire_id']);
+            $table->index('statut');
+            $table->index(['school_id', 'annee_scolaire_id']);
         });
     }
 
@@ -34,6 +67,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inscriptions_eleves');
+        Schema::dropIfExists('inscriptions');
     }
 };

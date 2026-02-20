@@ -2,12 +2,19 @@
 
 namespace App\Models;
 
+use App\Traits\HasDataScope;
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class School extends Model
 {
-    use \App\Traits\HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
+    use HasDataScope, HasFactory, SoftDeletes, LogsActivity, HasMatricule;
+
+    protected $table = 'schools';
 
     // Workflow status constants
     const STATUS_BROUILLON = 'BROUILLON';
@@ -62,6 +69,15 @@ class School extends Model
     ];
 
     protected $appends = ['statut_label'];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->useLogName('schools')
+            ->dontSubmitEmptyLogs();
+    }
 
     /**
      * Workflow Helper Methods
@@ -213,4 +229,5 @@ class School extends Model
     {
         return $this->hasMany(Eleve::class);
     }
+
 }

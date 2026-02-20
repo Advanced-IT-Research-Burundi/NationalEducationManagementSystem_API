@@ -6,12 +6,12 @@
  * Inspection Management, Quality Standards, Pedagogical Support, Teacher Training
  */
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Pedagogy\FormationController;
 use App\Http\Controllers\Api\Pedagogy\InspectionController;
 use App\Http\Controllers\Api\Pedagogy\InspectionReportController;
-use App\Http\Controllers\Api\Pedagogy\QualityStandardController;
-use App\Http\Controllers\Api\Pedagogy\TrainingSessionController;
 use App\Http\Controllers\Api\Pedagogy\PedagogicalNoteController;
+use App\Http\Controllers\Api\Pedagogy\StandardQualiteController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ Route::middleware(['auth:sanctum'])->prefix('pedagogy')->name('pedagogy.')->grou
     Route::apiResource('inspections', InspectionController::class);
     Route::post('inspections/{inspection}/validate', [InspectionController::class, 'validateInspection'])
         ->name('inspections.validate');
-    Route::get('inspections/{inspection}/history', [InspectionController::class, 'history'])
+    Route::get('inspections/ecole/{ecole}/history', [InspectionController::class, 'history'])
         ->name('inspections.history');
 
     // Inspection Reports
@@ -34,19 +34,20 @@ Route::middleware(['auth:sanctum'])->prefix('pedagogy')->name('pedagogy.')->grou
     Route::post('inspection-reports/{report}/approve', [InspectionReportController::class, 'approve'])
         ->name('inspection-reports.approve');
 
-    // Quality Standards
-    Route::apiResource('quality-standards', QualityStandardController::class);
-    Route::get('quality-standards/{standard}/criteria', [QualityStandardController::class, 'criteria'])
-        ->name('quality-standards.criteria');
+    // Quality Standards (Standards de Qualité)
+    Route::apiResource('standards-qualite', StandardQualiteController::class)
+        ->parameters(['standards-qualite' => 'standardQualite']);
+    Route::get('standards-qualite/{standardQualite}/criteria', [StandardQualiteController::class, 'criteria'])
+        ->name('standards-qualite.criteria');
 
-    // Training Sessions
-    Route::apiResource('training-sessions', TrainingSessionController::class);
-    Route::post('training-sessions/{session}/register', [TrainingSessionController::class, 'register'])
-        ->name('training-sessions.register');
-    Route::get('training-sessions/{session}/participants', [TrainingSessionController::class, 'participants'])
-        ->name('training-sessions.participants');
-    Route::post('training-sessions/{session}/complete', [TrainingSessionController::class, 'complete'])
-        ->name('training-sessions.complete');
+    // Formations
+    Route::apiResource('formations', FormationController::class);
+    Route::post('formations/{formation}/register', [FormationController::class, 'register'])
+        ->name('formations.register');
+    Route::get('formations/{formation}/participants', [FormationController::class, 'participants'])
+        ->name('formations.participants');
+    Route::post('formations/{formation}/complete', [FormationController::class, 'complete'])
+        ->name('formations.complete');
 
     // Pedagogical Notes
     Route::apiResource('pedagogical-notes', PedagogicalNoteController::class);

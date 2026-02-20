@@ -22,7 +22,7 @@ class Niveau extends Model
 
     const CYCLE_SUPERIEUR = 'SUPERIEUR';
 
-    protected $table = 'niveaux';
+    protected $table = 'niveaux_scolaires';
 
     protected $fillable = [
         'nom',

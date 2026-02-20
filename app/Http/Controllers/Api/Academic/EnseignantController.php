@@ -73,7 +73,7 @@ class EnseignantController extends Controller
                 'password' => Hash::make($data['password']),
                 'admin_level' => 'ECOLE',
                 'admin_entity_id' => $data['school_id'],
-                'school_id' => $data['school_id'],
+                'school_id' => $data['school_id'] ?? null,
                 'created_by' => Auth::id(),
             ]);
 
@@ -220,7 +220,7 @@ class EnseignantController extends Controller
         $enseignant = Enseignant::findOrFail($data['enseignant_id']);
         if (! $enseignant->canBeAssigned()) {
             return response()->json([
-                'message' => 'Cet enseignant ne peut pas être affecté (statut: '.$enseignant->statut.').',
+                'message' => 'Cet enseignant ne peut pas être affecté (statut: ' . $enseignant->statut . ').',
             ], 422);
         }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasDataScope;
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Classe extends Model
 {
-    use HasDataScope, HasFactory, SoftDeletes;
+    use HasDataScope, HasFactory, SoftDeletes, HasMatricule;
 
     // Status constants
     const STATUS_ACTIVE = 'ACTIVE';
@@ -28,8 +29,9 @@ class Classe extends Model
         'code',
         'niveau_id',
         'school_id',
-        'annee_scolaire',
+        'annee_scolaire_id',
         'local',
+        'salle',
         'capacite',
         'statut',
         'created_by',
@@ -59,9 +61,9 @@ class Classe extends Model
         return $query->where('niveau_id', $niveauId);
     }
 
-    public function scopeByAnneeScolaire($query, string $annee)
+    public function scopeByAnneeScolaire($query, int $anneeId)
     {
-        return $query->where('annee_scolaire', $annee);
+        return $query->where('annee_scolaire_id', $anneeId);
     }
 
     public function scopeSearch($query, string $search)
@@ -100,7 +102,17 @@ class Classe extends Model
 
     public function school(): BelongsTo
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class, 'school_id');
+    }
+
+    public function ecole(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'school_id');
+    }
+
+    public function anneeScolaire(): BelongsTo
+    {
+        return $this->belongsTo(AnneeScolaire::class);
     }
 
     public function creator(): BelongsTo
@@ -120,9 +132,16 @@ class Classe extends Model
         return $this->hasMany(AffectationEnseignant::class, 'classe_id');
     }
 
-    public function inscriptions(): HasMany
+    public function inscriptions(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
-        return $this->hasMany(InscriptionEleve::class, 'classe_id');
+        return $this->hasManyThrough(
+            Inscription::class,
+            AffectationClasse::class,
+            'classe_id',      // Foreign key on AffectationClasse table
+            'id',             // Foreign key on Inscription table
+            'id',             // Local key on Classe table
+            'inscription_id'  // Local key on AffectationClasse table
+        );
     }
 
     public function eleves(): BelongsToMany
@@ -151,4 +170,7 @@ class Classe extends Model
 
         return $this->effectif < $this->capacite;
     }
+
+
+    
 }

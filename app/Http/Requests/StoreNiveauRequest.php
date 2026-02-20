@@ -24,7 +24,7 @@ class StoreNiveauRequest extends FormRequest
     {
         return [
             'nom' => ['required', 'string', 'max:100'],
-            'code' => ['required', 'string', 'max:20', 'unique:niveaux,code'],
+            'code' => ['required', 'string', 'max:20', 'unique:niveaux_scolaires,code'],
             'ordre' => ['nullable', 'integer', 'min:0'],
             'cycle' => ['required', Rule::in(['PRIMAIRE', 'FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])],
             'description' => ['nullable', 'string', 'max:500'],

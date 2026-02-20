@@ -17,17 +17,22 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
+        User::factory()->create([
+            'name' => 'Jean Lionel',
+            'email' => 'nijeanlionel@gmail.com',
+            'password' => Hash::make('Advanced2026'),
+        ]);
+
         $this->call([
             PaysSeeder::class,
             BurundiAdministrativeDivisionsSeeder::class,
             RolesAndPermissionsSeeder::class,
             BurundiSchoolsSeeder::class,
-        ]);
-
-        User::factory()->create([
-            'name' => 'Jean Lionel',
-            'email' => 'nijeanlionel@gmail.com',
-            'password' => Hash::make('Advanced2026'),
+            AnneeScolaireSeeder::class,
+            NiveauSeeder::class,
+            ClasseSeeder::class,
+            EleveSeeder::class,
+            MouvementEleveSeeder::class,
         ]);
     }
 }

@@ -17,6 +17,28 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+             $table->enum('admin_level', [
+                'PAYS',
+                'MINISTERE',
+                'PROVINCE',
+                'COMMUNE',
+                'ZONE',
+                'COLLINE',
+                'ECOLE'
+            ])->nullable();
+            $table->bigInteger('admin_entity_id')->nullable();
+
+             $table->string('statut')->default('actif');
+            // Administrative Hierarchy
+            $table->foreignId('pays_id')->nullable();
+            $table->foreignId('ministere_id')->nullable();
+            $table->foreignId('province_id')->nullable();
+            $table->foreignId('commune_id')->nullable();
+            $table->foreignId('zone_id')->nullable();
+            $table->foreignId('colline_id')->nullable();
+            $table->unsignedBigInteger('school_id')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
         });

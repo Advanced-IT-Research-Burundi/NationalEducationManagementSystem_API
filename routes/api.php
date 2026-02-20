@@ -17,6 +17,10 @@
  * 9. Partners   - PTF, NGO, Research, External Audit
  */
 
+use App\Http\Controllers\Api\Academic\AnneeScolaireController;
+use App\Http\Controllers\Api\Academic\NiveauController;
+use App\Http\Controllers\Api\Inscription\CampagneInscriptionController;
+use App\Http\Controllers\Api\Inscription\InscriptionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -150,4 +154,47 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/data/export', function () {
         return response()->json(['message' => 'Data Exported Successfully']);
     })->middleware('permission:export_data')->name('data.export');
+});
+
+// Module-inscription API routes
+// Module-inscription API routes
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Route::get('inscriptions/statistics', [InscriptionController::class, 'statistics']);
+    // Route::get('inscriptions/campagne-active', [InscriptionController::class, 'campagneActive']);
+    
+    Route::post('inscriptions/{inscription}/soumettre', [InscriptionController::class, 'soumettre']);
+    Route::post('inscriptions/{inscription}/valider', [InscriptionController::class, 'valider']);
+    Route::post('inscriptions/{inscription}/rejeter', [InscriptionController::class, 'rejeter']);
+    
+    Route::apiResource('inscriptions', InscriptionController::class);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Settings / Configuration Routes (Alias for UI compatibility)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Années Scolaires (alias without /academic prefix for UI)
+    Route::get('annees-scolaires/list', [AnneeScolaireController::class, 'list']);
+    Route::get('annees-scolaires/current', [AnneeScolaireController::class, 'current']);
+    Route::post('annees-scolaires/{annee_scolaire}/toggle-active', [AnneeScolaireController::class, 'toggleActive']);
+    Route::apiResource('annees-scolaires', AnneeScolaireController::class);
+
+    // Niveaux Scolaires (alias without /academic prefix for UI)
+    Route::get('niveaux-scolaires/list', [NiveauController::class, 'list']);
+    Route::apiResource('niveaux-scolaires', NiveauController::class);
+
+    // Campagnes d'Inscription
+    // Campagnes d'Inscription
+    // Route::get('campagnes-inscription/statistics', [CampagneInscriptionController::class, 'statistics']);
+    // Route::get('campagnes-inscription/by-ecole/{ecole}', [CampagneInscriptionController::class, 'byEcole']);
+    
+    // Note: Parameter binding for apiResource might need adjustment if it doesn't match $campagneInscription
+    // Explicitly defining param for custom routes
+    Route::post('campagnes-inscription/{campagneInscription}/ouvrir', [CampagneInscriptionController::class, 'ouvrir']);
+    Route::post('campagnes-inscription/{campagneInscription}/cloturer', [CampagneInscriptionController::class, 'cloturer']);
+    Route::apiResource('campagnes-inscription', CampagneInscriptionController::class)->parameters([
+        'campagnes-inscription' => 'campagneInscription'
+    ]);
 });

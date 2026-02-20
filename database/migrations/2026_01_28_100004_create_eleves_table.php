@@ -13,23 +13,47 @@ return new class extends Migration
     {
         Schema::create('eleves', function (Blueprint $table) {
             $table->id();
-            $table->string('matricule')->unique();
-            $table->string('nom');
-            $table->string('prenom');
-            $table->date('date_naissance')->nullable();
-            $table->string('lieu_naissance')->nullable();
+            $table->string('matricule', 20)->unique();
+            $table->string('nom', 100);
+            $table->string('prenom', 100);
             $table->enum('sexe', ['M', 'F']);
-            $table->string('nom_pere')->nullable();
-            $table->string('nom_mere')->nullable();
-            $table->string('contact_parent')->nullable();
+            $table->date('date_naissance');
+            $table->string('lieu_naissance', 150);
+            $table->string('nationalite', 50)->default('Burundaise');
+            $table->foreignId('colline_origine_id')
+                ->nullable()
+                ->constrained('collines')
+                ->nullOnDelete();
             $table->text('adresse')->nullable();
-            $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
-            $table->enum('statut', ['INSCRIT', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])->default('INSCRIT');
-            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamps();
+            $table->string('nom_pere', 200)->nullable();
+            $table->string('nom_mere', 200)->nullable();
+            $table->string('contact_tuteur', 255)->nullable();
+            $table->string('nom_tuteur', 200)->nullable();
+            $table->string('photo_path', 255)->nullable();
+            $table->boolean('est_orphelin')->default(false);
+            $table->boolean('a_handicap')->default(false);
+            $table->string('type_handicap', 100)->nullable();
+            $table->foreignId('ecole_origine_id')
+                ->nullable()
+                ->constrained('schools')
+                ->nullOnDelete();
+            $table->foreignId('school_id')
+                ->nullable()
+                ->constrained('schools')
+                ->nullOnDelete();
+            $table->foreignId('created_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+            $table->enum('statut_global', [
+                'actif', 'inactif', 'transfere', 'abandonne', 'decede'
+            ])->default('actif');
             $table->softDeletes();
+            $table->timestamps();
 
-            $table->index(['school_id', 'statut']);
+            $table->index('matricule');
+            $table->index(['nom', 'prenom']);
+            $table->index('statut_global');
         });
     }
 
