@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasDataScope;
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Enseignant extends Model
 {
-    use HasDataScope, HasFactory, SoftDeletes;
+    use HasDataScope, HasFactory, SoftDeletes, HasMatricule;
 
     // Status constants
     const STATUS_ACTIF = 'ACTIF';

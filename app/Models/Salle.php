@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Salle extends Model
 {
     /** @use HasFactory<\Database\Factories\SalleFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasMatricule;
 
     protected $guarded = [];
 

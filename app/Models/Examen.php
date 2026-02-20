@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Examen extends Model
 {
-    use HasFactory;
+    use HasFactory, HasMatricule;
 
     protected $fillable = [
         'code',

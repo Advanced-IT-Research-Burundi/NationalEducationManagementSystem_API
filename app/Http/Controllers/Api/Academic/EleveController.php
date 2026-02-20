@@ -27,6 +27,16 @@ class EleveController extends Controller
 
         $query = Eleve::with(['ecole', 'creator']);
 
+
+        //Search Name and surname
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('nom', 'like', '%' . $request->search . '%')
+                    ->orWhere('prenom', 'like', '%' . $request->search . '%');
+            });
+        }
+
         // Search filter
         if ($request->filled('search')) {
             $query->search($request->search);

@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Traits\HasDataScope;
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class School extends Model
 {
-    use HasDataScope, HasFactory, \Illuminate\Database\Eloquent\SoftDeletes, LogsActivity;
+    use HasDataScope, HasFactory, SoftDeletes, LogsActivity, HasMatricule;
 
     protected $table = 'schools';
 

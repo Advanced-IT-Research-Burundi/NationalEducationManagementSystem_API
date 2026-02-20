@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Batiment extends Model
 {
     /** @use HasFactory<\Database\Factories\BatimentFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasMatricule;
 
     protected $guarded = [];
 
@@ -38,5 +39,18 @@ class Batiment extends Model
     public function maintenances(): MorphMany
     {
         return $this->morphMany(Maintenance::class, 'maintenable');
+    }
+
+    protected static function boot()
+    {
+        static::creating(function (Batiment $batiment) {
+            $batiment->school_id = 1;
+        });
+
+        static::updating(function (Batiment $batiment) {
+            $batiment->school_id = 1;
+        });
+
+        return parent::boot();
     }
 }

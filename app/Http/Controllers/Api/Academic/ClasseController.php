@@ -27,13 +27,13 @@ class ClasseController extends Controller
         }
 
         // School filter
-        if ($request->filled('school_id')) {
-            $query->bySchool($request->school_id);
+        if ($request->filled('school_id') && $request->school_id !== '_all') {
+            $query->bySchool((int) $request->school_id);
         }
 
         // Niveau filter
-        if ($request->filled('niveau_id')) {
-            $query->byNiveau($request->niveau_id);
+        if ($request->filled('niveau_id') && $request->niveau_id !== '_all') {
+            $query->byNiveau((int) $request->niveau_id);
         }
 
         // Année scolaire filter

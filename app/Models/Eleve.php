@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasDataScope;
+use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Eleve extends Model
 {
-    use HasDataScope, HasFactory, SoftDeletes, LogsActivity;
+    use HasDataScope, HasFactory, SoftDeletes, LogsActivity, HasMatricule;
 
     // Status constants
     const STATUT_ACTIF = 'actif';
@@ -175,25 +176,6 @@ class Eleve extends Model
     {
         return null;
     }
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($eleve) {
-            $eleve->created_by = auth()->id();
-            $eleve->matricule = $eleve->generateMatricule();
-        });
-    }
-
-    public function generateMatricule()
-    {
-        $lastMatricule = self::latest()->first()->matricule ?? '000000';
-        $newMatricule = str_pad((int) $lastMatricule + 1, 6, '0', STR_PAD_LEFT);
-
-        return $newMatricule;
-    }
-
 
     public function ecole()
     {

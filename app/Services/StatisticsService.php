@@ -11,6 +11,11 @@ use App\Models\Resultat;
 use App\Models\InscriptionExamen;
 use App\Models\Province;
 use App\Models\Commune;
+use App\Models\Batiment;
+use App\Models\Salle;
+use App\Models\Equipement;
+use App\Models\Financement;
+use App\Models\ProjetPartenariat;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -486,7 +491,97 @@ class StatisticsService
             'performance' => $this->getPerformanceStats($filters),
             'evolution_effectifs' => $this->getEvolutionEffectifs($filters),
             'repartition_geographique' => $this->getRepartitionGeographique($filters),
+            'infrastructure' => $this->getInfrastructureStats($filters),
+            'budget' => $this->getBudgetStats($filters),
         ];
+    }
+
+    /**
+     * Infrastructure statistics: buildings, rooms, equipment
+     */
+    public function getInfrastructureStats(array $filters = []): array
+    {
+        return Cache::remember($this->cacheKey('infrastructure', $filters), self::CACHE_TTL, function () use ($filters) {
+            $batimentsQuery = Batiment::query();
+            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+                $batimentsQuery->whereHas('ecole', function ($q) use ($filters) {
+                    $this->applyGeoFilters($q, $filters);
+                });
+            }
+
+            $totalBatiments = $batimentsQuery->count();
+            $batimentsParType = $batimentsQuery
+                ->select('type', DB::raw('COUNT(*) as total'))
+                ->groupBy('type')
+                ->pluck('total', 'type')
+                ->toArray();
+
+            $sallesQuery = Salle::query();
+            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+                $sallesQuery->whereHas('batiment.ecole', function ($q) use ($filters) {
+                    $this->applyGeoFilters($q, $filters);
+                });
+            }
+
+            $totalSalles = $sallesQuery->count();
+            $sallesParType = $sallesQuery
+                ->select('type', DB::raw('COUNT(*) as total'))
+                ->groupBy('type')
+                ->pluck('total', 'type')
+                ->toArray();
+
+            // Salles avec accès handicap
+            $sallesAccessibles = (clone $sallesQuery)->where('accessible_handicap', true)->count();
+
+            return [
+                'total_batiments' => $totalBatiments,
+                'batiments_par_type' => $batimentsParType,
+                'total_salles' => $totalSalles,
+                'salles_par_type' => $sallesParType,
+                'salles_accessibles' => $sallesAccessibles,
+            ];
+        });
+    }
+
+    /**
+     * Budget statistics: financing by project and source
+     */
+    public function getBudgetStats(array $filters = []): array
+    {
+        return Cache::remember($this->cacheKey('budget', $filters), self::CACHE_TTL, function () use ($filters) {
+            $financementsQuery = Financement::query()
+                ->join('projets_partenariat', 'financements.projet_partenariat_id', '=', 'projets_partenariat.id');
+
+            $totalFinancement = $financementsQuery->sum('montant');
+
+            $repartitionParProjet = $financementsQuery
+                ->select('projets_partenariat.nom as projet', DB::raw('SUM(montant) as total'))
+                ->groupBy('projets_partenariat.id', 'projets_partenariat.nom')
+                ->get()
+                ->map(fn($f) => [
+                    'label' => $f->projet,
+                    'value' => (float)$f->total,
+                ])
+                ->toArray();
+
+            $repartitionParSource = DB::table('financements')
+                ->join('projets_partenariat', 'financements.projet_partenariat_id', '=', 'projets_partenariat.id')
+                ->join('partenaires', 'projets_partenariat.partenaire_id', '=', 'partenaires.id')
+                ->select('partenaires.nom as partenaire', DB::raw('SUM(financements.montant) as total'))
+                ->groupBy('partenaires.id', 'partenaires.nom')
+                ->get()
+                ->map(fn($f) => [
+                    'label' => $f->partenaire,
+                    'value' => (float)$f->total,
+                ])
+                ->toArray();
+
+            return [
+                'total_financement' => (float)$totalFinancement,
+                'repartition_projet' => $repartitionParProjet,
+                'repartition_source' => $repartitionParSource,
+            ];
+        });
     }
 
     /**
