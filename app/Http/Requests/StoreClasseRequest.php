@@ -28,7 +28,7 @@ class StoreClasseRequest extends FormRequest
             'code' => ['nullable', 'string', 'max:50'],
             'niveau_id' => ['required', 'exists:niveaux_scolaires,id'],
             'school_id' => ['required', 'exists:schools,id'],
-            'annee_scolaire_id' => ['required','exists:annee_scolaires,id'],
+            'annee_scolaire_id' => ['required', 'exists:annee_scolaires,id'],
             'local' => ['nullable', 'string', 'max:50'],
             'capacite' => ['nullable', 'integer', 'min:1', 'max:200'],
             'statut' => ['nullable', Rule::in(['ACTIVE', 'INACTIVE', 'ARCHIVEE'])],

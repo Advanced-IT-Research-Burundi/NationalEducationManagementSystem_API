@@ -57,9 +57,9 @@ class Eleve extends Model
         'date_naissance' => 'date',
         'est_orphelin' => 'boolean',
         'a_handicap' => 'boolean',
-        'type_handicap' => 'encrypted',
-        'photo_path' => 'encrypted',
-        'contact_tuteur' => 'encrypted',
+        'type_handicap' => 'string',
+        'photo_path' => 'string',
+        'contact_tuteur' => 'string',
     ];
 
     protected $appends = ['nom_complet', 'age'];
@@ -105,7 +105,7 @@ class Eleve extends Model
 
     public function getAgeAttribute(): ?int
     {
-        if (! $this->date_naissance) {
+        if (!$this->date_naissance) {
             return null;
         }
 

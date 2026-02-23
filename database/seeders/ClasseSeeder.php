@@ -17,7 +17,7 @@ class ClasseSeeder extends Seeder
 
         $sections = Section::get();
 
-        if (! $anneeScolaire) {
+        if (!$anneeScolaire) {
             $this->command->warn('Aucune année scolaire active trouvée. Seedage des classes ignoré.');
             return;
         }
@@ -68,10 +68,10 @@ class ClasseSeeder extends Seeder
                         'school_id' => $school->id,
                         'niveau_id' => $niveau->id,
                         'annee_scolaire_id' => $anneeScolaire->id,
-                        'code' => $niveauCode, 
+                        'code' => $niveauCode,
                     ],
                     [
-                        'nom' => $niveau->nom, 
+                        'nom' => $niveau->nom,
                         'capacite' => $capacite,
                         'statut' => 'ACTIVE',
                         'created_by' => 1,
