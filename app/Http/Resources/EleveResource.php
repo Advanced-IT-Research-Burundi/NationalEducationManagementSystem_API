@@ -33,19 +33,31 @@ class EleveResource extends JsonResource
             // School Info
             'school_id' => $this->school_id,
             'statut_global' => $this->statut_global,
-            'ecole' => $this->whenLoaded('ecole')?->pluck('name'),
-            'ecole_origine' => $this->whenLoaded('ecoleOrigine')?->pluck('name'),
+            'school' => $this->whenLoaded('ecole', fn () => [
+                'id' => $this->ecole->id,
+                'name' => $this->ecole->name,
+            ]),
+            'ecole_origine' => $this->whenLoaded('ecoleOrigine', fn () => [
+                'id' => $this->ecoleOrigine->id,
+                'name' => $this->ecoleOrigine->name,
+            ]),
 
             // Relations
-            'classes' => $this->whenLoaded('classes')?->pluck('name'),
-            'inscriptions' => $this->whenLoaded('inscriptions')?->pluck('name'),
+            'classes' => $this->whenLoaded('classes', fn () => [
+                'id' => $this->classes->id,
+                'name' => $this->classes->name,
+            ]),
+            'inscriptions' => $this->whenLoaded('inscriptions'),
 
             // Creator
-            'created_by' => $this->whenLoaded('creator')?->pluck('name'),
+            'created_by' => $this->whenLoaded('creator', fn () => [
+                'id' => $this->creator->id,
+                'name' => $this->creator->name,
+            ]),
 
             // Photo
-            'photo_url' => $this->photo_path 
-                ? asset('storage/' . $this->photo_path) 
+            'photo_url' => $this->photo_path
+                ? asset('storage/'.$this->photo_path)
                 : null,
 
             // Timestamps
