@@ -3,8 +3,15 @@
 namespace App\Services;
 
 use App\Models\AnneeScolaire;
+use App\Models\Batiment;
+use App\Models\Classe;
+use App\Models\Eleve;
+use App\Models\Enseignant;
+use App\Models\Examen;
 use App\Models\Province;
+use App\Models\Salle;
 use App\Models\School;
+use App\Models\Section;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -18,13 +25,14 @@ class MatriculeService
         $class = get_class($model);
         
         return match ($class) {
-            \App\Models\School::class => $this->generateSchoolMatricule($model),
-            \App\Models\Eleve::class => $this->generateEleveMatricule($model),
-            \App\Models\Enseignant::class => $this->generateEnseignantMatricule($model),
-            \App\Models\Classe::class => $this->generateClasseMatricule($model),
-            \App\Models\Examen::class => $this->generateExamenMatricule($model),
-            \App\Models\Salle::class => $this->generateSalleMatricule($model),
-            \App\Models\Batiment::class => $this->generateBatimentMatricule($model),
+            School::class => $this->generateSchoolMatricule($model),
+            Eleve::class => $this->generateEleveMatricule($model),
+            Enseignant::class => $this->generateEnseignantMatricule($model),
+            Classe::class => $this->generateClasseMatricule($model),
+            Examen::class => $this->generateExamenMatricule($model),
+            Salle::class => $this->generateSalleMatricule($model),
+            Batiment::class => $this->generateBatimentMatricule($model),
+            Section::class => $this->generateSectionMatricule($model),
             default => throw new \InvalidArgumentException("Le modèle {$class} n'est pas pris en charge par le MatriculeService."),
         };
     }
@@ -61,16 +69,25 @@ class MatriculeService
         return "ELV-{$annee}-{$schoolCode}-" . Str::padLeft($sequence + 1, 5, '0');
     }
 
-    private function generateEnseignantMatricule(Model $enseignant): string
-    {
-        $annee = AnneeScolaire::current()?->code ?? date('Y');
-        
-        $last = \App\Models\Enseignant::orderBy('matricule', 'desc')->first();
-        $sequence = $this->extractSequence($last?->matricule, 5);
+ private function generateEnseignantMatricule(): string
+{
+    $annee = date('Y');
 
-        return "ENS-{$annee}-" . Str::padLeft($sequence + 1, 5, '0');
+    $last = Enseignant::where('matricule', 'like', "ENS-{$annee}-%")
+        ->orderBy('matricule', 'desc')
+        ->first();
+
+    $lastNumber = 0;
+
+    if ($last) {
+        $parts = explode('-', $last->matricule);
+        $lastNumber = (int) end($parts);
     }
 
+    $nextNumber = $lastNumber + 1;
+
+    return "ENS-{$annee}-" . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+}
     private function generateClasseMatricule(Model $classe): string
     {
         $annee = AnneeScolaire::current()?->code ?? date('Y');
@@ -124,6 +141,17 @@ class MatriculeService
 
         return "BAT-{$type}-" . Str::padLeft($sequence + 1, 3, '0');
     }
+
+
+    private function generateSectionMatricule(Model $section): string
+{
+    $last = Section::orderBy('code', 'desc')
+        ->first();
+
+    $sequence = $this->extractSequence($last?->code, 3);
+
+    return "SEC-" . Str::padLeft($sequence + 1, 3, '0');
+}
 
     /**
      * Extrait la séquence numérique à la fin d'un matricule.

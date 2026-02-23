@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('salles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('batiment_id')->constrained('batiments')->onDelete('cascade');
-            $table->string('numero');
+            $table->foreignId('batiment_id')->nullable()->constrained('batiments')->onDelete('cascade');
+            $table->foreignId('classe_id')->nullable()->constrained('classes')->onDelete('set null');
+            $table->string('numero')->unique();
             $table->enum('type', ['CLASSE', 'LABORATOIRE', 'BUREAU', 'SANITAIRE', 'BIBLIOTHEQUE', 'AUTRE'])->default('CLASSE');
             $table->integer('capacite')->nullable()->comment('Capacité en nombre de places');
             $table->decimal('superficie', 8, 2)->nullable()->comment('Superficie en m²');

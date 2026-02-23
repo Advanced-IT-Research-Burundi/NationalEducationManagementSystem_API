@@ -6,20 +6,19 @@ use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Niveau;
 use App\Models\School;
+use App\Models\Section;
 use Illuminate\Database\Seeder;
 
 class ClasseSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $anneeScolaire = AnneeScolaire::where('est_active', true)->first();
 
+        $sections = Section::get();
+
         if (! $anneeScolaire) {
             $this->command->warn('Aucune année scolaire active trouvée. Seedage des classes ignoré.');
-
             return;
         }
 
@@ -27,7 +26,6 @@ class ClasseSeeder extends Seeder
 
         if ($schools->isEmpty()) {
             $this->command->warn('Aucune école active trouvée. Seedage des classes ignoré.');
-
             return;
         }
 
@@ -35,68 +33,58 @@ class ClasseSeeder extends Seeder
 
         if ($niveaux->isEmpty()) {
             $this->command->warn('Aucun niveau trouvé. Seedage des classes ignoré.');
-
             return;
         }
 
-        // Configuration des classes par niveau
+        // Configuration des capacités par niveau (SANS SECTION)
         $classesConfig = [
-            // Fondamental (1P à 9F)
-            '1P' => ['sections' => ['A', 'B'], 'capacite' => 45],
-            '2P' => ['sections' => ['A', 'B'], 'capacite' => 45],
-            '3P' => ['sections' => ['A', 'B'], 'capacite' => 45],
-            '4P' => ['sections' => ['A', 'B'], 'capacite' => 40],
-            '5P' => ['sections' => ['A', 'B'], 'capacite' => 40],
-            '6P' => ['sections' => ['A', 'B'], 'capacite' => 40],
-            '7F' => ['sections' => ['A'], 'capacite' => 50],
-            '8F' => ['sections' => ['A'], 'capacite' => 50],
-            '9F' => ['sections' => ['A'], 'capacite' => 50],
-            // Post-fondamental
-            '1PF' => ['sections' => ['A'], 'capacite' => 40],
-            '2PF' => ['sections' => ['A'], 'capacite' => 40],
-            '3PF' => ['sections' => ['A'], 'capacite' => 40],
-            '4PF' => ['sections' => ['A'], 'capacite' => 35],
+            '1P' => 45,
+            '2P' => 45,
+            '3P' => 45,
+            '4P' => 40,
+            '5P' => 40,
+            '6P' => 40,
+            '7F' => 50,
+            '8F' => 50,
+            '9F' => 50,
+            '1PF' => 40,
+            '2PF' => 40,
+            '3PF' => 40,
+            '4PF' => 35,
         ];
 
         $createdCount = 0;
 
         foreach ($schools as $school) {
-            // Déterminer quels niveaux cette école propose selon son type
+
             $niveauxEcole = $this->getNiveauxForSchool($school, $niveaux);
 
             foreach ($niveauxEcole as $niveauCode => $niveau) {
-                $config = $classesConfig[$niveauCode] ?? ['sections' => ['A'], 'capacite' => 40];
 
-                foreach ($config['sections'] as $section) {
-                    $code = $niveauCode.$section;
-                    $nom = $niveau->nom.' - Section '.$section;
+                $capacite = $classesConfig[$niveauCode] ?? 40;
 
-                    Classe::updateOrCreate(
-                        [
-                            'school_id' => $school->id,
-                            'niveau_id' => $niveau->id,
-                            'annee_scolaire_id' => $anneeScolaire->id,
-                            'code' => $code,
-                        ],
-                        [
-                            'nom' => $nom,
-                            'capacite' => $config['capacite'],
-                            'statut' => 'ACTIVE',
-                            'created_by' => 1,
-                        ]
-                    );
+                Classe::updateOrCreate(
+                    [
+                        'school_id' => $school->id,
+                        'niveau_id' => $niveau->id,
+                        'annee_scolaire_id' => $anneeScolaire->id,
+                        'code' => $niveauCode, 
+                    ],
+                    [
+                        'nom' => $niveau->nom, 
+                        'capacite' => $capacite,
+                        'statut' => 'ACTIVE',
+                        'created_by' => 1,
+                    ]
+                );
 
-                    $createdCount++;
-                }
+                $createdCount++;
             }
         }
 
         $this->command->info("$createdCount classes créées avec succès!");
     }
 
-    /**
-     * Retourne les niveaux appropriés selon le type d'école.
-     */
     private function getNiveauxForSchool(School $school, $niveaux): array
     {
         $result = [];
@@ -123,7 +111,6 @@ class ClasseSeeder extends Seeder
                 break;
 
             default:
-                // Pour les autres types, inclure quelques niveaux de base
                 foreach (array_slice($fondamental, 0, 6) as $code) {
                     if (isset($niveaux[$code])) {
                         $result[$code] = $niveaux[$code];

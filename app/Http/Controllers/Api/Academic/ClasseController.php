@@ -19,7 +19,7 @@ class ClasseController extends Controller
     {
         $this->authorize('viewAny', Classe::class);
 
-        $query = Classe::with(['niveau', 'school', 'creator']);
+        $query = Classe::with(['niveau', 'school', 'creator', 'section']);
 
         // Search filter
         if ($request->filled('search')) {

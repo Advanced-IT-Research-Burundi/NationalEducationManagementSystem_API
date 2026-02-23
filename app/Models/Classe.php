@@ -28,6 +28,7 @@ class Classe extends Model
         'nom',
         'code',
         'niveau_id',
+        'section_id',
         'school_id',
         'annee_scolaire_id',
         'local',
@@ -98,6 +99,11 @@ class Classe extends Model
     public function niveau(): BelongsTo
     {
         return $this->belongsTo(Niveau::class);
+    }
+
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(Section::class);
     }
 
     public function school(): BelongsTo

@@ -23,12 +23,12 @@ class UpdateSalleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batiment_id' => ['sometimes', 'exists:batiments,id'],
-            'numero' => ['sometimes', 'string', 'max:50'],
-            'type' => ['sometimes', Rule::in(['CLASSE', 'LABORATOIRE', 'BUREAU', 'SANITAIRE', 'BIBLIOTHEQUE', 'AUTRE'])],
+            'batiment_id' => ['sometimes', 'nullable'],
+            'numero' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'type' => ['nullable', Rule::in(['CLASSE', 'LABORATOIRE', 'BUREAU', 'SANITAIRE', 'BIBLIOTHEQUE', 'AUTRE'])],
             'capacite' => ['nullable', 'integer', 'min:1'],
             'superficie' => ['nullable', 'numeric', 'min:0'],
-            'etat' => ['sometimes', Rule::in(['BON', 'MOYEN', 'MAUVAIS', 'DANGEREUX'])],
+            'etat' => ['nullable', Rule::in(['BON', 'MOYEN', 'MAUVAIS', 'DANGEREUX'])],
             'accessible_handicap' => ['boolean'],
             'description' => ['nullable', 'string', 'max:1000'],
         ];

@@ -33,6 +33,9 @@ class DatabaseSeeder extends Seeder
             ClasseSeeder::class,
             EleveSeeder::class,
             MouvementEleveSeeder::class,
+            SectionSeeder::class,
+            BatimentSeeder::class,
+            MatiereSeeder::class
         ]);
     }
 }

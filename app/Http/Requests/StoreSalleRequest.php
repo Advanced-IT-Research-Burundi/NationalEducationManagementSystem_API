@@ -24,7 +24,7 @@ class StoreSalleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batiment_id' => ['required', 'exists:batiments,id'],
+            'batiment_id' => ['nullable', 'exists:batiments,id'],
             'numero' => ['required', 'string', 'max:50'],
             'type' => ['required', Rule::in(['CLASSE', 'LABORATOIRE', 'BUREAU', 'SANITAIRE', 'BIBLIOTHEQUE', 'AUTRE'])],
             'capacite' => ['nullable', 'integer', 'min:1'],

@@ -32,6 +32,7 @@ class StoreClasseRequest extends FormRequest
             'local' => ['nullable', 'string', 'max:50'],
             'capacite' => ['nullable', 'integer', 'min:1', 'max:200'],
             'statut' => ['nullable', Rule::in(['ACTIVE', 'INACTIVE', 'ARCHIVEE'])],
+            'section_id' => ['nullable', 'exists:sections,id'],
         ];
     }
 

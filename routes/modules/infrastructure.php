@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Infrastructure\EquipmentController;
 use App\Http\Controllers\Api\Infrastructure\EquipmentMovementController;
 use App\Http\Controllers\Api\Infrastructure\MaintenanceRequestController;
 use App\Http\Controllers\Api\Infrastructure\MaintenanceReportController;
+use App\Http\Controllers\Api\Infrastructure\RoomController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +30,11 @@ Route::middleware(['auth:sanctum'])->prefix('infrastructure')->name('infrastruct
         ->name('buildings.by-condition');
     Route::get('buildings/statistics', [BuildingController::class, 'statistics'])
         ->name('buildings.statistics');
+
+    // Rooms (Salles)
+    Route::get('rooms/statistics', [RoomController::class, 'statistics'])
+        ->name('rooms.statistics');
+    Route::apiResource('rooms', RoomController::class)->parameters(['rooms' => 'salle']);
 
     // Building Assessments
     Route::apiResource('assessments', BuildingAssessmentController::class);

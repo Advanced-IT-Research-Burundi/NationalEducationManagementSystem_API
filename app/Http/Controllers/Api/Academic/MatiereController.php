@@ -3,49 +3,91 @@
 namespace App\Http\Controllers\Api\Academic;
 
 use App\Http\Controllers\Controller;
-use App\Models\AffectationEnseignant;
-use App\Models\Resultat;
+use App\Http\Requests\StoreMatiereRequest;
+use App\Http\Requests\UpdateMatiereRequest;
+use App\Models\Matiere;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class MatiereController extends Controller
 {
     /**
-     * Get a list of all unique subjects.
+     * Display a listing of matieres.
      */
     public function index(Request $request): JsonResponse
     {
-        // Get subjects from affectations
-        $fromAffectations = AffectationEnseignant::select('matiere')
-            ->whereNotNull('matiere')
-            ->distinct()
-            ->pluck('matiere')
-            ->toArray();
+        $query = Matiere::query();
 
-        // Get subjects from exam results
-        $fromResults = Resultat::select('matiere')
-            ->whereNotNull('matiere')
-            ->distinct()
-            ->pluck('matiere')
-            ->toArray();
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
 
-        // Merge and unique
-        $allMatieres = array_unique(array_merge($fromAffectations, $fromResults));
-        sort($allMatieres);
+        if ($request->filled('actif')) {
+            $query->where('actif', $request->boolean('actif'));
+        }
 
-        // Format for frontend (mimic a real Subject entity)
-        $formatted = array_map(function ($name) {
-            return [
-                'id' => $name, // Use name as ID since we don't have a table
-                'name' => $name,
-                'code' => strtoupper(substr($name, 0, 3)),
-                'level' => 'N/A',
-                'teachers' => AffectationEnseignant::where('matiere', $name)->count(),
-                'hours' => 0 // Mocked for now
-            ];
-        }, $allMatieres);
+        $matieres = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json($formatted);
+        return response()->json($matieres);
+    }
+
+    /**
+     * Lightweight list for dropdowns.
+     */
+    public function list(): JsonResponse
+    {
+        $matieres = Matiere::active()->orderBy('nom')->get(['id', 'nom', 'code']);
+
+        return response()->json($matieres);
+    }
+
+    /**
+     * Store a newly created matiere.
+     */
+    public function store(StoreMatiereRequest $request): JsonResponse
+    {
+        $matiere = Matiere::create($request->validated());
+
+        return response()->json([
+            'message' => 'Matière créée avec succès',
+            'matiere' => $matiere,
+        ], 201);
+    }
+
+    /**
+     * Display the specified matiere.
+     */
+    public function show(Matiere $matiere): JsonResponse
+    {
+        return response()->json($matiere->load('affectations.enseignant.user'));
+    }
+
+    /**
+     * Update the specified matiere.
+     */
+    public function update(UpdateMatiereRequest $request, Matiere $matiere): JsonResponse
+    {
+        $matiere->update($request->validated());
+
+        return response()->json([
+            'message' => 'Matière mise à jour avec succès',
+            'matiere' => $matiere,
+        ]);
+    }
+
+    /**
+     * Remove the specified matiere.
+     */
+    public function destroy(Matiere $matiere): JsonResponse
+    {
+        if ($matiere->affectations()->exists()) {
+            return response()->json([
+                'message' => 'Impossible de supprimer cette matière car elle est affectée à des enseignants.',
+            ], 422);
+        }
+
+        $matiere->delete();
+
+        return response()->json(['message' => 'Matière supprimée avec succès']);
     }
 }

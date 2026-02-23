@@ -18,11 +18,12 @@ return new class extends Migration
             $table->foreignId('niveau_id')->constrained('niveaux_scolaires')->onDelete('cascade');
             $table->foreignId('school_id')->nullable()->constrained('schools')->onDelete('cascade');
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires')->onDelete('cascade');
-            $table->foreignId('niveau_scolaire_id')->nullable()->constrained('niveaux_scolaires')->onDelete('cascade');
+            $table->foreignId('niveau_scolaire_id')->nullable()->constrained('niveaux_scolaires')->onDelete('set null');
             $table->foreignId('enseignant_principal_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('section_id')->nullable()->constrained('sections')->onDelete('set null');
             $table->string('local')->nullable(); // Numéro de salle
             $table->integer('capacite')->nullable(); // Capacité maximale
-             $table->string('salle', 50)->nullable();
+            $table->string('salle', 50)->nullable();
             $table->enum('statut', ['ACTIVE', 'INACTIVE', 'ARCHIVEE'])->default('ACTIVE');
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
