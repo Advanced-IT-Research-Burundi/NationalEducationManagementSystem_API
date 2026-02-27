@@ -36,10 +36,7 @@ class EnseignantController extends Controller
             $query->bySchool($request->school_id);
         }
 
-        // Specialité filter
-        if ($request->filled('specialite')) {
-            $query->bySpecialite($request->specialite);
-        }
+
 
         // Qualification filter
         if ($request->filled('qualification')) {
@@ -85,8 +82,8 @@ class EnseignantController extends Controller
                 'user_id' => $user->id,
                 'school_id' => $data['school_id'],
                 'matricule' => $data['matricule'],
-                'specialite' => $data['specialite'] ?? null,
                 'qualification' => $data['qualification'] ?? null,
+                'qualification_precision' => $data['qualification_precision'] ?? null,
                 'annees_experience' => $data['annees_experience'] ?? 0,
                 'date_embauche' => $data['date_embauche'] ?? null,
                 'telephone' => $data['telephone'] ?? null,
@@ -139,8 +136,8 @@ class EnseignantController extends Controller
             // Update enseignant profile
             $enseignant->update([
                 'matricule' => $data['matricule'] ?? $enseignant->matricule,
-                'specialite' => $data['specialite'] ?? $enseignant->specialite,
                 'qualification' => $data['qualification'] ?? $enseignant->qualification,
+                'qualification_precision' => $data['qualification_precision'] ?? $enseignant->qualification_precision,
                 'annees_experience' => $data['annees_experience'] ?? $enseignant->annees_experience,
                 'date_embauche' => $data['date_embauche'] ?? $enseignant->date_embauche,
                 'telephone' => $data['telephone'] ?? $enseignant->telephone,

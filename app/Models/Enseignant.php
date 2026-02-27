@@ -43,8 +43,8 @@ class Enseignant extends Model
         'user_id',
         'school_id',
         'matricule',
-        'specialite',
         'qualification',
+        'qualification_precision',
         'annees_experience',
         'date_embauche',
         'telephone',
@@ -72,10 +72,7 @@ class Enseignant extends Model
         return $query->where('school_id', $schoolId);
     }
 
-    public function scopeBySpecialite($query, string $specialite)
-    {
-        return $query->where('specialite', $specialite);
-    }
+
 
     public function scopeByQualification($query, string $qualification)
     {
