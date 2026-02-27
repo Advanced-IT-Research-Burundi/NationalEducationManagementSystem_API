@@ -50,6 +50,13 @@ class Matiere extends Model
         return $this->hasMany(AffectationEnseignant::class);
     }
 
+    public function enseignants()
+    {
+        return $this->belongsToMany(Enseignant::class, 'affectations_matieres')
+            ->withPivot(['school_id', 'annee_scolaire_id', 'statut'])
+            ->withTimestamps();
+    }
+
     public function resultats(): HasMany
     {
         return $this->hasMany(Resultat::class);

@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Academic\MouvementEleveController;
 use App\Http\Controllers\Api\Academic\NiveauController;
 use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\SectionController;
+use App\Http\Controllers\Api\Academic\AffectationMatiereController;
 use App\Http\Controllers\Api\Exams\ResultatController;
 use Illuminate\Support\Facades\Route;
 
@@ -78,6 +79,10 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     // Matières
     Route::get('matieres/list', [MatiereController::class, 'list'])->name('matieres.list');
     Route::apiResource('matieres', MatiereController::class);
+
+    // Affectations Matières
+    Route::patch('affectations-matieres/{affectation}/statut', [AffectationMatiereController::class, 'updateStatut'])->name('affectations-matieres.statut');
+    Route::apiResource('affectations-matieres', AffectationMatiereController::class);
 
     // Bulletins (Averaged results)
     Route::get('bulletins', [ResultatController::class, 'bulletins'])->name('bulletins.index');

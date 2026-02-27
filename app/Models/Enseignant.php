@@ -152,6 +152,13 @@ class Enseignant extends Model
         return $this->hasMany(AffectationEnseignant::class, 'enseignant_id');
     }
 
+    public function matieres()
+    {
+        return $this->belongsToMany(Matiere::class, 'affectations_matieres')
+            ->withPivot(['school_id', 'annee_scolaire_id', 'statut'])
+            ->withTimestamps();
+    }
+
     /**
      * Helper Methods
      */
