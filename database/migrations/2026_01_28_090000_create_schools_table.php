@@ -24,9 +24,17 @@ return new class extends Migration
             $table->foreignId('province_id')->nullable()->constrained('provinces')->onDelete('cascade');
             $table->foreignId('ministere_id')->nullable()->constrained('ministeres')->onDelete('cascade');
             $table->foreignId('pays_id')->nullable()->constrained('pays')->onDelete('cascade');
+            
 
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
+            $table->string('directeur_name')->nullable();
+            $table->integer('capacite_accueil')->nullable();
+            $table->string('adresse_physique')->nullable();
+            $table->string('telephone')->nullable();
+            $table->string('email')->nullable();
+            $table->string('site_web')->nullable();
+            $table->string('annee_creation')->nullable();
 
             $table->enum('statut', ['BROUILLON', 'EN_ATTENTE_VALIDATION', 'ACTIVE', 'INACTIVE'])->default('BROUILLON');
 
