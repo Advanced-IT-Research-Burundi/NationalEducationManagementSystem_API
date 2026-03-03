@@ -83,9 +83,13 @@ class SchoolController extends Controller
 
         $school = School::create($data);
 
+        if ($request->filled('niveau_scolaire_ids')) {
+            $school->niveauxScolaires()->sync($data['niveau_scolaire_ids']);
+        }
+
         return response()->json([
             'message' => 'School created successfully',
-            'school' => $school,
+            'school' => $school->load('niveauxScolaires'),
         ], 201);
     }
 
@@ -116,9 +120,13 @@ class SchoolController extends Controller
 
         $school->update($data);
 
+        if ($request->has('niveau_scolaire_ids')) {
+            $school->niveauxScolaires()->sync($request->niveau_scolaire_ids);
+        }
+
         return response()->json([
             'message' => 'School updated successfully',
-            'school' => $school,
+            'school' => $school->load('niveauxScolaires'),
         ]);
     }
 

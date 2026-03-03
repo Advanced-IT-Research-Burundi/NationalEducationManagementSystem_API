@@ -41,6 +41,8 @@ class UpdateSchoolRequest extends FormRequest
             'annee_creation' => ['sometimes', 'nullable', 'string', 'max:4'],
             'colline_id' => ['sometimes', 'exists:collines,id'],
             'statut' => ['sometimes', Rule::in(['BROUILLON', 'EN_ATTENTE_VALIDATION', 'ACTIVE', 'INACTIVE'])], // Only certain roles should change this via status update but keep flexible for now
+            'niveau_scolaire_ids' => ['nullable', 'array'],
+            'niveau_scolaire_ids.*' => ['exists:niveaux_scolaires,id'],
         ];
     }
 }

@@ -40,6 +40,8 @@ class StoreSchoolRequest extends FormRequest
             'site_web' => ['nullable', 'url', 'max:255'],
             'annee_creation' => ['nullable', 'string', 'max:4'],
             'colline_id' => ['required', 'exists:collines,id'], // Key for auto-localization
+            'niveau_scolaire_ids' => ['nullable', 'array'],
+            'niveau_scolaire_ids.*' => ['exists:niveaux_scolaires,id'],
         ];
     }
 

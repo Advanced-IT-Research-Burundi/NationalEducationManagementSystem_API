@@ -59,7 +59,6 @@ class School extends Model
         'site_web',
         'annee_creation',
         'colline_id',
-        
         'zone_id',
         'commune_id',
         'province_id',
@@ -236,6 +235,15 @@ class School extends Model
     public function eleves()
     {
         return $this->hasMany(Eleve::class);
+    }
+
+    /**
+     * The niveaux scolaires that belong to the school.
+     */
+    public function niveauxScolaires()
+    {
+        return $this->belongsToMany(Niveau::class, 'niveau_school', 'school_id', 'niveau_scolaire_id')
+                    ->withTimestamps();
     }
 
 }
