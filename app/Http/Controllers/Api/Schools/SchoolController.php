@@ -191,7 +191,7 @@ class SchoolController extends Controller
     {
         $this->authorize('viewAny', School::class);
 
-        $schools = School::active()->orderBy('name')->get(['id', 'name', 'code_ecole']);
+        $schools = School::orderBy('name')->get(['id', 'name', 'code_ecole']);
 
         return response()->json($schools);
     }
