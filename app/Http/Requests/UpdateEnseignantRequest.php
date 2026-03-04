@@ -33,8 +33,8 @@ class UpdateEnseignantRequest extends FormRequest
 
             // Enseignant specific fields
             'matricule' => ['sometimes', 'string', 'max:50', Rule::unique('enseignants', 'matricule')->ignore($enseignant->id)],
-            'specialite' => ['nullable', 'string', 'max:100'],
             'qualification' => ['nullable', Rule::in(['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])],
+            'qualification_precision' => ['nullable', 'string', 'max:100'],
             'annees_experience' => ['nullable', 'integer', 'min:0', 'max:50'],
             'date_embauche' => ['nullable', 'date'],
             'telephone' => ['nullable', 'string', 'max:20'],

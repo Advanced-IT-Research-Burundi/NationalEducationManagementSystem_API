@@ -32,8 +32,8 @@ class StoreEnseignantRequest extends FormRequest
             // Enseignant specific fields
             'school_id' => ['nullable', 'exists:schools,id'],
             'matricule' => ['required', 'string', 'max:50', 'unique:enseignants,matricule'],
-            'specialite' => ['nullable', 'string', 'max:100'],
             'qualification' => ['nullable', Rule::in(['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])],
+            'qualification_precision' => ['nullable', 'string', 'max:100'],
             'annees_experience' => ['nullable', 'integer', 'min:0', 'max:60'],
             'date_embauche' => ['nullable', 'date'],
             'telephone' => ['nullable', 'string', 'max:20'],

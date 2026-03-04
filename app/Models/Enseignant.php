@@ -43,8 +43,8 @@ class Enseignant extends Model
         'user_id',
         'school_id',
         'matricule',
-        'specialite',
         'qualification',
+        'qualification_precision',
         'annees_experience',
         'date_embauche',
         'telephone',
@@ -72,10 +72,7 @@ class Enseignant extends Model
         return $query->where('school_id', $schoolId);
     }
 
-    public function scopeBySpecialite($query, string $specialite)
-    {
-        return $query->where('specialite', $specialite);
-    }
+
 
     public function scopeByQualification($query, string $qualification)
     {
@@ -153,6 +150,13 @@ class Enseignant extends Model
     public function affectations(): HasMany
     {
         return $this->hasMany(AffectationEnseignant::class, 'enseignant_id');
+    }
+
+    public function matieres()
+    {
+        return $this->belongsToMany(Matiere::class, 'affectations_matieres')
+            ->withPivot(['school_id', 'annee_scolaire_id', 'statut'])
+            ->withTimestamps();
     }
 
     /**
