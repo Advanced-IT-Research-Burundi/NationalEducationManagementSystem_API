@@ -13,23 +13,25 @@ class AffectationMatiereController extends Controller
     {
         $query = AffectationMatiere::with(['enseignant.user', 'matiere', 'school', 'anneeScolaire']);
 
-        if ($request->has('school_id')) {
+        if ($request->filled('school_id')) {
             $query->where('school_id', $request->school_id);
         }
 
-        if ($request->has('annee_scolaire_id')) {
+        if ($request->filled('annee_scolaire_id')) {
             $query->where('annee_scolaire_id', $request->annee_scolaire_id);
         }
 
-        if ($request->has('enseignant_id')) {
+        if ($request->filled('enseignant_id')) {
             $query->where('enseignant_id', $request->enseignant_id);
         }
 
-        if ($request->has('statut')) {
+        if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
 
-        return response()->json($query->paginate($request->get('per_page', 15)));
+        $affectations = $query->latest()->paginate($request->get('per_page', 15));
+
+        return sendResponse($affectations, 'Affectations récupérées avec succès');
     }
 
     public function store(Request $request)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Inscription;
 
 use App\Http\Controllers\Controller;
 use App\Models\Inscription;
+use App\Models\School;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -46,21 +47,32 @@ class InscriptionController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        // Basic validation - should be moved to FormRequest
-        $validated = $request->validate([
-            'eleve_id' => 'required|exists:eleves,id',
-            'campagne_id' => 'required|exists:campagnes_inscription,id',
-            'school_id' => 'required|exists:schools,id',
-            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-            'niveau_demande_id' => 'required|exists:niveaux_scolaires,id',
-            'type_inscription' => ['required', Rule::in(['nouvelle', 'reinscription', 'transfert_entrant'])],
-            'pieces_fournies' => 'nullable|array',
-            'observations' => 'nullable|string',
-        ]);
+
+     // Get the school first
+$school = School::findOrFail($request->school_id);
+
+// Inject school_id into request BEFORE validation
+$request->merge([
+    'school_id' => $school->id
+]);
+
+// Now validate
+$validated = $request->validate([
+    'eleve_id' => 'required|exists:eleves,id',
+    'campagne_id' => 'required|exists:campagnes_inscription,id',
+    'school_id' => 'required|exists:schools,id',
+    'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+    'niveau_demande_id' => 'required|exists:niveaux_scolaires,id',
+    'type_inscription' => ['required', Rule::in(['nouvelle', 'reinscription', 'transfert_entrant'])],
+    'pieces_fournies' => 'nullable|array',
+    'observations' => 'nullable|string',
+]);
 
         // Generate numero_inscription logic here or inside model boot
         // For now, simplify assignment
-        $validated['numero_inscription'] = 'INS-' . date('Y') . '-' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
+        $validated['school_id'] = $school->id;
+
+        $validated['code_inscription'] = $school->code_ecole . '-' . date('Y') . '-' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
         $validated['date_inscription'] = now();
         $validated['statut'] = 'brouillon';
         $validated['created_by'] = $request->user()->id;
