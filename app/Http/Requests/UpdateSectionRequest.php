@@ -20,6 +20,7 @@ class UpdateSectionRequest extends FormRequest
             'nom' => ['sometimes', 'required', 'string', 'max:100'],
             'code' => ['sometimes', 'required', 'string', 'max:20', 'unique:sections,code,' . $sectionId],
             'description' => ['nullable', 'string', 'max:500'],
+            'type_id' => ['nullable', 'exists:types_scolaires,id'],
             'actif' => ['nullable', 'boolean'],
         ];
     }

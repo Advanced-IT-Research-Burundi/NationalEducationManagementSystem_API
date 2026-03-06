@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('nom'); // 7ème, 8ème, 9ème, etc.
             $table->string('code')->unique(); // 7, 8, 9, etc.
             $table->integer('ordre')->default(0); // Pour le tri
-            $table->string('cycle')->nullable(); // Primaire, Secondaire, etc.
+            $table->foreignId('type_id')->nullable()->constrained('types_scolaires');
+            $table->foreignId('cycle_id')->nullable()->constrained('cycles_scolaires');
+            $table->foreignId('section_id')->nullable()->constrained('sections');
             $table->text('description')->nullable();
             $table->boolean('actif')->default(true);
             $table->timestamps();

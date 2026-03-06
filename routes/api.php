@@ -18,7 +18,10 @@
  */
 
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
+use App\Http\Controllers\Api\Academic\CycleScolaireController;
 use App\Http\Controllers\Api\Academic\NiveauController;
+use App\Http\Controllers\Api\Academic\SectionController;
+use App\Http\Controllers\Api\Academic\TypeScolaireController;
 use App\Http\Controllers\Api\Inscription\CampagneInscriptionController;
 use App\Http\Controllers\Api\Inscription\InscriptionController;
 use Illuminate\Http\Request;
@@ -183,7 +186,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Niveaux Scolaires (alias without /academic prefix for UI)
     Route::get('niveaux-scolaires/list', [NiveauController::class, 'list']);
-    Route::apiResource('niveaux-scolaires', NiveauController::class);
+    Route::apiResource('niveaux-scolaires', NiveauController::class)->parameters([
+        'niveaux-scolaires' => 'niveau',
+    ]);
+
+    // Types scolaires (alias without /academic prefix for UI)
+    Route::get('types-scolaires/list', [TypeScolaireController::class, 'list']);
+    Route::apiResource('types-scolaires', TypeScolaireController::class)->parameters([
+        'types-scolaires' => 'typeScolaire',
+    ]);
+
+    // Cycles scolaires (alias without /academic prefix for UI)
+    Route::get('cycles-scolaires/list', [CycleScolaireController::class, 'list']);
+    Route::apiResource('cycles-scolaires', CycleScolaireController::class)->parameters([
+        'cycles-scolaires' => 'cycleScolaire',
+    ]);
+
+    // Sections scolaires (alias without /academic prefix for UI)
+    Route::get('sections-scolaires/list', [SectionController::class, 'list']);
+    Route::apiResource('sections-scolaires', SectionController::class)->parameters([
+        'sections-scolaires' => 'section',
+    ]);
 
     // Campagnes d'Inscription
     // Campagnes d'Inscription

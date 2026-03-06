@@ -24,9 +24,11 @@ class UpdateNiveauRequest extends FormRequest
     {
         return [
             'nom' => ['sometimes', 'string', 'max:100'],
-            'code' => ['sometimes', 'string', 'max:20', Rule::unique('niveaux', 'code')->ignore($this->route('niveau'))],
+            'code' => ['sometimes', 'string', 'max:20', Rule::unique('niveaux_scolaires', 'code')->ignore($this->route('niveau'))],
             'ordre' => ['nullable', 'integer', 'min:0'],
-            'cycle' => ['sometimes', Rule::in(['PRIMAIRE', 'FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])],
+            'type_id' => ['nullable', 'exists:types_scolaires,id'],
+            'cycle_id' => ['nullable', 'exists:cycles_scolaires,id'],
+            'section_id' => ['nullable', 'exists:sections,id'],
             'description' => ['nullable', 'string', 'max:500'],
             'actif' => ['nullable', 'boolean'],
         ];

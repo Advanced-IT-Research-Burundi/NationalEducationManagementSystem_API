@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\HasMatricule;
 
-class Section extends Model
+class CycleScolaire extends Model
 {
-    use HasMatricule, HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes;
+
+    protected $table = 'cycles_scolaires';
 
     protected $fillable = [
         'nom',
-        'code',
         'description',
         'type_id',
         'actif',
@@ -25,28 +25,9 @@ class Section extends Model
         'actif' => 'boolean',
     ];
 
-    /**
-     * Query Scopes
-     */
-    public function scopeActive($query)
+    public function scopeActif($query)
     {
         return $query->where('actif', true);
-    }
-
-    public function scopeSearch($query, string $search)
-    {
-        return $query->where(function ($q) use ($search) {
-            $q->where('nom', 'LIKE', "%{$search}%")
-                ->orWhere('code', 'LIKE', "%{$search}%");
-        });
-    }
-
-    /**
-     * Relationships
-     */
-    public function classes(): HasMany
-    {
-        return $this->hasMany(Classe::class);
     }
 
     public function typeScolaire(): BelongsTo
@@ -56,6 +37,6 @@ class Section extends Model
 
     public function niveaux(): HasMany
     {
-        return $this->hasMany(Niveau::class, 'section_id');
+        return $this->hasMany(Niveau::class, 'cycle_id');
     }
 }

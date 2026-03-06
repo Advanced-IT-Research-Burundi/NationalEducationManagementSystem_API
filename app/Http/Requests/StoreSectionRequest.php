@@ -18,6 +18,7 @@ class StoreSectionRequest extends FormRequest
             'nom' => ['required', 'string', 'max:100'],
             'code' => ['required', 'string', 'max:20', 'unique:sections,code'],
             'description' => ['nullable', 'string', 'max:500'],
+            'type_id' => ['nullable', 'exists:types_scolaires,id'],
             'actif' => ['nullable', 'boolean'],
         ];
     }

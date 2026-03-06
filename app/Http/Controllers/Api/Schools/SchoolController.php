@@ -16,48 +16,50 @@ class SchoolController extends Controller
     /**
      * Display a listing of schools.
      */
-    public function index(Request $request): JsonResponse
+   public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', School::class);
 
-        $query = School::with(['colline', 'zone', 'commune', 'province', 'creator']);
+        $query = School::query()
+            ->select([
+                'id',
+                'code_ecole',
+                'name',
+                'email',
+                'type_ecole',
+                'statut',
+                'province_id',
+                'commune_id',
+            ])
+            ->with([
+                'province:id,name',
+                'commune:id,name',
+            ]);
 
-        // Search filter
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
+        // Filters propres
+        $query->when($request->filled('search'), fn ($q) =>
+            $q->search($request->search)
+        );
 
-        // Status filter
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
-        }
+        $query->when($request->filled('statut'), fn ($q) =>
+            $q->where('statut', $request->statut)
+        );
 
-        // Type filter
-        if ($request->filled('type_ecole')) {
-            $query->byType($request->type_ecole);
-        }
+        $query->when($request->filled('type_ecole'), fn ($q) =>
+            $q->byType($request->type_ecole)
+        );
 
-        // Niveau filter
-        if ($request->filled('niveau')) {
-            $query->byNiveau($request->niveau);
-        }
+        $query->when($request->filled('province_id'), fn ($q) =>
+            $q->where('province_id', $request->province_id)
+        );
 
-        // Province filter
-        if ($request->filled('province_id')) {
-            $query->where('province_id', $request->province_id);
-        }
+        $query->when($request->filled('commune_id'), fn ($q) =>
+            $q->where('commune_id', $request->commune_id)
+        );
 
-        // Commune filter
-        if ($request->filled('commune_id')) {
-            $query->where('commune_id', $request->commune_id);
-        }
-
-        // Zone filter
-        if ($request->filled('zone_id')) {
-            $query->where('zone_id', $request->zone_id);
-        }
-
-        $schools = $query->latest()->paginate($request->get('per_page', 15));
+        $schools = $query
+            ->latest('id')
+            ->paginate($request->integer('per_page', 15));
 
         return response()->json($schools);
     }

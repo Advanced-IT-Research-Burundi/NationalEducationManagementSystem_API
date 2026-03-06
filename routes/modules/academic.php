@@ -8,12 +8,14 @@
 
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
 use App\Http\Controllers\Api\Academic\ClasseController;
+use App\Http\Controllers\Api\Academic\CycleScolaireController;
 use App\Http\Controllers\Api\Academic\EleveController;
 use App\Http\Controllers\Api\Academic\EnseignantController;
 use App\Http\Controllers\Api\Academic\MouvementEleveController;
 use App\Http\Controllers\Api\Academic\NiveauController;
 use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\SectionController;
+use App\Http\Controllers\Api\Academic\TypeScolaireController;
 use App\Http\Controllers\Api\Academic\AffectationMatiereController;
 use App\Http\Controllers\Api\Exams\ResultatController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +37,18 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     // Niveaux (Grade Levels)
     Route::get('niveaux/list', [NiveauController::class, 'list'])->name('niveaux.list');
     Route::apiResource('niveaux', NiveauController::class);
+
+    // Types scolaires
+    Route::get('types-scolaires/list', [TypeScolaireController::class, 'list'])->name('types-scolaires.list');
+    Route::apiResource('types-scolaires', TypeScolaireController::class)->parameters([
+        'types-scolaires' => 'typeScolaire',
+    ]);
+
+    // Cycles scolaires
+    Route::get('cycles-scolaires/list', [CycleScolaireController::class, 'list'])->name('cycles-scolaires.list');
+    Route::apiResource('cycles-scolaires', CycleScolaireController::class)->parameters([
+        'cycles-scolaires' => 'cycleScolaire',
+    ]);
 
     // Classes
     Route::get('classes/statistics', [ClasseController::class, 'statistics'])->name('classes.statistics');

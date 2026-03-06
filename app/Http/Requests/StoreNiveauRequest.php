@@ -3,8 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-
 class StoreNiveauRequest extends FormRequest
 {
     /**
@@ -26,7 +24,9 @@ class StoreNiveauRequest extends FormRequest
             'nom' => ['required', 'string', 'max:100'],
             'code' => ['required', 'string', 'max:20', 'unique:niveaux_scolaires,code'],
             'ordre' => ['nullable', 'integer', 'min:0'],
-            'cycle' => ['required', Rule::in(['PRIMAIRE', 'FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])],
+            'type_id' => ['nullable', 'exists:types_scolaires,id'],
+            'cycle_id' => ['nullable', 'exists:cycles_scolaires,id'],
+            'section_id' => ['nullable', 'exists:sections,id'],
             'description' => ['nullable', 'string', 'max:500'],
             'actif' => ['nullable', 'boolean'],
         ];
@@ -41,8 +41,6 @@ class StoreNiveauRequest extends FormRequest
             'nom.required' => 'Le nom du niveau est requis.',
             'code.required' => 'Le code du niveau est requis.',
             'code.unique' => 'Ce code de niveau existe déjà.',
-            'cycle.required' => 'Le cycle est requis.',
-            'cycle.in' => 'Le cycle sélectionné n\'est pas valide.',
         ];
     }
 }

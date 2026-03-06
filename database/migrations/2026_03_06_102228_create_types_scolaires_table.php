@@ -11,18 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sections', function (Blueprint $table) {
+       Schema::create('types_scolaires', function (Blueprint $table) {
             $table->id();
-            $table->string('nom'); // Section A, Section B, etc.
-            $table->string('code', 20)->unique(); // A, B, C, etc.
+            $table->string('nom'); // Prescolaire, Fondamental, Post Fondamental, etc.
             $table->text('description')->nullable();
-            $table->foreignId('type_id')->nullable()->constrained('types_scolaires');
             $table->boolean('actif')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });
-
-        
     }
 
     /**
@@ -30,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sections');
+        Schema::dropIfExists('types_scolaires');
     }
 };

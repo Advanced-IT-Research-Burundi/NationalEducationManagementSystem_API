@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -11,24 +12,15 @@ class Niveau extends Model
 {
     use HasFactory, SoftDeletes;
 
-    // Cycle constants
-    const CYCLE_PRIMAIRE = 'PRIMAIRE';
-
-    const CYCLE_FONDAMENTAL = 'FONDAMENTAL';
-
-    const CYCLE_POST_FONDAMENTAL = 'POST_FONDAMENTAL';
-
-    const CYCLE_SECONDAIRE = 'SECONDAIRE';
-
-    const CYCLE_SUPERIEUR = 'SUPERIEUR';
-
     protected $table = 'niveaux_scolaires';
 
     protected $fillable = [
         'nom',
         'code',
         'ordre',
-        'cycle',
+        'type_id',
+        'cycle_id',
+        'section_id',
         'description',
         'actif',
     ];
@@ -38,8 +30,6 @@ class Niveau extends Model
         'ordre' => 'integer',
     ];
 
-    protected $appends = ['cycle_label'];
-
     /**
      * Query Scopes
      */
@@ -48,9 +38,9 @@ class Niveau extends Model
         return $query->where('actif', true);
     }
 
-    public function scopeByCycle($query, string $cycle)
+    public function scopeByCycle($query, int $cycleId)
     {
-        return $query->where('cycle', $cycle);
+        return $query->where('cycle_id', $cycleId);
     }
 
     public function scopeOrdered($query)
@@ -59,25 +49,25 @@ class Niveau extends Model
     }
 
     /**
-     * Accessors
-     */
-    public function getCycleLabelAttribute(): string
-    {
-        return match ($this->cycle) {
-            self::CYCLE_PRIMAIRE => 'Primaire',
-            self::CYCLE_FONDAMENTAL => 'Fondamental',
-            self::CYCLE_POST_FONDAMENTAL => 'Post-Fondamental',
-            self::CYCLE_SECONDAIRE => 'Secondaire',
-            self::CYCLE_SUPERIEUR => 'Supérieur',
-            default => 'Inconnu',
-        };
-    }
-
-    /**
      * Relationships
      */
     public function classes(): HasMany
     {
         return $this->hasMany(Classe::class, 'niveau_id');
+    }
+
+    public function typeScolaire(): BelongsTo
+    {
+        return $this->belongsTo(TypeScolaire::class, 'type_id');
+    }
+
+    public function cycleScolaire(): BelongsTo
+    {
+        return $this->belongsTo(CycleScolaire::class, 'cycle_id');
+    }
+
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(Section::class, 'section_id');
     }
 }

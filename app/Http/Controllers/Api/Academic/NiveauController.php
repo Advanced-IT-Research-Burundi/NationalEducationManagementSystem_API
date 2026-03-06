@@ -16,7 +16,11 @@ class NiveauController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Niveau::query();
+        $query = Niveau::query()->with([
+            'typeScolaire:id,nom',
+            'cycleScolaire:id,nom,type_id',
+            'section:id,nom,code,type_id',
+        ]);
 
         // Search filter
         if ($request->filled('search')) {
@@ -26,9 +30,16 @@ class NiveauController extends Controller
             });
         }
 
-        // Cycle filter
-        if ($request->filled('cycle')) {
-            $query->byCycle($request->cycle);
+        if ($request->filled('type_id')) {
+            $query->where('type_id', $request->integer('type_id'));
+        }
+
+        if ($request->filled('cycle_id')) {
+            $query->where('cycle_id', $request->integer('cycle_id'));
+        }
+
+        if ($request->filled('section_id')) {
+            $query->where('section_id', $request->integer('section_id'));
         }
 
         // Active filter
@@ -36,7 +47,7 @@ class NiveauController extends Controller
             $query->where('actif', filter_var($request->actif, FILTER_VALIDATE_BOOLEAN));
         }
 
-        $niveaux = $query->ordered()->paginate($request->get('per_page', 15));
+        $niveaux = $query->ordered()->paginate($request->integer('per_page', 15));
 
         return sendResponse($niveaux, 'Niveaux récupérés avec succès');
     }
@@ -61,7 +72,12 @@ class NiveauController extends Controller
      */
     public function show(Niveau $niveau): JsonResponse
     {
-        return response()->json($niveau->load('classes'));
+        return response()->json($niveau->load([
+            'classes',
+            'typeScolaire:id,nom',
+            'cycleScolaire:id,nom,type_id',
+            'section:id,nom,code,type_id',
+        ]));
     }
 
     /**
@@ -99,7 +115,15 @@ class NiveauController extends Controller
      */
     public function list(): JsonResponse
     {
-        $niveaux = Niveau::actif()->ordered()->get(['id', 'nom', 'code', 'cycle']);
+        $niveaux = Niveau::actif()->ordered()->get([
+            'id',
+            'nom',
+            'code',
+            'ordre',
+            'type_id',
+            'cycle_id',
+            'section_id',
+        ]);
 
         return response()->json($niveaux);
     }

@@ -18,7 +18,7 @@ class SectionController extends Controller
     {
         $this->authorize('viewAny', Section::class);
 
-        $query = Section::query();
+        $query = Section::query()->with('typeScolaire:id,nom');
 
         if ($request->filled('search')) {
             $query->search($request->search);
@@ -28,17 +28,27 @@ class SectionController extends Controller
             $query->where('actif', $request->boolean('actif'));
         }
 
-        $sections = $query->latest()->paginate($request->get('per_page', 15));
+        if ($request->filled('type_id')) {
+            $query->where('type_id', $request->integer('type_id'));
+        }
 
-        return response()->json($sections);
+        $sections = $query->latest()->paginate($request->integer('per_page', 15));
+
+        return sendResponse($sections, 'Sections récupérées avec succès');
     }
 
     /**
      * Lightweight list for dropdowns.
      */
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
-        $sections = Section::active()->orderBy('nom')->get(['id', 'nom', 'code']);
+        $query = Section::query()->active()->orderBy('nom');
+
+        if ($request->filled('type_id')) {
+            $query->where('type_id', $request->integer('type_id'));
+        }
+
+        $sections = $query->get(['id', 'nom', 'code', 'type_id']);
 
         return response()->json($sections);
     }
@@ -63,7 +73,7 @@ class SectionController extends Controller
     {
         $this->authorize('view', $section);
 
-        return response()->json($section->load('classes'));
+        return response()->json($section->load(['classes', 'typeScolaire:id,nom']));
     }
 
     /**
