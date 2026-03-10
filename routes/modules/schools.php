@@ -28,6 +28,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/validate', [SchoolWorkflowController::class, 'validate'])->name('validate');
         Route::post('/deactivate', [SchoolWorkflowController::class, 'deactivate'])->name('deactivate');
         Route::post('/reactivate', [SchoolWorkflowController::class, 'reactivate'])->name('reactivate');
+        Route::post('/assign-director', [SchoolController::class, 'assignDirector'])->name('assign-director');
     });
 
     // School Types (reference data)

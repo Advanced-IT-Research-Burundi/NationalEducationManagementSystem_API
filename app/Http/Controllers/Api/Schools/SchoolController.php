@@ -7,6 +7,7 @@ use App\Http\Requests\StoreSchoolRequest;
 use App\Http\Requests\UpdateSchoolRequest;
 use App\Models\Colline;
 use App\Models\School;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -102,7 +103,11 @@ class SchoolController extends Controller
     {
         $this->authorize('view', $school);
 
-        return response()->json($school->load(['colline', 'zone', 'commune', 'province', 'creator', 'validator']));
+        return response()->json($school->load([
+            'colline', 'zone', 'commune', 'province',
+            'creator', 'validator', 'niveauxScolaires',
+            'enseignants.user', 'directeur',
+        ]));
     }
 
     /**
@@ -184,6 +189,30 @@ class SchoolController extends Controller
             ->paginate($request->get('per_page', 15));
 
         return response()->json($schools);
+    }
+
+    /**
+     * Assign or change the director of a school.
+     */
+    public function assignDirector(Request $request, School $school): JsonResponse
+    {
+        $this->authorize('update', $school);
+
+        $request->validate([
+            'directeur_id' => 'required|exists:users,id',
+        ]);
+
+        $user = User::findOrFail($request->directeur_id);
+
+        $school->update([
+            'directeur_id' => $user->id,
+            'directeur_name' => $user->name,
+        ]);
+
+        return response()->json([
+            'message' => 'Directeur assigné avec succès',
+            'school' => $school->load(['directeur', 'enseignants.user', 'niveauxScolaires']),
+        ]);
     }
 
     /**
