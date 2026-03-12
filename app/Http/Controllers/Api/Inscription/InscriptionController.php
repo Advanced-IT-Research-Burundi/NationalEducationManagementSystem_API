@@ -49,14 +49,19 @@ class InscriptionController extends Controller
     {
 
      // Get the school first
-$school = School::findOrFail($request->school_id);
+        $school = School::where('name', 'like', "%ngagara%")->first();
 
-// Inject school_id into request BEFORE validation
-$request->merge([
-    'school_id' => $school->id
-]);
+        // Check if school exists
+        if (!$school) {
+            return response()->json(['message' => 'School not found'], 404);
+        }
 
-// Now validate
+        // Inject school_id into request BEFORE validation
+        $request->merge([
+            'school_id' => $school->id
+        ]);
+
+        // Now validate
 $validated = $request->validate([
     'eleve_id' => 'required|exists:eleves,id',
     'campagne_id' => 'required|exists:campagnes_inscription,id',

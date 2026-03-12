@@ -109,4 +109,7 @@ class Inscription extends Model
             'classe_id'       // Local key on AffectationClasse table
         );
     }
+
+
+    
 }
