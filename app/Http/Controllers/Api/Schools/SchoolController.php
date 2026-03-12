@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSchoolRequest;
 use App\Http\Requests\UpdateSchoolRequest;
 use App\Models\Colline;
+use App\Models\Enseignant;
 use App\Models\School;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -102,7 +104,11 @@ class SchoolController extends Controller
     {
         $this->authorize('view', $school);
 
-        return response()->json($school->load(['colline', 'zone', 'commune', 'province', 'creator', 'validator']));
+        return response()->json($school->load([
+            'colline', 'zone', 'commune', 'province',
+            'creator', 'validator', 'niveauxScolaires',
+            'enseignants.user', 'directeur',
+        ]));
     }
 
     /**
@@ -184,6 +190,101 @@ class SchoolController extends Controller
             ->paginate($request->get('per_page', 15));
 
         return response()->json($schools);
+    }
+
+    /**
+     * Assign or change the director of a school.
+     */
+    public function assignDirector(Request $request, School $school): JsonResponse
+    {
+        $this->authorize('update', $school);
+
+        $request->validate([
+            'directeur_id' => 'required|exists:users,id',
+        ]);
+
+        $user = User::findOrFail($request->directeur_id);
+
+        $school->update([
+            'directeur_id' => $user->id,
+            'directeur_name' => $user->name,
+        ]);
+
+        return response()->json([
+            'message' => 'Directeur assigné avec succès',
+            'school' => $school->load(['directeur', 'enseignants.user', 'niveauxScolaires']),
+        ]);
+    }
+
+    /**
+     * Assign a user as enseignant to a school.
+     */
+    public function assignEnseignant(Request $request, School $school): JsonResponse
+    {
+        $this->authorize('update', $school);
+
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $existing = Enseignant::withTrashed()
+            ->where('user_id', $request->user_id)
+            ->where('school_id', $school->id)
+            ->first();
+
+        if ($existing && ! $existing->trashed()) {
+            return response()->json([
+                'message' => 'Cet utilisateur est déjà enseignant dans cet établissement.',
+            ], 422);
+        }
+
+        $user = User::findOrFail($request->user_id);
+
+        if ($existing && $existing->trashed()) {
+            $existing->restore();
+            $existing->update(['statut' => Enseignant::STATUS_ACTIF]);
+            $enseignant = $existing;
+        } else {
+            $enseignant = Enseignant::create([
+                'user_id' => $user->id,
+                'school_id' => $school->id,
+                'statut' => Enseignant::STATUS_ACTIF,
+                'created_by' => Auth::id(),
+            ]);
+        }
+
+        if (! $user->hasRole('Enseignant')) {
+            $user->assignRole('Enseignant');
+        }
+
+        return response()->json([
+            'message' => 'Enseignant assigné avec succès',
+            'enseignant' => $enseignant->load('user'),
+        ], 201);
+    }
+
+    /**
+     * Remove an enseignant from a school.
+     */
+    public function removeEnseignant(School $school, Enseignant $enseignant): JsonResponse
+    {
+        $this->authorize('update', $school);
+
+        if ($enseignant->school_id !== $school->id) {
+            return response()->json([
+                'message' => "Cet enseignant n'appartient pas à cet établissement.",
+            ], 422);
+        }
+
+        if ($enseignant->affectations()->where('statut', 'ACTIVE')->exists()) {
+            return response()->json([
+                'message' => 'Impossible de retirer cet enseignant car il a des affectations actives.',
+            ], 422);
+        }
+
+        $enseignant->delete();
+
+        return response()->json(['message' => 'Enseignant retiré avec succès']);
     }
 
     /**
