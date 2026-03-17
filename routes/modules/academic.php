@@ -32,11 +32,15 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('annees-scolaires/list', [AnneeScolaireController::class, 'list'])->name('annees-scolaires.list');
     Route::get('annees-scolaires/current', [AnneeScolaireController::class, 'current'])->name('annees-scolaires.current');
     Route::post('annees-scolaires/{annee_scolaire}/toggle-active', [AnneeScolaireController::class, 'toggleActive'])->name('annees-scolaires.toggle-active');
-    Route::apiResource('annees-scolaires', AnneeScolaireController::class);
+    Route::apiResource('annees-scolaires', AnneeScolaireController::class)->parameters([
+        'annees-scolaires' => 'anneeScolaire',
+    ]);
 
     // Niveaux (Grade Levels)
     Route::get('niveaux/list', [NiveauController::class, 'list'])->name('niveaux.list');
-    Route::apiResource('niveaux', NiveauController::class);
+    Route::apiResource('niveaux', NiveauController::class)->parameters([
+        'niveaux' => 'niveau',
+    ]);
 
     // Types scolaires
     Route::get('types-scolaires/list', [TypeScolaireController::class, 'list'])->name('types-scolaires.list');
@@ -55,7 +59,9 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('classes/by-school/{school}', [ClasseController::class, 'bySchool'])->name('classes.by-school');
     Route::get('classes/{classe}/enseignants', [ClasseController::class, 'enseignants'])->name('classes.enseignants');
     Route::get('classes/{classe}/eleves', [ClasseController::class, 'eleves'])->name('classes.eleves');
-    Route::apiResource('classes', ClasseController::class);
+    Route::apiResource('classes', ClasseController::class)->parameters([
+        'classes' => 'classe',
+    ]);
 
     // Enseignants (Teachers)
     Route::get('enseignants/statistics', [EnseignantController::class, 'statistics'])->name('enseignants.statistics');

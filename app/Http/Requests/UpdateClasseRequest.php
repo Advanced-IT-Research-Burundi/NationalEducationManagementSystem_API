@@ -28,6 +28,8 @@ class UpdateClasseRequest extends FormRequest
             'nom' => ['sometimes', 'string', 'max:100'],
             'code' => ['nullable', 'string', 'max:50'],
             'niveau_id' => ['sometimes', 'exists:niveaux_scolaires,id'],
+            'school_id' => ['sometimes', 'exists:schools,id'],
+            'section_id' => ['nullable', 'exists:sections,id'],
             'annee_scolaire_id' => ['sometimes', 'exists:annee_scolaires,id'],
             'local' => ['nullable', 'string', 'max:50'],
             'capacite' => ['nullable', 'integer', 'min:1', 'max:200'],
