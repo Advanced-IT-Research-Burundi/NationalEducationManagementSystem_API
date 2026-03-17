@@ -52,6 +52,7 @@ class School extends Model
         'latitude',
         'longitude',
         'directeur_name',
+        'directeur_id',
         'capacite_accueil',
         'adresse_physique',
         'telephone',
@@ -209,6 +210,11 @@ class School extends Model
     public function pays()
     {
         return $this->belongsTo(Pays::class);
+    }
+
+    public function directeur()
+    {
+        return $this->belongsTo(User::class, 'directeur_id');
     }
 
     public function creator()

@@ -52,7 +52,7 @@ class SchoolController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $school = School::findOrFail($id);
+        $school = School::find($id);
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
@@ -75,7 +75,7 @@ class SchoolController extends Controller
      */
     public function destroy(string $id)
     {
-        $school = School::findOrFail($id);
+        $school = School::find($id);
         $school->delete();
 
         return response()->json(null, 204);
