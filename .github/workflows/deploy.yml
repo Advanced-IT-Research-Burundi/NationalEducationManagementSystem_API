@@ -14,7 +14,6 @@ jobs:
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
-        #server: ftp.cloud209.cloudwebhosting.com ftp.clskycompany.com
         server: ${{ secrets.SERVER }}
         username: ${{ secrets.USERNAME }}
         password: ${{ secrets.PASSWORD }}
