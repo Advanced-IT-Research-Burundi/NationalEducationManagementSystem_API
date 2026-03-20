@@ -65,6 +65,11 @@ class EleveController extends Controller
             });
         }
 
+        // Niveau scolaire filter
+        if ($request->filled('niveau_id')) {
+            $query->where('niveau_id', $request->niveau_id);
+        }
+
         $eleves = $query->latest()->paginate($request->get('per_page', 15));
 
         return response()->json($eleves);

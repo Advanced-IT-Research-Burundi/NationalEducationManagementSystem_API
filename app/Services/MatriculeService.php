@@ -42,7 +42,8 @@ class MatriculeService
         $province = Province::find($school->province_id);
         $prefix = $province ? strtoupper(substr($province->name, 0, 3)) : 'NAT';
         
-        $last = School::where('province_id', $school->province_id)
+        $last = School::withTrashed()
+            ->where('province_id', $school->province_id)
             ->orderBy('code_ecole', 'desc')
             ->first();
 
@@ -54,46 +55,51 @@ class MatriculeService
     private function generateEleveMatricule(Model $eleve): string
     {
         $anneeFull = AnneeScolaire::current()?->code ?? date('Y');
-        $annee = substr($anneeFull, -4); // Prend les 4 derniers caractères (ex: 2026)
+        $annee = substr($anneeFull, -4);
         $schoolId = $eleve->school_id;
         $school = School::find($schoolId);
-        // On prend les 5 derniers caractères du code école et on nettoie
         $schoolCode = $school ? substr(preg_replace('/[^A-Z0-9]/', '', strtoupper($school->code_ecole)), -5) : '00000';
 
-        $last = \App\Models\Eleve::where('school_id', $schoolId)
+        $prefix = "ELV-{$annee}-{$schoolCode}-";
+
+        $last = \App\Models\Eleve::withTrashed()
+            ->where('school_id', $schoolId)
+            ->where('matricule', 'like', "{$prefix}%")
             ->orderBy('matricule', 'desc')
             ->first();
 
         $sequence = $this->extractSequence($last?->matricule, 5);
 
-        return "ELV-{$annee}-{$schoolCode}-" . Str::padLeft($sequence + 1, 5, '0');
+        return $prefix . Str::padLeft($sequence + 1, 5, '0');
     }
 
- private function generateEnseignantMatricule(): string
-{
-    $annee = date('Y');
+    private function generateEnseignantMatricule(): string
+    {
+        $annee = date('Y');
 
-    $last = Enseignant::where('matricule', 'like', "ENS-{$annee}-%")
-        ->orderBy('matricule', 'desc')
-        ->first();
+        $last = Enseignant::withTrashed()
+            ->where('matricule', 'like', "ENS-{$annee}-%")
+            ->orderBy('matricule', 'desc')
+            ->first();
 
-    $lastNumber = 0;
+        $lastNumber = 0;
 
-    if ($last) {
-        $parts = explode('-', $last->matricule);
-        $lastNumber = (int) end($parts);
+        if ($last) {
+            $parts = explode('-', $last->matricule);
+            $lastNumber = (int) end($parts);
+        }
+
+        $nextNumber = $lastNumber + 1;
+
+        return "ENS-{$annee}-" . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
     }
-
-    $nextNumber = $lastNumber + 1;
-
-    return "ENS-{$annee}-" . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
-}
     private function generateClasseMatricule(Model $classe): string
     {
         $annee = AnneeScolaire::current()?->code ?? date('Y');
         $niveau = $classe->niveau?->code ?? 'NIV';
         
-        $last = \App\Models\Classe::where('school_id', $classe->school_id)
+        $last = \App\Models\Classe::withTrashed()
+            ->where('school_id', $classe->school_id)
             ->where('annee_scolaire_id', $classe->annee_scolaire_id)
             ->orderBy('code', 'desc')
             ->first();
@@ -107,7 +113,8 @@ class MatriculeService
     {
         $annee = AnneeScolaire::current()?->code ?? date('Y');
         
-        $last = \App\Models\Examen::where('annee_scolaire_id', $examen->annee_scolaire_id)
+        $last = \App\Models\Examen::withTrashed()
+            ->where('annee_scolaire_id', $examen->annee_scolaire_id)
             ->orderBy('code', 'desc')
             ->first();
 
@@ -120,7 +127,8 @@ class MatriculeService
     {
         $type = strtoupper(substr($salle->type ?? 'SAL', 0, 3));
         
-        $last = \App\Models\Salle::where('batiment_id', $salle->batiment_id)
+        $last = \App\Models\Salle::withTrashed()
+            ->where('batiment_id', $salle->batiment_id)
             ->orderBy('numero', 'desc')
             ->first();
 
@@ -133,7 +141,8 @@ class MatriculeService
     {
         $type = strtoupper(substr($batiment->type ?? 'BAT', 0, 3));
         
-        $last = \App\Models\Batiment::where('school_id', $batiment->school_id)
+        $last = \App\Models\Batiment::withTrashed()
+            ->where('school_id', $batiment->school_id)
             ->orderBy('nom', 'desc')
             ->first();
 
@@ -144,14 +153,15 @@ class MatriculeService
 
 
     private function generateSectionMatricule(Model $section): string
-{
-    $last = Section::orderBy('code', 'desc')
-        ->first();
+    {
+        $last = Section::withTrashed()
+            ->orderBy('code', 'desc')
+            ->first();
 
-    $sequence = $this->extractSequence($last?->code, 3);
+        $sequence = $this->extractSequence($last?->code, 3);
 
-    return "SEC-" . Str::padLeft($sequence + 1, 3, '0');
-}
+        return "SEC-" . Str::padLeft($sequence + 1, 3, '0');
+    }
 
     /**
      * Extrait la séquence numérique à la fin d'un matricule.
