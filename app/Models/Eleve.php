@@ -37,7 +37,11 @@ class Eleve extends Model
         'date_naissance',
         'lieu_naissance',
         'nationalite',
+        'province_origine_id',
+        'commune_origine_id',
+        'zone_origine_id',
         'colline_origine_id',
+        'niveau_id',
         'adresse',
         'nom_pere',
         'nom_mere',
@@ -47,7 +51,6 @@ class Eleve extends Model
         'est_orphelin',
         'a_handicap',
         'type_handicap',
-        'ecole_origine_id',
         'statut_global',
         'created_by',
         'school_id',
@@ -115,14 +118,29 @@ class Eleve extends Model
     /**
      * Relationships
      */
+    public function provinceOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Province::class, 'province_origine_id');
+    }
+
+    public function communeOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Commune::class, 'commune_origine_id');
+    }
+
+    public function zoneOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class, 'zone_origine_id');
+    }
+
     public function collineOrigine(): BelongsTo
     {
         return $this->belongsTo(Colline::class, 'colline_origine_id');
     }
 
-    public function ecoleOrigine(): BelongsTo
+    public function niveau(): BelongsTo
     {
-        return $this->belongsTo(School::class, 'ecole_origine_id');
+        return $this->belongsTo(Niveau::class);
     }
 
     public function school(): BelongsTo
