@@ -80,4 +80,11 @@ class SchoolController extends Controller
 
         return response()->json(null, 204);
     }
+
+    public function genereteBulletin(string $zone_id)
+    {
+        
+        $schools = School::with(['pays', 'ministere', 'province', 'commune', 'zone', 'colline'])->where('zone_id', $zone_id)->paginate(10);
+        return sendResponse($schools, 'Schools retrieved successfully');
+    }       
 }
