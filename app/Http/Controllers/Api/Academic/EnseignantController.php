@@ -272,6 +272,31 @@ class EnseignantController extends Controller
     }
 
     /**
+     * Sync ecoles (Teacher schools N:N relation).
+     */
+    public function syncEcoles(Request $request, Enseignant $enseignant): JsonResponse
+    {
+        $this->authorize('update', $enseignant);
+
+        $data = $request->validate([
+            'ecoles' => ['required', 'array', 'min:1'],
+            'ecoles.*' => ['integer', 'exists:schools,id'],
+        ], [
+            'ecoles.required' => 'Au moins une école doit être sélectionnée.',
+            'ecoles.min' => 'Au moins une école doit être sélectionnée.',
+            'ecoles.*.integer' => 'ID d\'école invalide.',
+            'ecoles.*.exists' => 'Une école sélectionnée n\'existe pas.',
+        ]);
+
+        $enseignant->ecoles()->sync($data['ecoles']);
+
+        return response()->json([
+            'message' => 'Écoles affectées mises à jour avec succès',
+            'enseignant' => $enseignant->load(['user', 'school', 'ecoles']),
+        ]);
+    }
+
+    /**
      * Get enseignant statistics.
      */
     public function statistics(Request $request): JsonResponse

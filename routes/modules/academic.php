@@ -69,6 +69,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('enseignants/{enseignant}/classes', [EnseignantController::class, 'classes'])->name('enseignants.classes');
     Route::post('enseignants/assign-to-classe', [EnseignantController::class, 'assignToClasse'])->name('enseignants.assign');
     Route::delete('affectations/{affectation}', [EnseignantController::class, 'removeFromClasse'])->name('affectations.remove');
+    Route::patch('enseignants/{enseignant}/ecoles/sync', [EnseignantController::class, 'syncEcoles'])->name('enseignants.ecoles.sync');
     Route::apiResource('enseignants', EnseignantController::class);
 
     // Élèves (Students)
