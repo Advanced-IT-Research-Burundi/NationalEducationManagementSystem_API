@@ -80,6 +80,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::post('eleves/enroll', [EleveController::class, 'enroll'])->name('eleves.enroll');
     Route::delete('inscriptions/{inscription}', [EleveController::class, 'unenroll'])->name('inscriptions.unenroll');
     Route::post('inscriptions/{inscription}/transfer', [EleveController::class, 'transfer'])->name('inscriptions.transfer');
+    Route::post('eleves/{eleve}/transfert', [EleveController::class, 'transfertEtablissement'])->name('eleves.transfert');
     Route::apiResource('eleves', EleveController::class);
 
     // Mouvements Élèves (Student Movements: transfers, dropouts, etc.)

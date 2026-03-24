@@ -365,6 +365,53 @@ public function show($id): JsonResponse
     }
 
     /**
+     * Transfer an eleve to another school.
+     */
+    public function transfertEtablissement(Request $request, Eleve $eleve): JsonResponse
+    {
+        $this->authorize('update', $eleve);
+
+        $validated = $request->validate([
+            'ecole_destination_id' => 'required|exists:schools,id',
+            'motif' => 'nullable|string',
+            'niveau_cible' => 'required|in:superieur,meme,inferieur',
+            'validation_avancement' => 'boolean'
+        ]);
+
+        if ($eleve->school_id == $validated['ecole_destination_id']) {
+            return response()->json([
+                'message' => 'L\'école de destination doit être différente de l\'école actuelle.',
+            ], 422);
+        }
+
+        $anneeScolaire = \App\Models\AnneeScolaire::where('est_active', true)->first();
+        $anneeId = $anneeScolaire ? $anneeScolaire->id : 1;
+
+        \App\Models\MouvementEleve::createTransfertSortant([
+            'eleve_id' => $eleve->id,
+            'annee_scolaire_id' => $anneeId,
+            'ecole_origine_id' => $eleve->school_id,
+            'ecole_destination_id' => $validated['ecole_destination_id'],
+            'motif' => $validated['motif'] ?? 'Transfert vers un autre établissement',
+            'observations' => json_encode([
+                'niveau_cible' => $validated['niveau_cible'],
+                'validation_avancement' => $validated['validation_avancement'] ?? false
+            ]),
+        ]);
+
+        $eleve->update([
+            'school_id' => $validated['ecole_destination_id'],
+            'statut_global' => \App\Models\Eleve::STATUT_ACTIF
+        ]);
+        
+        $eleve->classes()->detach();
+
+        return response()->json([
+            'message' => 'L\'élève a été transféré avec succès vers le nouvel établissement.'
+        ], 201);
+    }
+
+    /**
      * Get eleve statistics.
      */
     public function statistics(Request $request): JsonResponse
