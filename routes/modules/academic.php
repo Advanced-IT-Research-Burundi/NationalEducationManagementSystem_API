@@ -59,6 +59,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('classes/by-school/{school}', [ClasseController::class, 'bySchool'])->name('classes.by-school');
     Route::get('classes/{classe}/enseignants', [ClasseController::class, 'enseignants'])->name('classes.enseignants');
     Route::get('classes/{classe}/eleves', [ClasseController::class, 'eleves'])->name('classes.eleves');
+    Route::post('classes/{classe}/eleves', [ClasseController::class, 'addEleve'])->name('classes.eleves.add');
     Route::apiResource('classes', ClasseController::class)->parameters([
         'classes' => 'classe',
     ]);

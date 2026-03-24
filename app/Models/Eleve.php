@@ -153,9 +153,11 @@ class Eleve extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function classes(): BelongsTo
+    public function classes(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsTo(Classe::class, 'classe_id');
+        return $this->belongsToMany(Classe::class, 'eleve_class', 'eleve_id', 'classe_id')
+            ->withPivot(['annee_scolaire', 'date_inscription', 'statut', 'numero_ordre'])
+            ->withTimestamps();
     }
 
     public function inscriptions(): HasMany
@@ -185,6 +187,32 @@ class Eleve extends Model
         return $this->belongsTo(MouvementEleve::class)
             ->ofMany('date_mouvement', 'max');
     }
+
+    /**
+     * Check if the student can be enrolled (not transferred, deceased, droppped out, etc.)
+     */
+    public function canEnroll(): bool
+    {
+        $status = $this->statut_global ?? $this->statut ?? 'actif';
+        return !in_array(strtolower($status), [
+            self::STATUT_TRANSFERE, 
+            self::STATUT_DECEDE, 
+            self::STATUT_ABANDONNE,
+            'diplome'
+        ]);
+    }
+
+    /**
+     * Check if the student is already enrolled in a specific class
+     */
+    public function isEnrolledInClass($classeId): bool
+    {
+        return $this->classes()
+            ->where('classes.id', $classeId)
+            ->wherePivot('statut', 'ACTIVE')
+            ->exists();
+    }
+
     protected static function getScopeColumn(): ?string
     {
         return null;
