@@ -54,12 +54,14 @@ class Eleve extends Model
         'statut_global',
         'created_by',
         'school_id',
+        'est_redoublant',
     ];
 
     protected $casts = [
         'date_naissance' => 'date',
         'est_orphelin' => 'boolean',
         'a_handicap' => 'boolean',
+        'est_redoublant' => 'boolean',
         'type_handicap' => 'string',
         'photo_path' => 'string',
         'contact_tuteur' => 'string',

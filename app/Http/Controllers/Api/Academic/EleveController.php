@@ -412,6 +412,80 @@ public function show($id): JsonResponse
     }
 
     /**
+     * Update student level (Promotion or Repeating).
+     */
+    public function updateNiveau(Request $request, Eleve $eleve): JsonResponse
+    {
+        $this->authorize('update', $eleve);
+
+        $validated = $request->validate([
+            'niveau_id' => 'nullable|exists:niveaux_scolaires,id',
+            'redoublant' => 'nullable|boolean',
+            'motif' => 'nullable|string',
+            'annee_scolaire' => 'required|string', // e.g. "2024-2025"
+        ]);
+
+        $anneeScolaireModel = \App\Models\AnneeScolaire::where('libelle', $validated['annee_scolaire'])
+            ->orWhere('code', $validated['annee_scolaire'])
+            ->first();
+        $anneeId = $anneeScolaireModel ? $anneeScolaireModel->id : 1;
+
+        // Current class for history
+        $currentClass = $eleve->classes()->wherePivot('statut', 'ACTIVE')->first();
+
+        DB::beginTransaction();
+        try {
+            $isPromotion = isset($validated['niveau_id']) && $validated['niveau_id'] != $eleve->niveau_id;
+            $isRepeating = isset($validated['redoublant']) && $validated['redoublant'];
+
+            if ($isPromotion) {
+                \App\Models\MouvementEleve::createPassage([
+                    'eleve_id' => $eleve->id,
+                    'annee_scolaire_id' => $anneeId,
+                    'ecole_origine_id' => $eleve->school_id,
+                    'classe_origine_id' => $currentClass?->id,
+                    'motif' => $validated['motif'] ?? 'Passage au niveau supérieur',
+                ]);
+
+                $eleve->update([
+                    'niveau_id' => $validated['niveau_id'],
+                    'est_redoublant' => false
+                ]);
+            } elseif ($isRepeating) {
+                \App\Models\MouvementEleve::createRedoublement([
+                    'eleve_id' => $eleve->id,
+                    'annee_scolaire_id' => $anneeId,
+                    'ecole_origine_id' => $eleve->school_id,
+                    'classe_origine_id' => $currentClass?->id,
+                    'motif' => $validated['motif'] ?? 'Redoublement du niveau',
+                ]);
+
+                $eleve->update([
+                    'est_redoublant' => true
+                ]);
+            }
+
+            // In both cases, the student should be removed from their current class 
+            // as they are starting a new academic journey (new class assignment needed)
+            $eleve->classes()->detach();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $isPromotion ? 'L\'élève a été promu au niveau supérieur.' : 'L\'élève a été marqué comme redoublant.',
+                'eleve' => $eleve->load('niveau')
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors du traitement : ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get eleve statistics.
      */
     public function statistics(Request $request): JsonResponse
