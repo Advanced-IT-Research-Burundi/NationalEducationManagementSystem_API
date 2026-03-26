@@ -25,39 +25,28 @@ class EleveController extends Controller
     {
         $this->authorize('viewAny', Eleve::class);
 
-        $query = Eleve::with(['ecole', 'creator']);
+        $query = Eleve::with(['ecole', 'creator', 'niveau']);
 
-
-        //Search Name and surname
-
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('nom', 'like', '%' . $request->search . '%')
-                    ->orWhere('prenom', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        // Search filter
         if ($request->filled('search')) {
             $query->search($request->search);
         }
 
-        // School filter
         if ($request->filled('school_id')) {
             $query->bySchool($request->school_id);
         }
 
-        // Sexe filter
+        if ($request->filled('niveau_id')) {
+            $query->where('niveau_id', $request->niveau_id);
+        }
+
         if ($request->filled('sexe')) {
             $query->bySexe($request->sexe);
         }
 
-        // Status filter
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
+        if ($request->filled('statut_global')) {
+            $query->where('statut_global', $request->statut_global);
         }
 
-        // Classe filter (via inscriptions)
         if ($request->filled('classe_id')) {
             $query->whereHas('inscriptions', function ($q) use ($request) {
                 $q->whereHas('classe', function ($q2) use ($request) {
@@ -342,6 +331,63 @@ public function show($id): JsonResponse
             'message' => 'Élève transféré avec succès',
             'inscription' => $newInscription->load(['eleve', 'classe']),
         ]);
+    }
+
+    /**
+     * Update the niveau (grade level) of an eleve: promotion or redoublement.
+     */
+    public function updateNiveau(Request $request, Eleve $eleve): JsonResponse
+    {
+        $request->validate([
+            'niveau_id' => ['required_without:redoublant', 'nullable', 'exists:niveaux_scolaires,id'],
+            'annee_scolaire' => ['required', 'string'],
+            'redoublant' => ['sometimes', 'boolean'],
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $isRedoublant = $request->boolean('redoublant', false);
+
+            $currentInscription = $eleve->inscriptions()
+                ->latest()
+                ->first();
+
+            if ($currentInscription) {
+                // Deactivate the current class affectation
+                AffectationClasse::where('inscription_id', $currentInscription->id)
+                    ->where('est_active', true)
+                    ->update([
+                        'est_active' => false,
+                        'date_fin' => now(),
+                        'motif_changement' => $isRedoublant ? 'Redoublement' : 'Promotion de niveau',
+                    ]);
+
+                if ($isRedoublant) {
+                    $currentInscription->update([
+                        'est_redoublant' => true,
+                    ]);
+                } else {
+                    $currentInscription->update([
+                        'niveau_demande_id' => $request->niveau_id,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            $message = $isRedoublant
+                ? 'Élève marqué comme redoublant avec succès'
+                : 'Élève promu au niveau supérieur avec succès';
+
+            return response()->json([
+                'message' => $message,
+                'eleve' => $eleve->load(['inscriptions.classe.niveau']),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     /**

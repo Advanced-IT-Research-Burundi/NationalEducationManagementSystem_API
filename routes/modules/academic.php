@@ -76,6 +76,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('eleves/by-school/{school}', [EleveController::class, 'bySchool'])->name('eleves.by-school');
     Route::get('eleves/by-classe/{classe}', [EleveController::class, 'byClasse'])->name('eleves.by-classe');
     Route::post('eleves/enroll', [EleveController::class, 'enroll'])->name('eleves.enroll');
+    Route::patch('eleves/{eleve}/niveau', [EleveController::class, 'updateNiveau'])->name('eleves.update-niveau');
     Route::delete('inscriptions/{inscription}', [EleveController::class, 'unenroll'])->name('inscriptions.unenroll');
     Route::post('inscriptions/{inscription}/transfer', [EleveController::class, 'transfer'])->name('inscriptions.transfer');
     Route::apiResource('eleves', EleveController::class);
