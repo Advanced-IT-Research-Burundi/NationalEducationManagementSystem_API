@@ -64,10 +64,12 @@ class EleveResource extends JsonResource
                 'name' => $this->ecole->name,
             ]),
 
-            'classes' => $this->whenLoaded('classes', fn () => [
-                'id' => $this->classes->id,
-                'name' => $this->classes->name,
-            ]),
+            'classes' => $this->whenLoaded('classes', function () {
+                return $this->classes->map(fn ($classe) => [
+                    'id' => $classe->id,
+                    'nom' => $classe->nom,
+                ]);
+            }),
             'inscriptions' => $this->whenLoaded('inscriptions'),
 
             'created_by' => $this->whenLoaded('creator', fn () => [
