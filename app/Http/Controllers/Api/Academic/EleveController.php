@@ -151,6 +151,7 @@ public function show($id): JsonResponse
 
     $eleve->load([
         'ecole',
+        'ecoleOrigine',
         'provinceOrigine',
         'communeOrigine',
         'zoneOrigine',
@@ -300,6 +301,15 @@ public function show($id): JsonResponse
             'affecte_par' => Auth::id(),
         ]);
 
+        // Also update eleve_class pivot for effectif count consistency
+        $classe->eleves()->syncWithoutDetaching([
+            $eleve->id => [
+                'annee_scolaire' => $data['annee_scolaire'],
+                'date_inscription' => now(),
+                'statut' => 'ACTIVE'
+            ]
+        ]);
+
         // Update eleve status if needed
         if ($eleve->statut === 'INSCRIT') {
             $eleve->update(['statut' => 'ACTIF']);
@@ -392,5 +402,137 @@ public function show($id): JsonResponse
         ];
 
         return response()->json($stats);
+    }
+
+    /**
+     * Update the niveau (grade level) of an eleve: promotion or redoublement.
+     */
+    public function updateNiveau(Request $request, Eleve $eleve): JsonResponse
+    {
+        $this->authorize('update', $eleve);
+
+        $request->validate([
+            'niveau_id' => ['required_without:redoublant', 'nullable', 'exists:niveaux_scolaires,id'],
+            'annee_scolaire' => ['required', 'string'],
+            'redoublant' => ['sometimes', 'boolean'],
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $isRedoublant = $request->boolean('redoublant', false);
+
+            // Update main eleve record for listing and filtering consistency
+            if (isset($request->niveau_id) && ! $isRedoublant) {
+                $eleve->niveau_id = $request->niveau_id;
+            }
+            if ($isRedoublant) {
+                $eleve->est_redoublant = true;
+            }
+            $eleve->save();
+
+            $currentInscription = $eleve->inscriptions()
+                ->latest()
+                ->first();
+
+            if ($currentInscription) {
+                // 1. Deactivate the current class affectation in the dedicated table
+                AffectationClasse::where('inscription_id', $currentInscription->id)
+                    ->where('est_active', true)
+                    ->update([
+                        'est_active' => false,
+                        'date_fin' => now(),
+                        'motif_changement' => $isRedoublant ? 'Redoublement' : 'Promotion de niveau',
+                    ]);
+
+                // 2. Deactivate in the pivot table (eleve_class) to ensure effectif count is updated
+                DB::table('eleve_class')
+                    ->where('eleve_id', $eleve->id)
+                    ->where('statut', 'ACTIVE')
+                    ->update([
+                        'statut' => 'INACTIVE',
+                        'updated_at' => now()
+                    ]);
+
+                if ($isRedoublant) {
+                    $currentInscription->update([
+                        'est_redoublant' => true,
+                    ]);
+                } else {
+                    $currentInscription->update([
+                        'niveau_demande_id' => $request->niveau_id,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            $message = $isRedoublant
+                ? 'Élève marqué comme redoublant avec succès'
+                : 'Élève promu au niveau supérieur avec succès';
+
+            return response()->json([
+                'message' => $message,
+                'eleve' => $eleve->load(['niveau', 'ecole', 'inscriptions.classe.niveau']),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Transfer the student to another school.
+     */
+    public function transfertEtablissement(Request $request, Eleve $eleve): JsonResponse
+    {
+        $this->authorize('update', $eleve);
+
+        $validated = $request->validate([
+            'ecole_destination_id' => ['required', 'exists:schools,id'],
+            'motif' => ['nullable', 'string'],
+            'niveau_cible' => ['nullable', 'string'],
+            'validation_avancement' => ['nullable', 'boolean'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $eleve->school_id = $validated['ecole_destination_id'];
+            $eleve->statut_global = 'TRANSFERE';
+            $eleve->save();
+
+            // Deactivate all current class assignments in this school
+            $activeInscription = $eleve->activeInscription;
+            if ($activeInscription) {
+                // 1. Deactivate in AffectationClasse
+                AffectationClasse::where('inscription_id', $activeInscription->id)
+                    ->where('est_active', true)
+                    ->update([
+                        'est_active' => false,
+                        'date_fin' => now(),
+                        'motif_changement' => 'Transfert établissement'
+                    ]);
+
+                // 2. Deactivate in eleve_class pivot
+                DB::table('eleve_class')
+                    ->where('eleve_id', $eleve->id)
+                    ->where('statut', 'ACTIVE')
+                    ->update([
+                        'statut' => 'INACTIVE',
+                        'updated_at' => now()
+                    ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Élève transféré avec succès',
+                'eleve' => $eleve->load(['ecole']),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json(['message' => 'Erreur lors du transfert: '.$e->getMessage()], 500);
+        }
     }
 }

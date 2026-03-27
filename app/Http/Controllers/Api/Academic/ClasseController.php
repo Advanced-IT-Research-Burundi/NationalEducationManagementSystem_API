@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClasseRequest;
 use App\Http\Requests\UpdateClasseRequest;
 use App\Models\Classe;
+use App\Models\Eleve;
+use App\Models\AffectationClasse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ClasseController extends Controller
 {
@@ -207,6 +210,19 @@ class ClasseController extends Controller
                 'statut' => 'ACTIVE'
             ]
         ]);
+
+        // Also create an AffectationClasse record for consistency
+        $inscription = $eleve->activeInscription;
+        if ($inscription) {
+            AffectationClasse::firstOrCreate([
+                'inscription_id' => $inscription->id,
+                'classe_id' => $classe->id,
+                'est_active' => true,
+            ], [
+                'date_affectation' => now(),
+                'affecte_par' => Auth::id(),
+            ]);
+        }
 
         if ($eleve->statut === 'INSCRIT' || $eleve->statut === 'ARCHIVE') {
             $eleve->update(['statut' => 'ACTIF']);

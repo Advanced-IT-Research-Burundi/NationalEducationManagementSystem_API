@@ -126,6 +126,21 @@ class Eleve extends Model
         return $this->belongsTo(Colline::class, 'colline_origine_id');
     }
 
+    public function zoneOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class, 'zone_origine_id');
+    }
+
+    public function communeOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Commune::class, 'commune_origine_id');
+    }
+
+    public function provinceOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Province::class, 'province_origine_id');
+    }
+
     public function niveau(): BelongsTo
     {
         return $this->belongsTo(Niveau::class);
@@ -216,4 +231,8 @@ class Eleve extends Model
         return $this->belongsTo(School::class, 'school_id');
     }
 
+    public function ecoleOrigine(): BelongsTo
+    {
+        return $this->belongsTo(School::class, 'ecole_origine_id');
+    }
 }
