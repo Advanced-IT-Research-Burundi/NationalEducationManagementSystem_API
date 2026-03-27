@@ -25,8 +25,18 @@ class EleveController extends Controller
     {
         $this->authorize('viewAny', Eleve::class);
 
-        $query = Eleve::with(['ecole', 'creator', 'niveau']);
+        $query = Eleve::with(['ecole', 'creator', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau']);
 
+
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('nom', 'like', '%' . $request->search . '%')
+                    ->orWhere('prenom', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // Search filter
         if ($request->filled('search')) {
             $query->search($request->search);
         }
@@ -53,6 +63,11 @@ class EleveController extends Controller
                     $q2->where('id', $request->classe_id);
                 })->where('statut', 'ACTIVE');
             });
+        }
+
+        // Niveau scolaire filter
+        if ($request->filled('niveau_id')) {
+            $query->where('niveau_id', $request->niveau_id);
         }
 
         $eleves = $query->latest()->paginate($request->get('per_page', 15));
@@ -116,7 +131,7 @@ class EleveController extends Controller
 
             return response()->json([
                 'message' => 'Élève créé avec succès',
-                'eleve' => $eleve->load(['ecole', 'inscriptions.classe']),
+                'eleve' => $eleve->load(['ecole', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau', 'inscriptions.classe']),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -136,7 +151,11 @@ public function show($id): JsonResponse
 
     $eleve->load([
         'ecole',
-        'ecoleOrigine',
+        'provinceOrigine',
+        'communeOrigine',
+        'zoneOrigine',
+        'collineOrigine',
+        'niveau',
         'creator',
         'classes',
         'inscriptions.classe.niveau'
@@ -153,29 +172,41 @@ public function show($id): JsonResponse
      */
     public function update(UpdateEleveRequest $request, Eleve $eleve): JsonResponse
     {
+        $this->authorize('update', $eleve);
+
         $eleve->update($request->validated());
 
         return response()->json([
             'message' => 'Élève mis à jour avec succès',
-            'eleve' => $eleve->load(['ecole']),
+            'eleve' => $eleve->load(['ecole', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau']),
         ]);
     }
 
     /**
      * Remove the specified eleve.
      */
-    public function destroy(Eleve $eleve): JsonResponse
+    public function destroy($id): JsonResponse
     {
+        $eleve = Eleve::findOrFail($id);
+
         $this->authorize('delete', $eleve);
 
-        // Check if eleve has active inscriptions
         if ($eleve->inscriptions()->where('statut', 'ACTIVE')->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer cet élève car il a des inscriptions actives.',
             ], 422);
         }
 
-        $eleve->delete();
+        try {
+            DB::table('eleves')
+                ->where('id', $eleve->id)
+                ->update(['deleted_at' => now(), 'updated_at' => now()]);
+        } catch (\Exception $e) {
+            \Log::error('Delete eleve failed', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Erreur: ' . $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json(['message' => 'Élève supprimé avec succès']);
     }
@@ -185,7 +216,7 @@ public function show($id): JsonResponse
      */
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
-        $query = Eleve::bySchool($schoolId);
+        $query = Eleve::with(['provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau'])->bySchool($schoolId);
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
@@ -331,63 +362,6 @@ public function show($id): JsonResponse
             'message' => 'Élève transféré avec succès',
             'inscription' => $newInscription->load(['eleve', 'classe']),
         ]);
-    }
-
-    /**
-     * Update the niveau (grade level) of an eleve: promotion or redoublement.
-     */
-    public function updateNiveau(Request $request, Eleve $eleve): JsonResponse
-    {
-        $request->validate([
-            'niveau_id' => ['required_without:redoublant', 'nullable', 'exists:niveaux_scolaires,id'],
-            'annee_scolaire' => ['required', 'string'],
-            'redoublant' => ['sometimes', 'boolean'],
-        ]);
-
-        DB::beginTransaction();
-
-        try {
-            $isRedoublant = $request->boolean('redoublant', false);
-
-            $currentInscription = $eleve->inscriptions()
-                ->latest()
-                ->first();
-
-            if ($currentInscription) {
-                // Deactivate the current class affectation
-                AffectationClasse::where('inscription_id', $currentInscription->id)
-                    ->where('est_active', true)
-                    ->update([
-                        'est_active' => false,
-                        'date_fin' => now(),
-                        'motif_changement' => $isRedoublant ? 'Redoublement' : 'Promotion de niveau',
-                    ]);
-
-                if ($isRedoublant) {
-                    $currentInscription->update([
-                        'est_redoublant' => true,
-                    ]);
-                } else {
-                    $currentInscription->update([
-                        'niveau_demande_id' => $request->niveau_id,
-                    ]);
-                }
-            }
-
-            DB::commit();
-
-            $message = $isRedoublant
-                ? 'Élève marqué comme redoublant avec succès'
-                : 'Élève promu au niveau supérieur avec succès';
-
-            return response()->json([
-                'message' => $message,
-                'eleve' => $eleve->load(['inscriptions.classe.niveau']),
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
     }
 
     /**

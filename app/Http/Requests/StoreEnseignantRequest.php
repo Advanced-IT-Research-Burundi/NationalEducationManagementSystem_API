@@ -30,7 +30,8 @@ class StoreEnseignantRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
 
             // Enseignant specific fields
-            'school_id' => ['nullable', 'exists:schools,id'],
+            'ecoles' => ['required', 'array', 'min:1'],
+            'ecoles.*' => ['integer', 'exists:schools,id'],
             'matricule' => ['required', 'string', 'max:50', 'unique:enseignants,matricule'],
             'qualification' => ['nullable', Rule::in(['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])],
             'qualification_precision' => ['nullable', 'string', 'max:100'],
@@ -46,9 +47,9 @@ class StoreEnseignantRequest extends FormRequest
      */
     protected function prepareForValidation()
     {
-        if ($this->user()->school_id && ! $this->input('school_id')) {
+        if ($this->user()->school_id && empty($this->input('ecoles'))) {
             $this->merge([
-                'school_id' => $this->user()->school_id,
+                'ecoles' => [$this->user()->school_id],
             ]);
         }
     }
@@ -64,7 +65,8 @@ class StoreEnseignantRequest extends FormRequest
             'email.unique' => 'Cet email est déjà utilisé.',
             'password.required' => 'Le mot de passe est requis.',
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
-            'school_id.nullable' => 'L\'école est requise.',
+            'ecoles.required' => 'Au moins une école est requise.',
+            'ecoles.min' => 'Au moins une école doit être sélectionnée.',
             'matricule.required' => 'Le matricule est requis.',
             'matricule.unique' => 'Ce matricule existe déjà.',
         ];

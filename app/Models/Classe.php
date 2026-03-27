@@ -90,7 +90,7 @@ class Classe extends Model
 
     public function getEffectifAttribute(): int
     {
-        return $this->inscriptions()->where('statut', 'ACTIVE')->count();
+        return $this->eleves()->wherePivot('statut', 'ACTIVE')->count();
     }
 
     /**
@@ -152,7 +152,7 @@ class Classe extends Model
 
     public function eleves(): BelongsToMany
     {
-        return $this->belongsToMany(Eleve::class, 'inscriptions_eleves', 'classe_id', 'eleve_id')
+        return $this->belongsToMany(Eleve::class, 'eleve_class', 'classe_id', 'eleve_id')
             ->withPivot(['annee_scolaire', 'date_inscription', 'statut', 'numero_ordre'])
             ->withTimestamps();
     }

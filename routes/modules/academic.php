@@ -59,6 +59,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('classes/by-school/{school}', [ClasseController::class, 'bySchool'])->name('classes.by-school');
     Route::get('classes/{classe}/enseignants', [ClasseController::class, 'enseignants'])->name('classes.enseignants');
     Route::get('classes/{classe}/eleves', [ClasseController::class, 'eleves'])->name('classes.eleves');
+    Route::post('classes/{classe}/eleves', [ClasseController::class, 'addEleve'])->name('classes.eleves.add');
     Route::apiResource('classes', ClasseController::class)->parameters([
         'classes' => 'classe',
     ]);
@@ -69,6 +70,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('enseignants/{enseignant}/classes', [EnseignantController::class, 'classes'])->name('enseignants.classes');
     Route::post('enseignants/assign-to-classe', [EnseignantController::class, 'assignToClasse'])->name('enseignants.assign');
     Route::delete('affectations/{affectation}', [EnseignantController::class, 'removeFromClasse'])->name('affectations.remove');
+    Route::patch('enseignants/{enseignant}/ecoles/sync', [EnseignantController::class, 'syncEcoles'])->name('enseignants.ecoles.sync');
     Route::apiResource('enseignants', EnseignantController::class);
 
     // Élèves (Students)
@@ -79,6 +81,8 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::patch('eleves/{eleve}/niveau', [EleveController::class, 'updateNiveau'])->name('eleves.update-niveau');
     Route::delete('inscriptions/{inscription}', [EleveController::class, 'unenroll'])->name('inscriptions.unenroll');
     Route::post('inscriptions/{inscription}/transfer', [EleveController::class, 'transfer'])->name('inscriptions.transfer');
+    Route::post('eleves/{eleve}/transfert', [EleveController::class, 'transfertEtablissement'])->name('eleves.transfert');
+    Route::patch('eleves/{eleve}/niveau', [EleveController::class, 'updateNiveau'])->name('eleves.update_niveau');
     Route::apiResource('eleves', EleveController::class);
 
     // Mouvements Élèves (Student Movements: transfers, dropouts, etc.)

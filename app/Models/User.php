@@ -188,8 +188,12 @@ class User extends Authenticatable
      * Check if user can access data for a specific school.
      * This considers the full hierarchy.
      */
-    public function canAccessSchool(School $school): bool
+    public function canAccessSchool(?School $school): bool
     {
+        if (!$school) {
+            return $this->admin_level === 'PAYS';
+        }
+
         return match ($this->admin_level) {
             'PAYS' => true,
             'MINISTERE' => $school->ministere_id === $this->admin_entity_id,
@@ -199,7 +203,5 @@ class User extends Authenticatable
             'ECOLE' => $school->id === $this->admin_entity_id,
             default => false,
         };
-
-        
     }
 }

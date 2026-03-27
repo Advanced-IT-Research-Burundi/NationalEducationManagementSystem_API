@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Eleve;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,9 +13,7 @@ class UpdateEleveRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $eleve = $this->route('eleve');
-
-        return $this->user()->can('update', $eleve);
+        return true;
     }
 
     /**
@@ -24,33 +23,39 @@ class UpdateEleveRequest extends FormRequest
      */
     public function rules(): array
     {
-        $eleve = $this->route('eleve');
+        $eleve = $this->resolveEleve();
+        $eleveId = $eleve?->id ?? $this->route('eleve');
 
         return [
-            'matricule' => ['sometimes', 'string', 'max:50', Rule::unique('eleves', 'matricule')->ignore($eleve->id)],
+            'matricule' => ['sometimes', 'string', 'max:50', Rule::unique('eleves', 'matricule')->ignore($eleveId)],
             'nom' => ['sometimes', 'string', 'max:100'],
             'prenom' => ['sometimes', 'string', 'max:100'],
             'date_naissance' => ['nullable', 'date', 'before:today'],
             'lieu_naissance' => ['sometimes', 'string', 'max:150'],
             'sexe' => ['sometimes', Rule::in(['M', 'F'])],
-            'nom_pere' => ['nullable', 'string', 'max:100'],
-            'nom_mere' => ['nullable', 'string', 'max:100'],
-            'contact_parent' => ['nullable', 'string', 'max:20'],
-            'contact_tuteur' => ['nullable', 'string', 'max:255'],
-            'nom_tuteur' => ['nullable', 'string', 'max:200'],
-            'adresse' => ['nullable', 'string', 'max:500'],
-            'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
             'nationalite' => ['nullable', 'string', 'max:50'],
-            'school_id' => ['sometimes', 'exists:schools,id'],
-            'province_origine_id' => ['nullable', 'integer'],
-            'commune_origine_id' => ['nullable', 'integer'],
-            'zone_origine_id' => ['nullable', 'integer'],
+            'province_origine_id' => ['nullable', 'exists:provinces,id'],
+            'commune_origine_id' => ['nullable', 'exists:communes,id'],
+            'zone_origine_id' => ['nullable', 'exists:zones,id'],
             'colline_origine_id' => ['nullable', 'exists:collines,id'],
-            'photo_path' => ['nullable', 'string', 'max:255'],
-            'est_orphelin' => ['nullable', 'boolean'],
-            'a_handicap' => ['nullable', 'boolean'],
-            'type_handicap' => ['nullable', 'string', 'max:100'],
+            'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
+            'nom_pere' => ['nullable', 'string', 'max:200'],
+            'nom_mere' => ['nullable', 'string', 'max:200'],
+            'nom_tuteur' => ['nullable', 'string', 'max:200'],
+            'contact_tuteur' => ['nullable', 'string', 'max:255'],
+            'adresse' => ['nullable', 'string', 'max:500'],
             'statut' => ['sometimes', Rule::in(['INSCRIT', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])],
         ];
+    }
+
+    private function resolveEleve(): ?Eleve
+    {
+        $param = $this->route('eleve');
+
+        if ($param instanceof Eleve) {
+            return $param;
+        }
+
+        return $param ? Eleve::find($param) : null;
     }
 }

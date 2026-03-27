@@ -32,6 +32,8 @@ class UpdateEnseignantRequest extends FormRequest
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($enseignant->user_id)],
 
             // Enseignant specific fields
+            'ecoles' => ['sometimes', 'array', 'min:1'],
+            'ecoles.*' => ['integer', 'exists:schools,id'],
             'matricule' => ['sometimes', 'string', 'max:50', Rule::unique('enseignants', 'matricule')->ignore($enseignant->id)],
             'qualification' => ['nullable', Rule::in(['LICENCE', 'MASTER', 'DOCTORAT', 'DIPLOME_PEDAGOGIQUE', 'AUTRE'])],
             'qualification_precision' => ['nullable', 'string', 'max:100'],

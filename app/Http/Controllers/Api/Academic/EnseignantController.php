@@ -24,7 +24,7 @@ class EnseignantController extends Controller
     {
         $this->authorize('viewAny', Enseignant::class);
 
-        $query = Enseignant::with(['user', 'school', 'creator']);
+        $query = Enseignant::with(['user', 'school', 'ecoles', 'creator']);
 
         // Search filter
         if ($request->filled('search')) {
@@ -33,7 +33,9 @@ class EnseignantController extends Controller
 
         // School filter
         if ($request->filled('school_id')) {
-            $query->bySchool($request->school_id);
+            $query->whereHas('ecoles', function($q) use ($request) {
+                $q->where('school_id', $request->school_id);
+            });
         }
 
 
@@ -69,8 +71,7 @@ class EnseignantController extends Controller
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'admin_level' => 'ECOLE',
-                'admin_entity_id' => $data['school_id'],
-                'school_id' => $data['school_id'] ?? null,
+                'admin_entity_id' => !empty($data['ecoles']) ? $data['ecoles'][0] : null,
                 'created_by' => Auth::id(),
             ]);
 
@@ -80,7 +81,7 @@ class EnseignantController extends Controller
             // Create enseignant profile
             $enseignant = Enseignant::create([
                 'user_id' => $user->id,
-                'school_id' => $data['school_id'],
+                'school_id' => !empty($data['ecoles']) ? $data['ecoles'][0] : null,
                 'matricule' => $data['matricule'],
                 'qualification' => $data['qualification'] ?? null,
                 'qualification_precision' => $data['qualification_precision'] ?? null,
@@ -91,11 +92,16 @@ class EnseignantController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
+            // Attach schools (N:N relationship)
+            if (!empty($data['ecoles'])) {
+                $enseignant->ecoles()->attach($data['ecoles']);
+            }
+
             DB::commit();
 
             return response()->json([
                 'message' => 'Enseignant créé avec succès',
-                'enseignant' => $enseignant->load(['user', 'school']),
+                'enseignant' => $enseignant->load(['user', 'ecoles']),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -111,7 +117,7 @@ class EnseignantController extends Controller
         $this->authorize('view', $enseignant);
 
         return response()->json(
-            $enseignant->load(['user', 'school', 'creator', 'classes', 'affectations.classe'])
+            $enseignant->load(['user', 'school', 'ecoles', 'creator', 'classes', 'affectations.classe'])
         );
     }
 
@@ -135,6 +141,7 @@ class EnseignantController extends Controller
 
             // Update enseignant profile
             $enseignant->update([
+                'school_id' => !empty($data['ecoles']) ? $data['ecoles'][0] : $enseignant->school_id,
                 'matricule' => $data['matricule'] ?? $enseignant->matricule,
                 'qualification' => $data['qualification'] ?? $enseignant->qualification,
                 'qualification_precision' => $data['qualification_precision'] ?? $enseignant->qualification_precision,
@@ -144,11 +151,15 @@ class EnseignantController extends Controller
                 'statut' => $data['statut'] ?? $enseignant->statut,
             ]);
 
+            if (isset($data['ecoles'])) {
+                $enseignant->ecoles()->sync($data['ecoles']);
+            }
+
             DB::commit();
 
             return response()->json([
                 'message' => 'Enseignant mis à jour avec succès',
-                'enseignant' => $enseignant->load(['user', 'school']),
+                'enseignant' => $enseignant->load(['user', 'ecoles']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -258,6 +269,31 @@ class EnseignantController extends Controller
         $affectation->terminate();
 
         return response()->json(['message' => 'Affectation terminée avec succès']);
+    }
+
+    /**
+     * Sync ecoles (Teacher schools N:N relation).
+     */
+    public function syncEcoles(Request $request, Enseignant $enseignant): JsonResponse
+    {
+        $this->authorize('update', $enseignant);
+
+        $data = $request->validate([
+            'ecoles' => ['required', 'array', 'min:1'],
+            'ecoles.*' => ['integer', 'exists:schools,id'],
+        ], [
+            'ecoles.required' => 'Au moins une école doit être sélectionnée.',
+            'ecoles.min' => 'Au moins une école doit être sélectionnée.',
+            'ecoles.*.integer' => 'ID d\'école invalide.',
+            'ecoles.*.exists' => 'Une école sélectionnée n\'existe pas.',
+        ]);
+
+        $enseignant->ecoles()->sync($data['ecoles']);
+
+        return response()->json([
+            'message' => 'Écoles affectées mises à jour avec succès',
+            'enseignant' => $enseignant->load(['user', 'school', 'ecoles']),
+        ]);
     }
 
     /**

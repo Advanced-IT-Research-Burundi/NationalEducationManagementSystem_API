@@ -163,6 +163,62 @@ class ClasseController extends Controller
     }
 
     /**
+     * Add an eleve to a classe using pivot table inscriptions_eleves
+     */
+    public function addEleve(Request $request, Classe $classe): JsonResponse
+    {
+        $this->authorize('update', $classe);
+
+        $request->validate([
+            'eleve_id' => 'required|exists:eleves,id',
+            'annee_scolaire' => 'required|string',
+        ]);
+
+        $eleve = \App\Models\Eleve::findOrFail($request->eleve_id);
+
+        if (! $eleve->canEnroll()) {
+            return response()->json([
+                'message' => 'Cet élève ne peut pas être inscrit (statut: '.$eleve->statut.').',
+            ], 422);
+        }
+
+        if ($eleve->isEnrolledInClass($classe->id)) {
+            return response()->json([
+                'message' => 'Cet élève est déjà inscrit dans cette classe.',
+            ], 422);
+        }
+
+        if (! $classe->hasCapacity()) {
+            return response()->json([
+                'message' => 'La classe est pleine. Capacité maximale atteinte.',
+            ], 422);
+        }
+
+        if ($eleve->school_id !== $classe->school_id) {
+            return response()->json([
+                'message' => 'L\'élève et la classe doivent appartenir à la même école.',
+            ], 422);
+        }
+
+        $classe->eleves()->syncWithoutDetaching([
+            $eleve->id => [
+                'annee_scolaire' => $request->annee_scolaire,
+                'date_inscription' => now(),
+                'statut' => 'ACTIVE'
+            ]
+        ]);
+
+        if ($eleve->statut === 'INSCRIT' || $eleve->statut === 'ARCHIVE') {
+            $eleve->update(['statut' => 'ACTIF']);
+        }
+
+        return response()->json([
+            'message' => 'Élève inscrit avec succès dans la classe',
+            'classe' => $classe->load('eleves'),
+        ], 201);
+    }
+
+    /**
      * Get classe statistics.
      */
     public function statistics(Request $request): JsonResponse

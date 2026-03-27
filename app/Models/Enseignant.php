@@ -140,6 +140,12 @@ class Enseignant extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function ecoles(): BelongsToMany
+    {
+        return $this->belongsToMany(School::class, 'enseignant_school', 'enseignant_id', 'school_id')
+            ->withTimestamps();
+    }
+
     public function classes(): BelongsToMany
     {
         return $this->belongsToMany(Classe::class, 'affectations_enseignants', 'enseignant_id', 'classe_id')
