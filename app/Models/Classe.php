@@ -34,15 +34,17 @@ class Classe extends Model
         'local',
         'salle',
         'capacite',
+        'effectif',
         'statut',
         'created_by',
     ];
 
     protected $casts = [
         'capacite' => 'integer',
+        'effectif' => 'integer',
     ];
 
-    protected $appends = ['statut_label', 'effectif'];
+    protected $appends = ['statut_label'];
 
     /**
      * Query Scopes
@@ -88,10 +90,7 @@ class Classe extends Model
         };
     }
 
-    public function getEffectifAttribute(): int
-    {
-        return $this->eleves()->wherePivot('statut', 'ACTIVE')->count();
-    }
+
 
     /**
      * Relationships
