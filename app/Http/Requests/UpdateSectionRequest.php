@@ -20,7 +20,7 @@ class UpdateSectionRequest extends FormRequest
             'nom' => ['sometimes', 'required', 'string', 'max:100'],
             'code' => ['sometimes', 'required', 'string', 'max:20', 'unique:sections,code,' . $sectionId],
             'description' => ['nullable', 'string', 'max:500'],
-            'type_id' => ['nullable', 'exists:types_scolaires,id'],
+            'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
             'actif' => ['nullable', 'boolean'],
         ];
     }
@@ -31,6 +31,7 @@ class UpdateSectionRequest extends FormRequest
             'nom.required' => 'Le nom de la section est requis.',
             'code.required' => 'Le code de la section est requis.',
             'code.unique' => 'Ce code de section existe déjà.',
+            'niveau_id.exists' => 'Le niveau sélectionné n\'existe pas.',
         ];
     }
 }

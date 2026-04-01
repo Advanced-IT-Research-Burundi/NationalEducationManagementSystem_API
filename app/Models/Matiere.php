@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -14,6 +15,7 @@ class Matiere extends Model
     protected $fillable = [
         'nom',
         'code',
+        'niveau_id',
         'description',
         'coefficient',
         'heures_par_semaine',
@@ -45,9 +47,14 @@ class Matiere extends Model
     /**
      * Relationships
      */
+    public function niveau(): BelongsTo
+    {
+        return $this->belongsTo(Niveau::class, 'niveau_id');
+    }
+
     public function affectations(): HasMany
     {
-        return $this->hasMany(AffectationEnseignant::class);
+        return $this->hasMany(AffectationMatiere::class);
     }
 
     public function enseignants()

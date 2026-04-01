@@ -19,6 +19,7 @@
 
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
 use App\Http\Controllers\Api\Academic\CycleScolaireController;
+use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\NiveauController;
 use App\Http\Controllers\Api\Academic\SectionController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
@@ -207,6 +208,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('sections-scolaires', SectionController::class)->parameters([
         'sections-scolaires' => 'section',
     ]);
+
+    // Matières (alias without /academic prefix for UI)
+    Route::get('matieres/list', [MatiereController::class, 'list']);
+    Route::apiResource('matieres', MatiereController::class);
 
     // Campagnes d'Inscription
     // Campagnes d'Inscription

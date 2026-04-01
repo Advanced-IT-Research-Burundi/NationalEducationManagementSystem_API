@@ -18,6 +18,7 @@ class UpdateMatiereRequest extends FormRequest
         return [
             'nom' => ['sometimes', 'required', 'string', 'max:100'],
             'code' => ['sometimes', 'required', 'string', 'max:20', 'unique:matieres,code,' . $matiereId],
+            'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
             'description' => ['nullable', 'string', 'max:500'],
             'coefficient' => ['nullable', 'integer', 'min:1', 'max:10'],
             'heures_par_semaine' => ['nullable', 'integer', 'min:0', 'max:20'],
@@ -31,6 +32,7 @@ class UpdateMatiereRequest extends FormRequest
             'nom.required' => 'Le nom de la matière est requis.',
             'code.required' => 'Le code de la matière est requis.',
             'code.unique' => 'Ce code de matière existe déjà.',
+            'niveau_id.exists' => 'Le niveau sélectionné n\'existe pas.',
         ];
     }
 }

@@ -19,7 +19,6 @@ class NiveauController extends Controller
         $query = Niveau::query()->with([
             'typeScolaire:id,nom',
             'cycleScolaire:id,nom,type_id',
-            'section:id,nom,code,type_id',
         ]);
 
         // Search filter
@@ -36,10 +35,6 @@ class NiveauController extends Controller
 
         if ($request->filled('cycle_id')) {
             $query->where('cycle_id', $request->integer('cycle_id'));
-        }
-
-        if ($request->filled('section_id')) {
-            $query->where('section_id', $request->integer('section_id'));
         }
 
         // Active filter
@@ -76,7 +71,8 @@ class NiveauController extends Controller
             'classes',
             'typeScolaire:id,nom',
             'cycleScolaire:id,nom,type_id',
-            'section:id,nom,code,type_id',
+            'sections:id,nom,code,niveau_id,type_id',
+            'matieres:id,nom,code,niveau_id',
         ]));
     }
 
@@ -99,9 +95,9 @@ class NiveauController extends Controller
     public function destroy(Niveau $niveau): JsonResponse
     {
         // Check if niveau has classes
-        if ($niveau->classes()->exists()) {
+        if ($niveau->classes()->exists() || $niveau->sections()->exists() || $niveau->matieres()->exists()) {
             return response()->json([
-                'message' => 'Impossible de supprimer ce niveau car il contient des classes.',
+                'message' => 'Impossible de supprimer ce niveau car il est déjà utilisé.',
             ], 422);
         }
 
@@ -122,7 +118,6 @@ class NiveauController extends Controller
             'ordre',
             'type_id',
             'cycle_id',
-            'section_id',
         ]);
 
         return response()->json($niveaux);

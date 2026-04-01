@@ -18,6 +18,7 @@ class Section extends Model
         'code',
         'description',
         'type_id',
+        'niveau_id',
         'actif',
     ];
 
@@ -54,8 +55,8 @@ class Section extends Model
         return $this->belongsTo(TypeScolaire::class, 'type_id');
     }
 
-    public function niveaux(): HasMany
+    public function niveau(): BelongsTo
     {
-        return $this->hasMany(Niveau::class, 'section_id');
+        return $this->belongsTo(Niveau::class, 'niveau_id');
     }
 }

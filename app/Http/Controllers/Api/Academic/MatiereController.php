@@ -16,7 +16,10 @@ class MatiereController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Matiere::query();
+        $query = Matiere::query()->with([
+            'niveau:id,nom,code,type_id',
+            'niveau.typeScolaire:id,nom',
+        ]);
 
         if ($request->filled('search')) {
             $query->search($request->search);
@@ -24,6 +27,10 @@ class MatiereController extends Controller
 
         if ($request->filled('actif')) {
             $query->where('actif', $request->boolean('actif'));
+        }
+
+        if ($request->filled('niveau_id')) {
+            $query->where('niveau_id', $request->integer('niveau_id'));
         }
 
         $matieres = $query->latest()->paginate($request->get('per_page', 15));
@@ -34,9 +41,15 @@ class MatiereController extends Controller
     /**
      * Lightweight list for dropdowns.
      */
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
-        $matieres = Matiere::active()->orderBy('nom')->get(['id', 'nom', 'code']);
+        $query = Matiere::active()->orderBy('nom');
+
+        if ($request->filled('niveau_id')) {
+            $query->where('niveau_id', $request->integer('niveau_id'));
+        }
+
+        $matieres = $query->get(['id', 'nom', 'code', 'niveau_id']);
 
         return response()->json($matieres);
     }
@@ -59,7 +72,11 @@ class MatiereController extends Controller
      */
     public function show(Matiere $matiere): JsonResponse
     {
-        return response()->json($matiere->load('affectations.enseignant.user'));
+        return response()->json($matiere->load([
+            'affectations.enseignant.user',
+            'niveau:id,nom,code,type_id',
+            'niveau.typeScolaire:id,nom',
+        ]));
     }
 
     /**

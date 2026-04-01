@@ -20,7 +20,6 @@ class Niveau extends Model
         'ordre',
         'type_id',
         'cycle_id',
-        'section_id',
         'description',
         'actif',
     ];
@@ -66,8 +65,13 @@ class Niveau extends Model
         return $this->belongsTo(CycleScolaire::class, 'cycle_id');
     }
 
-    public function section(): BelongsTo
+    public function sections(): HasMany
     {
-        return $this->belongsTo(Section::class, 'section_id');
+        return $this->hasMany(Section::class, 'niveau_id');
+    }
+
+    public function matieres(): HasMany
+    {
+        return $this->hasMany(Matiere::class, 'niveau_id');
     }
 }

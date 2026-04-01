@@ -26,7 +26,6 @@ class StoreNiveauRequest extends FormRequest
             'ordre' => ['nullable', 'integer', 'min:0'],
             'type_id' => ['nullable', 'exists:types_scolaires,id'],
             'cycle_id' => ['nullable', 'exists:cycles_scolaires,id'],
-            'section_id' => ['nullable', 'exists:sections,id'],
             'description' => ['nullable', 'string', 'max:500'],
             'actif' => ['nullable', 'boolean'],
         ];
