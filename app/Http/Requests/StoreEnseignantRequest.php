@@ -38,7 +38,7 @@ class StoreEnseignantRequest extends FormRequest
             'annees_experience' => ['nullable', 'integer', 'min:0', 'max:60'],
             'date_embauche' => ['nullable', 'date'],
             'telephone' => ['nullable', 'string', 'max:20'],
-            'statut' => ['nullable', Rule::in(['ACTIF', 'INACTIF', 'CONGE', 'SUSPENDU', 'RETRAITE'])],
+            'statut' => ['nullable', Rule::in(['ACTIF', 'DECEDE', 'TRANSFERE', 'CONGE', 'SUSPENDU', 'RETRAITE'])],
         ];
     }
 

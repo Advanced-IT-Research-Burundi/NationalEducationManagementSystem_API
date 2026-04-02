@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('annees_experience')->default(0);
             $table->date('date_embauche')->nullable();
             $table->string('telephone')->nullable();
-            $table->enum('statut', ['ACTIF', 'INACTIF', 'CONGE', 'SUSPENDU', 'RETRAITE'])->default('ACTIF');
+            $table->enum('statut', ['ACTIF', 'DECEDE', 'TRANSFERE', 'CONGE', 'SUSPENDU', 'RETRAITE'])->default('ACTIF');
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();

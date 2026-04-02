@@ -40,7 +40,7 @@ class UpdateEnseignantRequest extends FormRequest
             'annees_experience' => ['nullable', 'integer', 'min:0', 'max:50'],
             'date_embauche' => ['nullable', 'date'],
             'telephone' => ['nullable', 'string', 'max:20'],
-            'statut' => ['sometimes', Rule::in(['ACTIF', 'INACTIF', 'CONGE', 'SUSPENDU', 'RETRAITE'])],
+            'statut' => ['sometimes', Rule::in(['ACTIF', 'DECEDE', 'TRANSFERE', 'CONGE', 'SUSPENDU', 'RETRAITE'])],
         ];
     }
 }

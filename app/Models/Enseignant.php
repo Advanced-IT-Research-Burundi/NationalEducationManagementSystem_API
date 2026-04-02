@@ -18,7 +18,9 @@ class Enseignant extends Model
     // Status constants
     const STATUS_ACTIF = 'ACTIF';
 
-    const STATUS_INACTIF = 'INACTIF';
+    const STATUS_DECEDE = 'DECEDE';
+
+    const STATUS_TRANSFERE = 'TRANSFERE';
 
     const STATUS_CONGE = 'CONGE';
 
@@ -97,7 +99,8 @@ class Enseignant extends Model
     {
         return match ($this->statut) {
             self::STATUS_ACTIF => 'Actif',
-            self::STATUS_INACTIF => 'Inactif',
+            self::STATUS_DECEDE => 'Décédé',
+            self::STATUS_TRANSFERE => 'Transféré',
             self::STATUS_CONGE => 'En congé',
             self::STATUS_SUSPENDU => 'Suspendu',
             self::STATUS_RETRAITE => 'Retraité',

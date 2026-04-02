@@ -313,7 +313,8 @@ class EnseignantController extends Controller
             'total' => $query->count(),
             'by_status' => [
                 'actif' => (clone $query)->actif()->count(),
-                'inactif' => (clone $query)->where('statut', 'INACTIF')->count(),
+                'decede' => (clone $query)->where('statut', 'DECEDE')->count(),
+                'transfere' => (clone $query)->where('statut', 'TRANSFERE')->count(),
                 'conge' => (clone $query)->where('statut', 'CONGE')->count(),
             ],
             'by_qualification' => (clone $query)
