@@ -316,6 +316,7 @@ class EnseignantController extends Controller
                 'decede' => (clone $query)->where('statut', 'DECEDE')->count(),
                 'transfere' => (clone $query)->where('statut', 'TRANSFERE')->count(),
                 'conge' => (clone $query)->where('statut', 'CONGE')->count(),
+                'retraite' => (clone $query)->where('statut', 'RETRAITE')->count(),
             ],
             'by_qualification' => (clone $query)
                 ->selectRaw('qualification, COUNT(*) as count')
