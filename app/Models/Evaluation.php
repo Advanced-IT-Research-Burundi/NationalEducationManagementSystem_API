@@ -9,31 +9,72 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Evaluation extends Model
 {
-    /** @use HasFactory<\Database\Factories\EvaluationFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'classe_id',
+        'eleve_id',
+        'matiere_id',
+        'enseignant_id',
+        'trimestre',
+        'categorie',
+        'ponderation',
+        'note',
+    ];
 
-    protected function casts(): array
+    protected $casts = [
+        'ponderation' => 'decimal:2',
+        'note' => 'decimal:2',
+    ];
+
+    const TRIMESTRES = [
+        '1er Trimestre',
+        '2e Trimestre',
+        '3e Trimestre',
+    ];
+
+    const CATEGORIES = [
+        'TJ',
+        'Examen',
+    ];
+
+    public function classe(): BelongsTo
     {
-        return [
-            'date_evaluation' => 'date',
-        ];
+        return $this->belongsTo(Classe::class);
     }
 
-    /**
-     * Get the enseignant that owns the evaluation
-     */
+    public function eleve(): BelongsTo
+    {
+        return $this->belongsTo(Eleve::class);
+    }
+
+    public function matiere(): BelongsTo
+    {
+        return $this->belongsTo(Matiere::class);
+    }
+
     public function enseignant(): BelongsTo
     {
         return $this->belongsTo(Enseignant::class);
     }
 
-    /**
-     * Get the evaluateur (user who evaluated)
-     */
-    public function evaluateur(): BelongsTo
+    public function scopeByClasse($query, int $classeId)
     {
-        return $this->belongsTo(User::class, 'evaluateur_id');
+        return $query->where('classe_id', $classeId);
+    }
+
+    public function scopeByEleve($query, int $eleveId)
+    {
+        return $query->where('eleve_id', $eleveId);
+    }
+
+    public function scopeByTrimestre($query, string $trimestre)
+    {
+        return $query->where('trimestre', $trimestre);
+    }
+
+    public function scopeByCategorie($query, string $categorie)
+    {
+        return $query->where('categorie', $categorie);
     }
 }
