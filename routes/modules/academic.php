@@ -4,6 +4,7 @@
  * Module Academic Routes
  *
  * Années Scolaires, Niveaux, Classes, Enseignants, Élèves, Inscriptions, Affectations, Mouvements
+ * + Module Cours (Cours, Évaluations, Notes, Bulletins, Palmarès, Catégories)
  */
 
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
@@ -17,8 +18,12 @@ use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\SectionController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
 use App\Http\Controllers\Api\Academic\AffectationMatiereController;
-use App\Http\Controllers\Api\Academic\EvaluationController;
-use App\Http\Controllers\Api\Exams\ResultatController;
+use App\Http\Controllers\Api\Cours\CoursController;
+use App\Http\Controllers\Api\Cours\CategoriCoursController;
+use App\Http\Controllers\Api\Cours\EvaluationController;
+use App\Http\Controllers\Api\Cours\NoteController;
+use App\Http\Controllers\Api\Cours\BulletinController;
+use App\Http\Controllers\Api\Cours\PalmaresController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -103,7 +108,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('sections/list', [SectionController::class, 'list'])->name('sections.list');
     Route::apiResource('sections', SectionController::class);
 
-    // Matières
+    // Matières (legacy, kept for backward compatibility)
     Route::get('matieres/list', [MatiereController::class, 'list'])->name('matieres.list');
     Route::apiResource('matieres', MatiereController::class);
 
@@ -111,12 +116,34 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::patch('affectations-matieres/{affectation}/statut', [AffectationMatiereController::class, 'updateStatut'])->name('affectations-matieres.statut');
     Route::apiResource('affectations-matieres', AffectationMatiereController::class);
 
-    // Évaluations (Notes des élèves)
+    /*
+    |--------------------------------------------------------------------------
+    | Module Cours
+    |--------------------------------------------------------------------------
+    */
 
-    Route::get('evaluations/by-classe/{classe}', [EvaluationController::class, 'byClasse'])->name('evaluations.by-classe');
-    Route::get('evaluations/by-eleve/{eleve}', [EvaluationController::class, 'byEleve'])->name('evaluations.by-eleve');
+    // Catégories de cours
+    Route::get('categories-cours/list', [CategoriCoursController::class, 'list'])->name('categories-cours.list');
+    Route::apiResource('categories-cours', CategoriCoursController::class);
+
+    // Cours (enriched matieres)
+    Route::get('cours/list', [CoursController::class, 'list'])->name('cours.list');
+    Route::apiResource('cours', CoursController::class);
+
+    // Évaluations (new architecture)
+    Route::post('evaluations/{evaluation}/notes', [EvaluationController::class, 'storeNotes'])->name('evaluations.store-notes');
+    Route::get('evaluations/{evaluation}/notes', [EvaluationController::class, 'showNotes'])->name('evaluations.show-notes');
+    Route::post('evaluations/{evaluation}/import-notes', [EvaluationController::class, 'importNotes'])->name('evaluations.import-notes');
+    Route::get('evaluations/{evaluation}/export-template', [EvaluationController::class, 'exportTemplate'])->name('evaluations.export-template');
     Route::apiResource('evaluations', EvaluationController::class);
 
-    // Bulletins (Averaged results)
-    Route::get('bulletins', [ResultatController::class, 'bulletins'])->name('bulletins.index');
+    // Notes consultation
+    Route::get('notes', [NoteController::class, 'index'])->name('notes.index');
+
+    // Bulletins
+    Route::get('bulletins/generate', [BulletinController::class, 'generate'])->name('bulletins.generate');
+    Route::get('bulletins/pdf', [BulletinController::class, 'pdf'])->name('bulletins.pdf');
+
+    // Palmarès
+    Route::get('palmares', [PalmaresController::class, 'index'])->name('palmares.index');
 });
