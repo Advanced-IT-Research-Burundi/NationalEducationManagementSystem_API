@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('reglement_id')->nullable()->constrained('reglement_scolaires')->onDelete('set null');
             $table->foreignId('annee_scolaire_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
-            $table->integer('trimestre')->nullable(); // Ou string si necessaire, utilisons integer comme Evaluation
+            $table->enum('trimestre', ['1er Trimestre', '2e Trimestre', '3e Trimestre']);
             $table->date('date_sanction');
             $table->text('observation')->nullable();
             $table->integer('points_retires')->default(0);
