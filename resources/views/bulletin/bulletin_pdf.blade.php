@@ -168,28 +168,71 @@
       @endif
     @endforeach
 
+    <!-- Conduite Row -->
+    @php
+      $noteConduite = $bulletin['conduite']['note'] ?? 60;
+      $maxConduite = 60;
+    @endphp
+    <tr>
+      <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE / DISCIPLINE</td>
+      <td>-</td>
+      <td>{{ $maxConduite }}</td>
+      <td></td>
+      <td>0</td>
+      <td><strong>{{ $maxConduite }}</strong></td>
+      
+      <!-- T1 -->
+      <td>{{ $isT1 || $isAll ? round($noteConduite) : '' }}</td>
+      <td></td>
+      <td>0</td>
+      <td><strong>{{ $isT1 || $isAll ? round($noteConduite) : '' }}</strong></td>
+      
+      <!-- T2 -->
+      <td>{{ $isT2 ? round($noteConduite) : '' }}</td>
+      <td></td>
+      <td>0</td>
+      <td><strong>{{ $isT2 ? round($noteConduite) : '' }}</strong></td>
+      
+      <!-- T3 -->
+      <td>{{ $isT3 ? round($noteConduite) : '' }}</td>
+      <td></td>
+      <td>0</td>
+      <td><strong>{{ $isT3 ? round($noteConduite) : '' }}</strong></td>
+      
+      <!-- Annuel -->
+      <td>{{ $maxConduite * ($isAll ? 3 : 1) }}</td>
+      <td>{{ round($noteConduite) }}</td>
+      <td></td>
+      <td></td>
+    </tr>
+
     <!-- Grand Total -->
+    @php
+      $grandTotalPoints = $bulletin['total_points'] + $noteConduite;
+      $grandTotalMax = $bulletin['total_max'] + $maxConduite;
+      $grandPourcentage = $grandTotalMax > 0 ? round(($grandTotalPoints / $grandTotalMax) * 100, 1) : 0;
+    @endphp
     <tr class="total-row" style="border-top: 3px solid #000;">
-      <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL</td>
+      <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL GLOBAL</td>
       <td></td>
       <td colspan="3"></td>
-      <td>{{ round($bulletin['total_max']) }}</td>
+      <td>{{ round($grandTotalMax) }}</td>
       
       <!-- T1 -->
       <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? round($bulletin['total_points']) : '' }}</td>
+      <td>{{ $isT1 || $isAll ? round($grandTotalPoints) : '' }}</td>
       
       <!-- T2 -->
       <td colspan="3"></td>
-      <td>{{ $isT2 ? round($bulletin['total_points']) : '' }}</td>
+      <td>{{ $isT2 ? round($grandTotalPoints) : '' }}</td>
       
       <!-- T3 -->
       <td colspan="3"></td>
-      <td>{{ $isT3 ? round($bulletin['total_points']) : '' }}</td>
+      <td>{{ $isT3 ? round($grandTotalPoints) : '' }}</td>
       
       <!-- Annuel -->
-      <td>{{ round($bulletin['total_max'] * ($isAll ? 3 : 1)) }}</td>
-      <td>{{ round($bulletin['total_points']) }}</td>
+      <td>{{ round($grandTotalMax * ($isAll ? 3 : 1)) }}</td>
+      <td>{{ round($grandTotalPoints) }}</td>
       <td></td>
       <td></td>
     </tr>
@@ -200,19 +243,19 @@
       
       <!-- T1 -->
       <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? round($bulletin['pourcentage'], 1) . '%' : '' }}</td>
+      <td>{{ $isT1 || $isAll ? $grandPourcentage . '%' : '' }}</td>
       
       <!-- T2 -->
       <td colspan="3"></td>
-      <td>{{ $isT2 ? round($bulletin['pourcentage'], 1) . '%' : '' }}</td>
+      <td>{{ $isT2 ? $grandPourcentage . '%' : '' }}</td>
       
       <!-- T3 -->
       <td colspan="3"></td>
-      <td>{{ $isT3 ? round($bulletin['pourcentage'], 1) . '%' : '' }}</td>
+      <td>{{ $isT3 ? $grandPourcentage . '%' : '' }}</td>
       
       <!-- Annuel -->
       <td colspan="2"></td>
-      <td>{{ round($bulletin['pourcentage'], 1) }}%</td>
+      <td>{{ $grandPourcentage }}%</td>
       <td></td>
     </tr>
     
