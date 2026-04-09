@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('eleve_id')->constrained()->onDelete('cascade');
             $table->foreignId('classe_id')->constrained()->onDelete('cascade');
             $table->foreignId('annee_scolaire_id')->constrained()->onDelete('cascade');
-            $table->integer('trimestre')->nullable();
+            $table->enum('trimestre', ['1er Trimestre', '2e Trimestre', '3e Trimestre']);
             $table->integer('note')->default(60);
             $table->timestamps();
             
