@@ -132,4 +132,29 @@ class PalmaresController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Generate a PDF Palmares.
+     */
+    public function pdf(Request $request)
+    {
+        $request->validate([
+            'classe_id' => ['required', 'exists:classes,id'],
+            'trimestre' => ['nullable', 'string'],
+            'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
+        ]);
+
+        $palmaresResponse = $this->index($request);
+        $palmaresData = json_decode($palmaresResponse->getContent(), true)['data'];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('bulletin.palmares_pdf', [
+            'data' => $palmaresData,
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        $filename = 'palmares_' . ($palmaresData['classe']['nom'] ?? 'classe') . '.pdf';
+
+        return $pdf->download($filename);
+    }
 }
