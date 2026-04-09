@@ -10,6 +10,7 @@ use App\Models\Evaluation;
 use App\Models\Matiere;
 use App\Models\Note;
 use App\Models\CategorieCours;
+use App\Models\NoteConduite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -72,6 +73,14 @@ class BulletinController extends Controller
         }
 
         $evaluations = $evaluationsQuery->get();
+
+        // Get notes conduite
+        $notesConduiteQuery = NoteConduite::where('classe_id', $classeId)
+            ->where('annee_scolaire_id', $anneeScolaireId);
+        if ($trimestre) {
+            $notesConduiteQuery->where('trimestre', $trimestre);
+        }
+        $notesConduite = $notesConduiteQuery->get();
 
         // Build bulletin data per student
         $bulletins = [];
@@ -140,6 +149,15 @@ class BulletinController extends Controller
 
             $pourcentage = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
 
+            // Note de conduite
+            $noteC = $notesConduite->where('eleve_id', $eleve->id)->first();
+            $noteConduiteValue = $noteC ? $noteC->note : 60;
+            $appreciationConduite = 'Très mauvais';
+            if ($noteConduiteValue >= 50) $appreciationConduite = 'Excellent';
+            elseif ($noteConduiteValue >= 40) $appreciationConduite = 'Bon';
+            elseif ($noteConduiteValue >= 30) $appreciationConduite = 'Passable';
+            elseif ($noteConduiteValue >= 20) $appreciationConduite = 'Mauvais';
+
             $bulletins[] = [
                 'eleve' => [
                     'id' => $eleve->id,
@@ -151,6 +169,11 @@ class BulletinController extends Controller
                 'total_points' => $totalPoints,
                 'total_max' => $totalMax,
                 'pourcentage' => $pourcentage,
+                'conduite' => [
+                    'note' => $noteConduiteValue,
+                    'max' => 60,
+                    'appreciation' => $appreciationConduite
+                ]
             ];
         }
 

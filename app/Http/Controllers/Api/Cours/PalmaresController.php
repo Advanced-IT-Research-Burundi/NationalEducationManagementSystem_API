@@ -7,6 +7,7 @@ use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\Matiere;
+use App\Models\NoteConduite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -42,13 +43,20 @@ class PalmaresController extends Controller
 
         $evaluations = $evaluationsQuery->get();
 
-        // Get courses
         $cours = Matiere::where('actif', true)
             ->where(function ($q) use ($classe) {
                 $q->where('niveau_id', $classe->niveau_id)
                     ->orWhereNull('niveau_id');
             })
             ->get();
+
+        // Get notes conduite
+        $notesConduiteQuery = NoteConduite::where('classe_id', $classeId)
+            ->where('annee_scolaire_id', $anneeScolaireId);
+        if ($trimestre) {
+            $notesConduiteQuery->where('trimestre', $trimestre);
+        }
+        $notesConduite = $notesConduiteQuery->get();
 
         // Calculate totals per student
         $classement = [];
@@ -98,6 +106,15 @@ class PalmaresController extends Controller
 
             $pourcentage = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
 
+            // Note de conduite
+            $noteC = $notesConduite->where('eleve_id', $eleve->id)->first();
+            $noteConduiteValue = $noteC ? $noteC->note : 60;
+            $appreciationConduite = 'Très mauvais';
+            if ($noteConduiteValue >= 50) $appreciationConduite = 'Excellent';
+            elseif ($noteConduiteValue >= 40) $appreciationConduite = 'Bon';
+            elseif ($noteConduiteValue >= 30) $appreciationConduite = 'Passable';
+            elseif ($noteConduiteValue >= 20) $appreciationConduite = 'Mauvais';
+
             $classement[] = [
                 'eleve' => [
                     'id' => $eleve->id,
@@ -108,6 +125,11 @@ class PalmaresController extends Controller
                 'total_points' => $totalPoints,
                 'total_max' => $totalMax,
                 'pourcentage' => $pourcentage,
+                'conduite' => [
+                    'note' => $noteConduiteValue,
+                    'max' => 60,
+                    'appreciation' => $appreciationConduite
+                ]
             ];
         }
 

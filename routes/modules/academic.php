@@ -24,8 +24,9 @@ use App\Http\Controllers\Api\Cours\EvaluationController;
 use App\Http\Controllers\Api\Cours\NoteController;
 use App\Http\Controllers\Api\Cours\BulletinController;
 use App\Http\Controllers\Api\Cours\PalmaresController;
+use App\Http\Controllers\Api\Cours\ReglementScolaireController;
+use App\Http\Controllers\Api\Cours\ConduiteController;
 use Illuminate\Support\Facades\Route;
-
 /*
 |--------------------------------------------------------------------------
 | Protected Academic Routes
@@ -139,6 +140,13 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
 
     // Notes consultation
     Route::get('notes', [NoteController::class, 'index'])->name('notes.index');
+
+    // --- MODULE: CONDUITE ---
+    Route::apiResource('reglements-scolaires', ReglementScolaireController::class);
+    Route::post('conduite/sanctions', [ConduiteController::class, 'modifierConduite'])->name('conduite.sanctionner');
+    Route::post('conduite/sanctions/bulk', [ConduiteController::class, 'bulkSanction'])->name('conduite.sanctionner-bulk');
+    Route::get('conduite/notes', [ConduiteController::class, 'getNotesByClasse'])->name('conduite.notes');
+    Route::get('conduite/historique/{eleve}', [ConduiteController::class, 'historiqueSanctions'])->name('conduite.historique');
 
     // Bulletins
     Route::get('bulletins/generate', [BulletinController::class, 'generate'])->name('bulletins.generate');
