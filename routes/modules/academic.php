@@ -142,7 +142,9 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::get('notes', [NoteController::class, 'index'])->name('notes.index');
 
     // --- MODULE: CONDUITE ---
-    Route::apiResource('reglements-scolaires', ReglementScolaireController::class);
+    Route::apiResource('reglements-scolaires', ReglementScolaireController::class)->parameters([
+        'reglements-scolaires' => 'reglementScolaire',
+    ]);
     Route::post('conduite/sanctions', [ConduiteController::class, 'modifierConduite'])->name('conduite.sanctionner');
     Route::post('conduite/sanctions/bulk', [ConduiteController::class, 'bulkSanction'])->name('conduite.sanctionner-bulk');
     Route::get('conduite/notes', [ConduiteController::class, 'getNotesByClasse'])->name('conduite.notes');
