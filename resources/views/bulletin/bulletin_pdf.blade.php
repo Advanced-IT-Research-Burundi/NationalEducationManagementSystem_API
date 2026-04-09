@@ -54,11 +54,11 @@
       <th style="width: 20px;">N°</th>
       <th colspan="2">Domaines/Disciplines</th>
       <th style="width: 20px;">H/S</th>
-      <th>COM.</th><th>RES.</th><th>TOT</th><th>TJ</th>
-      <th>COM.</th><th>RES.</th><th>TOT</th><th>TJ</th>
-      <th>COM.</th><th>RES.</th><th>TOT</th><th>TJ</th>
-      <th>COM.</th><th>RES.</th><th>TOT</th><th>TJ</th>
-      <th>COM.</th><th>RES.</th><th>TOT</th>
+      <th>TJ</th><th>COM.</th><th>RES.</th><th>TOT</th>
+      <th>TJ</th><th>COM.</th><th>RES.</th><th>TOT</th>
+      <th>TJ</th><th>COM.</th><th>RES.</th><th>TOT</th>
+      <th>TJ</th><th>COM.</th><th>RES.</th><th>TOT</th>
+      <th>MAX</th><th>TOT.</th><th>%</th><th>A.P</th>
     </tr>
 
     @php
@@ -239,10 +239,20 @@
     </tr>
 
     <!-- Signatures à l'intérieur du tableau -->
+    <tr class="total-row" style="border-bottom: 2px solid #000;">
+      <td colspan="3" rowspan="2" class="sig-cell sig-cell-first">Signatures</td>
+      <td colspan="5" class="sig-cell">Titulaire</td>
+      <td colspan="4" class="sig-cell"></td>
+      <td colspan="4" class="sig-cell"></td>
+      <td colspan="4" class="sig-cell"></td>
+      <td colspan="4" class="sig-cell sig-cell-last"></td>
+    </tr>
     <tr>
-      <td colspan="3" class="sig-cell sig-cell-first">Signatures</td>
-      <td colspan="10" class="sig-cell">Titulaire</td>
-      <td colspan="10" class="sig-cell sig-cell-last">Parent</td>
+      <td colspan="5" class="sig-cell">Parent</td>
+      <td colspan="4" class="sig-cell"></td>
+      <td colspan="4" class="sig-cell"></td>
+      <td colspan="4" class="sig-cell "></td>
+      <td colspan="4" class="sig-cell sig-cell-last"></td>
     </tr>
 
   </table>
