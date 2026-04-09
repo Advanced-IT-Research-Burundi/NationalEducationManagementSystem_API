@@ -18,10 +18,9 @@ class CoursController extends Controller
             'enseignant.user:id,name',
             'section:id,nom,code',
             'niveau:id,nom,code',
-            "categorie_cours",
-            "enseignant",
-            "section",
-            "niveau"
+            'enseignant',
+            'section',
+            'niveau'
         ]);
 
         if ($request->filled('search')) {
@@ -96,7 +95,7 @@ class CoursController extends Controller
                 'enseignant.user',
                 'section',
                 'niveau',
-                
+
             ]),
         ]);
     }
