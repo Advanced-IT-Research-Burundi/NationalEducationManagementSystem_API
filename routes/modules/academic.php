@@ -146,4 +146,5 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
 
     // Palmarès
     Route::get('palmares', [PalmaresController::class, 'index'])->name('palmares.index');
+    Route::get('palmares/pdf', [PalmaresController::class, 'pdf'])->name('palmares.pdf');
 });

@@ -183,6 +183,10 @@ class EvaluationController extends Controller
 
         $filename = "notes_template_{$classe->nom}_{$evaluation->cours->nom}.xlsx";
 
+        if (ob_get_length() > 0) {
+            ob_end_clean();
+        }
+
         return Excel::download(
             new NotesTemplateExport($classe->eleves, $evaluation),
             $filename
