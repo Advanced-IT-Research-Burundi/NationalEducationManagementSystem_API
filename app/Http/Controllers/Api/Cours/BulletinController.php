@@ -13,6 +13,7 @@ use App\Models\CategorieCours;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Schema;
 
 class BulletinController extends Controller
 {
@@ -46,15 +47,20 @@ class BulletinController extends Controller
         $eleves = $elevesQuery->get();
 
         // Get all courses for this class's section/niveau
-        $cours = Matiere::with('categorieCours')
-            ->where('actif', true)
-            ->where(function ($q) use ($classe) {
+        $coursQuery = Matiere::query()->where('actif', true);
+        if (Schema::hasColumn('matieres', 'categorie_cours_id')) {
+            $coursQuery->with('categorieCours');
+        }
+        if (Schema::hasColumn('matieres', 'niveau_id')) {
+            $coursQuery->where(function ($q) use ($classe) {
                 $q->where('niveau_id', $classe->niveau_id)
                     ->orWhereNull('niveau_id');
-            })
-            ->orderBy('categorie_cours_id')
-            ->orderBy('nom')
-            ->get();
+            });
+        }
+        if (Schema::hasColumn('matieres', 'categorie_cours_id')) {
+            $coursQuery->orderBy('categorie_cours_id');
+        }
+        $cours = $coursQuery->orderBy('nom')->get();
 
         // Get evaluations for this class/year
         $evaluationsQuery = Evaluation::with('notes')
@@ -102,15 +108,18 @@ class BulletinController extends Controller
                 }
 
                 // Scale to ponderation if configured
-                $scaledTj = $matiere->ponderation_tj > 0 && $tjMax > 0
+                $ponderationTj = Schema::hasColumn('matieres', 'ponderation_tj') ? (float) ($matiere->ponderation_tj ?? 0) : 0;
+                $ponderationExam = Schema::hasColumn('matieres', 'ponderation_examen') ? (float) ($matiere->ponderation_examen ?? 0) : 0;
+
+                $scaledTj = $ponderationTj > 0 && $tjMax > 0
                     ? round(($tjNote / $tjMax) * $matiere->ponderation_tj, 2)
                     : $tjNote;
-                $scaledExam = $matiere->ponderation_examen > 0 && $examMax > 0
+                $scaledExam = $ponderationExam > 0 && $examMax > 0
                     ? round(($examNote / $examMax) * $matiere->ponderation_examen, 2)
                     : $examNote;
 
                 $total = $scaledTj + $scaledExam;
-                $maxTotal = ($matiere->ponderation_tj ?: $tjMax) + ($matiere->ponderation_examen ?: $examMax);
+                $maxTotal = ($ponderationTj ?: $tjMax) + ($ponderationExam ?: $examMax);
 
                 $totalPoints += $total;
                 $totalMax += $maxTotal;
@@ -118,10 +127,10 @@ class BulletinController extends Controller
                 $coursData[] = [
                     'cours_id' => $matiere->id,
                     'nom' => $matiere->nom,
-                    'categorie' => $matiere->categorieCours?->nom,
-                    'categorie_ordre' => $matiere->categorieCours?->ordre ?? 99,
-                    'max_tj' => $matiere->ponderation_tj ?: $tjMax,
-                    'max_examen' => $matiere->ponderation_examen ?: $examMax,
+                    'categorie' => Schema::hasColumn('matieres', 'categorie_cours_id') ? $matiere->categorieCours?->nom : null,
+                    'categorie_ordre' => Schema::hasColumn('matieres', 'categorie_cours_id') ? ($matiere->categorieCours?->ordre ?? 99) : 99,
+                    'max_tj' => $ponderationTj ?: $tjMax,
+                    'max_examen' => $ponderationExam ?: $examMax,
                     'max_total' => $maxTotal,
                     'note_tj' => $scaledTj,
                     'note_examen' => $scaledExam,

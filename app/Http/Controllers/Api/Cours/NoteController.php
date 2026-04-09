@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Note;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class NoteController extends Controller
 {
@@ -54,9 +55,11 @@ class NoteController extends Controller
 
         // Filter by section (through evaluation.cours)
         if ($request->filled('section_id')) {
-            $query->whereHas('evaluation.cours', function ($q) use ($request) {
-                $q->where('section_id', $request->integer('section_id'));
-            });
+            if (Schema::hasColumn('matieres', 'section_id')) {
+                $query->whereHas('evaluation.cours', function ($q) use ($request) {
+                    $q->where('section_id', $request->integer('section_id'));
+                });
+            }
         }
 
         // Filter by eleve

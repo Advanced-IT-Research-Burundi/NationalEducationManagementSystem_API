@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Bulletin Scolaire</title>
+<title>le Bulletin Scolaire</title>
 <style>
   @page { margin: 30mm 15mm; size: A4 landscape; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
