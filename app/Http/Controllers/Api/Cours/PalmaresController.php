@@ -28,7 +28,7 @@ class PalmaresController extends Controller
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $classe = Classe::with(['school:id,nom', 'niveau:id,nom', 'section:id,nom'])->findOrFail($classeId);
+        $classe = Classe::with(['school:id,name', 'niveau:id,nom', 'section:id,nom'])->findOrFail($classeId);
         $eleves = $classe->eleves()->orderBy('nom')->orderBy('prenom')->get();
 
         // Get evaluations

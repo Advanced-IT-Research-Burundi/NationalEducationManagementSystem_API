@@ -36,7 +36,7 @@ class BulletinController extends Controller
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $classe = Classe::with(['school:id,nom', 'niveau:id,nom', 'section:id,nom'])->findOrFail($classeId);
+        $classe = Classe::with(['school:id,name', 'niveau:id,nom', 'section:id,nom'])->findOrFail($classeId);
 
         // Get students
         $elevesQuery = $classe->eleves()->orderBy('nom')->orderBy('prenom');
