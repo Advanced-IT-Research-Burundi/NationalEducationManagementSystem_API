@@ -20,7 +20,6 @@ class Matiere extends Model
         'ponderation_tj',
         'ponderation_examen',
         'credit_heures',
-        'enseignant_id',
         'section_id',
         'niveau_id',
         'description',

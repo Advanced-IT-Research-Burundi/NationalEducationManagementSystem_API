@@ -20,7 +20,6 @@ class StoreCoursRequest extends FormRequest
             'ponderation_tj' => ['required', 'numeric', 'min:0'],
             'ponderation_examen' => ['required', 'numeric', 'min:0'],
             'credit_heures' => ['nullable', 'numeric', 'min:0'],
-            'enseignant_id' => ['nullable', 'exists:enseignants,id'],
             'section_id' => ['nullable', 'exists:sections,id'],
             'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
             'description' => ['nullable', 'string'],

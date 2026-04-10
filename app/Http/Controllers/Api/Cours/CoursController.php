@@ -55,11 +55,7 @@ class CoursController extends Controller
             }
         }
 
-        if ($request->filled('enseignant_id')) {
-            if (Schema::hasColumn('matieres', 'enseignant_id')) {
-                $query->where('enseignant_id', $request->integer('enseignant_id'));
-            }
-        }
+        
 
         if ($request->filled('actif')) {
             $query->where('actif', $request->boolean('actif'));

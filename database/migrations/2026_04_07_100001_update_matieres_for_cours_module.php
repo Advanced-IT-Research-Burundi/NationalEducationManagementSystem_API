@@ -15,8 +15,6 @@ return new class extends Migration
             $table->decimal('ponderation_tj', 5, 2)->default(0)->after('est_principale');
             $table->decimal('ponderation_examen', 5, 2)->default(0)->after('ponderation_tj');
             $table->decimal('credit_heures', 5, 2)->default(0)->after('ponderation_examen');
-            $table->foreignId('enseignant_id')->nullable()->after('credit_heures')
-                ->constrained('enseignants')->nullOnDelete();
             $table->foreignId('section_id')->nullable()->after('enseignant_id')
                 ->constrained('sections')->nullOnDelete();
         });
@@ -30,7 +28,6 @@ return new class extends Migration
             $table->dropColumn('ponderation_tj');
             $table->dropColumn('ponderation_examen');
             $table->dropColumn('credit_heures');
-            $table->dropConstrainedForeignId('enseignant_id');
             $table->dropConstrainedForeignId('section_id');
         });
     }
