@@ -89,6 +89,8 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::delete('inscriptions/{inscription}', [EleveController::class, 'unenroll'])->name('inscriptions.unenroll');
     Route::post('inscriptions/{inscription}/transfer', [EleveController::class, 'transfer'])->name('inscriptions.transfer');
     Route::post('eleves/{eleve}/transfert', [EleveController::class, 'transfertEtablissement'])->name('eleves.transfert');
+    Route::post('eleves/import', [EleveController::class, 'importExcel'])->name('eleves.import');
+    Route::get('eleves/template', [EleveController::class, 'downloadTemplate'])->name('eleves.template');
     Route::apiResource('eleves', EleveController::class)->parameters([
         'eleves' => 'eleve',
     ]);

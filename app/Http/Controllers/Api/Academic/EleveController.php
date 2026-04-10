@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\Academic;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEleveRequest;
-use App\Http\Requests\StoreInscriptionRequest;
+use App\Http\Requests\InscriptionStoreRequest;
 use App\Http\Requests\UpdateEleveRequest;
 use App\Http\Resources\EleveResource;
 use App\Models\Classe;
@@ -15,6 +15,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\AffectationClasse;
+use App\Imports\EleveImport;
+use App\Exports\EleveTemplateExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Log;
 
 class EleveController extends Controller
 {
@@ -203,7 +207,7 @@ public function show($id): JsonResponse
                 ->where('id', $eleve->id)
                 ->update(['deleted_at' => now(), 'updated_at' => now()]);
         } catch (\Exception $e) {
-            \Log::error('Delete eleve failed', ['id' => $id, 'error' => $e->getMessage()]);
+            Log::error('Delete eleve failed', ['id' => $id, 'error' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Erreur: ' . $e->getMessage(),
             ], 500);
@@ -248,7 +252,7 @@ public function show($id): JsonResponse
     /**
      * Enroll an eleve in a classe.
      */
-    public function enroll(StoreInscriptionRequest $request): JsonResponse
+    public function enroll(InscriptionStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
 
@@ -563,5 +567,48 @@ public function show($id): JsonResponse
 
             return response()->json(['message' => 'Erreur lors du transfert: '.$e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Import eleves via Excel.
+     */
+    public function importExcel(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        try {
+            Excel::import(new EleveImport, $request->file('file'));
+
+            return response()->json([
+                'message' => 'Importation réussie',
+            ]);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+             $failures = $e->failures();
+             $errors = [];
+             foreach ($failures as $failure) {
+                 $errors[] = "Ligne " . $failure->row() . ": " . implode(', ', $failure->errors());
+             }
+             return response()->json([
+                 'message' => 'Erreur de validation lors de l\'importation',
+                 'errors' => $errors
+             ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur lors de l\'importation: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Download Excel template for import.
+     */
+    public function downloadTemplate()
+    {
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        return Excel::download(new EleveTemplateExport, 'template_import_eleves.xlsx');
     }
 }
