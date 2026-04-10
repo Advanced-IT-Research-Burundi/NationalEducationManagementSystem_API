@@ -23,8 +23,6 @@ class ReglementScolaireController extends Controller
             'school_id' => 'nullable|exists:schools,id',
             'article_number' => 'nullable|string',
             'intitule' => 'required|string',
-            'description' => 'nullable|string',
-            'gravite' => 'required|in:Faible,Moyenne,Grave',
             'points_retires' => 'required|integer|min:0',
             'sanction' => 'nullable|string',
         ]);
@@ -44,8 +42,6 @@ class ReglementScolaireController extends Controller
             'school_id' => 'nullable|exists:schools,id',
             'article_number' => 'nullable|string',
             'intitule' => 'sometimes|required|string',
-            'description' => 'nullable|string',
-            'gravite' => 'sometimes|required|in:Faible,Moyenne,Grave',
             'points_retires' => 'sometimes|required|integer|min:0',
             'sanction' => 'nullable|string',
         ]);

@@ -13,8 +13,6 @@ class ReglementScolaire extends Model
         'school_id',
         'article_number',
         'intitule',
-        'description',
-        'gravite',
         'points_retires',
         'sanction',
     ];

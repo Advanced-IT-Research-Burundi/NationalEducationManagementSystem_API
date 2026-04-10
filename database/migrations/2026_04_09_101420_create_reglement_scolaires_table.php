@@ -16,8 +16,6 @@ return new class extends Migration
             $table->foreignId('school_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('article_number')->nullable();
             $table->string('intitule');
-            $table->text('description')->nullable();
-            $table->enum('gravite', ['Faible', 'Moyenne', 'Grave'])->default('Moyenne');
             $table->integer('points_retires')->default(0);
             $table->string('sanction')->nullable();
             $table->timestamps();
