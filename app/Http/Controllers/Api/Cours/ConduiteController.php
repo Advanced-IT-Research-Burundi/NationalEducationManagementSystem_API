@@ -156,4 +156,86 @@ class ConduiteController extends Controller
 
          return response()->json($sanctions);
     }
+
+    public function getStats(Request $request)
+    {
+        $query = SanctionEleve::query()
+            ->join('eleves', 'sanction_eleves.eleve_id', '=', 'eleves.id')
+            ->join('classes', 'sanction_eleves.classe_id', '=', 'classes.id')
+            ->join('schools', 'classes.school_id', '=', 'schools.id')
+            ->select('sanction_eleves.*');
+
+        // Apply filters
+        if ($request->filled('province_id')) {
+            $query->where('schools.province_id', $request->province_id);
+        }
+        if ($request->filled('commune_id')) {
+            $query->where('schools.commune_id', $request->commune_id);
+        }
+        if ($request->filled('school_id')) {
+            $query->where('classes.school_id', $request->school_id);
+        }
+        if ($request->filled('classe_id')) {
+            $query->where('sanction_eleves.classe_id', $request->classe_id);
+        }
+        if ($request->filled('eleve_id')) {
+            $query->where('sanction_eleves.eleve_id', $request->eleve_id);
+        }
+        if ($request->filled('annee_scolaire_id')) {
+            $query->where('sanction_eleves.annee_scolaire_id', $request->annee_scolaire_id);
+        }
+        if ($request->filled('trimestre')) {
+            $query->where('sanction_eleves.trimestre', $request->trimestre);
+        }
+
+        $type = $request->input('type', 'details');
+
+        switch ($type) {
+            case 'points_par_eleve':
+                $data = $query->select('sanction_eleves.eleve_id', DB::raw('SUM(points_retires) as total_points'))
+                    ->with('eleve:id,nom,prenom,matricule')
+                    ->groupBy('sanction_eleves.eleve_id')
+                    ->orderByDesc('total_points')
+                    ->get();
+                break;
+
+            case 'retraits_par_eleve':
+                $data = $query->select('sanction_eleves.eleve_id', DB::raw('COUNT(*) as total_retraits'))
+                    ->with('eleve:id,nom,prenom,matricule')
+                    ->groupBy('sanction_eleves.eleve_id')
+                    ->orderByDesc('total_retraits')
+                    ->get();
+                break;
+
+            case 'eleves_meconduits_par_classe':
+                $data = $query->select('sanction_eleves.classe_id', DB::raw('COUNT(DISTINCT eleve_id) as total_eleves'))
+                    ->with('classe:id,nom')
+                    ->groupBy('sanction_eleves.classe_id')
+                    ->get();
+                break;
+
+            case 'fautes_par_classe':
+                $data = $query->select('sanction_eleves.classe_id', DB::raw('COUNT(*) as total_fautes'))
+                    ->with('classe:id,nom')
+                    ->groupBy('sanction_eleves.classe_id')
+                    ->get();
+                break;
+
+            case 'total_fautes':
+                $data = [
+                    'total' => $query->count(),
+                    'points_total' => $query->sum('points_retires')
+                ];
+                break;
+
+            case 'details':
+            default:
+                $data = $query->with(['eleve:id,nom,prenom,matricule', 'classe:id,nom', 'reglement:id,intitule'])
+                    ->orderBy('date_sanction', 'desc')
+                    ->get();
+                break;
+        }
+
+        return response()->json($data);
+    }
 }

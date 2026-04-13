@@ -150,6 +150,7 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::post('conduite/sanctions', [ConduiteController::class, 'modifierConduite'])->name('conduite.sanctionner');
     Route::post('conduite/sanctions/bulk', [ConduiteController::class, 'bulkSanction'])->name('conduite.sanctionner-bulk');
     Route::get('conduite/notes', [ConduiteController::class, 'getNotesByClasse'])->name('conduite.notes');
+    Route::get('conduite/stats', [ConduiteController::class, 'getStats'])->name('conduite.stats');
     Route::get('conduite/historique/{eleve}', [ConduiteController::class, 'historiqueSanctions'])->name('conduite.historique');
 
     // Bulletins
