@@ -208,9 +208,9 @@
 
     <!-- Grand Total -->
     @php
-      $grandTotalPoints = $bulletin['total_points'] + $noteConduite;
+      $grandTotalPoints = $bulletin['total_points'] !== null ? $bulletin['total_points'] + $noteConduite : null;
       $grandTotalMax = $bulletin['total_max'] + $maxConduite;
-      $grandPourcentage = $grandTotalMax > 0 ? round(($grandTotalPoints / $grandTotalMax) * 100, 1) : 0;
+      $grandPourcentage = ($grandTotalMax > 0 && $grandTotalPoints !== null) ? round(($grandTotalPoints / $grandTotalMax) * 100, 1) : null;
     @endphp
     <tr class="total-row" style="border-top: 3px solid #000;">
       <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL GLOBAL</td>
@@ -220,19 +220,19 @@
       
       <!-- T1 -->
       <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? round($grandTotalPoints) : '' }}</td>
+      <td>{{ ($isT1 || $isAll && $bulletin['is_complete']) && $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       
       <!-- T2 -->
       <td colspan="3"></td>
-      <td>{{ $isT2 ? round($grandTotalPoints) : '' }}</td>
+      <td>{{ ($isT2 && $bulletin['is_complete']) && $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       
       <!-- T3 -->
       <td colspan="3"></td>
-      <td>{{ $isT3 ? round($grandTotalPoints) : '' }}</td>
+      <td>{{ ($isT3 && $bulletin['is_complete']) && $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       
       <!-- Annuel -->
       <td>{{ round($grandTotalMax * ($isAll ? 3 : 1)) }}</td>
-      <td>{{ round($grandTotalPoints) }}</td>
+      <td>{{ $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       <td></td>
       <td></td>
     </tr>
@@ -243,19 +243,19 @@
       
       <!-- T1 -->
       <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? $grandPourcentage . '%' : '' }}</td>
+      <td>{{ ($isT1 || $isAll) && $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       
       <!-- T2 -->
       <td colspan="3"></td>
-      <td>{{ $isT2 ? $grandPourcentage . '%' : '' }}</td>
+      <td>{{ $isT2 && $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       
       <!-- T3 -->
       <td colspan="3"></td>
-      <td>{{ $isT3 ? $grandPourcentage . '%' : '' }}</td>
+      <td>{{ $isT3 && $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       
       <!-- Annuel -->
       <td colspan="2"></td>
-      <td>{{ $grandPourcentage }}%</td>
+      <td>{{ $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       <td></td>
     </tr>
     
@@ -265,19 +265,19 @@
       
       <!-- T1 -->
       <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? $bulletin['rang'] : '' }}</td>
+      <td>{{ ($isT1 || $isAll) && $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       
       <!-- T2 -->
       <td colspan="3"></td>
-      <td>{{ $isT2 ? $bulletin['rang'] : '' }}</td>
+      <td>{{ $isT2 && $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       
       <!-- T3 -->
       <td colspan="3"></td>
-      <td>{{ $isT3 ? $bulletin['rang'] : '' }}</td>
+      <td>{{ $isT3 && $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       
       <!-- Annuel -->
       <td colspan="2"></td>
-      <td>{{ $bulletin['rang'] }}</td>
+      <td>{{ $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       <td></td>
     </tr>
 

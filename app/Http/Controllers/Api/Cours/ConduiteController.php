@@ -48,15 +48,21 @@ class ConduiteController extends Controller
                 ['note' => 60] // Initialisation à 60
             );
 
-            // Soustraire et éviter que ce soit négatif (min 0)
-            $nouvelleNote = max(0, $noteConduite->note - $validated['points_retires']);
-            $noteConduite->update(['note' => $nouvelleNote]);
+            if ($noteConduite->note - $validated['points_retires'] < 0) {
+                $noteConduite->update(['note' => 0]);
+                return response()->json([
+                    'message' => 'La note de conduite de l\'élève a atteint 0 et merite un renvoi.',
+                    'note_actuelle' => 0,
+                ]);
+            } else {
+                $noteConduite->update(['note' => $noteConduite->note - $validated['points_retires']]);
+            }
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Sanction enregistrée avec succès.',
-                'note_actuelle' => $nouvelleNote,
+                'note_actuelle' => $noteConduite->note,
                 'sanction' => $sanction
             ]);
         } catch (\Exception $e) {

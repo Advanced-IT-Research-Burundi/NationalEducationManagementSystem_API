@@ -96,41 +96,52 @@ class BulletinController extends Controller
                 $tjEvals = $coursEvals->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
                 $examEvals = $coursEvals->where('type_evaluation', 'Examen');
 
-                $tjNote = 0;
+                $tjNote = null;
                 $tjMax = 0;
                 foreach ($tjEvals as $eval) {
+                    $tjMax += $eval->note_maximale;
                     $note = $eval->notes->where('eleve_id', $eleve->id)->first();
-                    if ($note) {
-                        $tjNote += $note->note;
-                        $tjMax += $eval->note_maximale;
+                    if (!is_null($note)) {
+                        $tjNote = ($tjNote ?? 0) + $note->note;
                     }
                 }
 
-                $examNote = 0;
+                $examNote = null;
                 $examMax = 0;
                 foreach ($examEvals as $eval) {
+                    $examMax += $eval->note_maximale;
                     $note = $eval->notes->where('eleve_id', $eleve->id)->first();
-                    if ($note) {
-                        $examNote += $note->note;
-                        $examMax += $eval->note_maximale;
+                    if (!is_null($note)) {
+                        $examNote = ($examNote ?? 0) + $note->note;
                     }
                 }
 
                 // Scale to ponderation if configured
-                $ponderationTj = Schema::hasColumn('matieres', 'ponderation_tj') ? (float) ($matiere->ponderation_tj ?? 0) : 0;
-                $ponderationExam = Schema::hasColumn('matieres', 'ponderation_examen') ? (float) ($matiere->ponderation_examen ?? 0) : 0;
+                $ponderationTj = Schema::hasColumn('matieres', 'ponderation_tj') ? (float) ($matiere->ponderation_tj ?? 0) : null;
+                $ponderationExam = Schema::hasColumn('matieres', 'ponderation_examen') ? (float) ($matiere->ponderation_examen ?? 0) : null;
 
-                $scaledTj = $ponderationTj > 0 && $tjMax > 0
-                    ? round(($tjNote / $tjMax) * $matiere->ponderation_tj, 2)
+                $scaledTj = ($ponderationTj > 0 && $tjMax > 0 && !is_null($tjNote))
+                    ? round(($tjNote / $tjMax) * $ponderationTj, 2)
                     : $tjNote;
-                $scaledExam = $ponderationExam > 0 && $examMax > 0
-                    ? round(($examNote / $examMax) * $matiere->ponderation_examen, 2)
+                $scaledExam = ($ponderationExam > 0 && $examMax > 0 && !is_null($examNote))
+                    ? round(($examNote / $examMax) * $ponderationExam, 2)
                     : $examNote;
 
-                $total = $scaledTj + $scaledExam;
+                $isTjExpected = ($ponderationTj > 0 || $tjMax > 0);
+                $isExamExpected = ($ponderationExam > 0 || $examMax > 0);
+                
+                $total = null;
+                if (($isTjExpected && is_null($scaledTj)) || ($isExamExpected && is_null($scaledExam))) {
+                    $total = null;
+                } elseif ($isTjExpected || $isExamExpected) {
+                    $total = ($scaledTj ?? 0) + ($scaledExam ?? 0);
+                }
+
                 $maxTotal = ($ponderationTj ?: $tjMax) + ($ponderationExam ?: $examMax);
 
-                $totalPoints += $total;
+                if (!is_null($total)) {
+                    $totalPoints += $total;
+                }
                 $totalMax += $maxTotal;
 
                 $coursData[] = [
@@ -147,10 +158,25 @@ class BulletinController extends Controller
                 ];
             }
 
-            $pourcentage = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
+            // Check if all evaluations have notes for this student
+            $isComplete = true;
+            foreach ($evaluations as $eval) {
+                if ($eval->notes->where('eleve_id', $eleve->id)->isEmpty()) {
+                    $isComplete = false;
+                    break;
+                }
+            }
+
+            $pourcentage = ($isComplete && $totalMax > 0) ? round(($totalPoints / $totalMax) * 100, 1) : null;
 
             // Note de conduite
             $noteC = $notesConduite->where('eleve_id', $eleve->id)->first();
+            if ($isComplete && !$noteC) {
+                // If marks are otherwise complete but conduite is missing, we might consider it incomplete
+                // but the code previously defaulted to 60. Let's keep the default for now but maybe it should be considered incomplete?
+                // User said "if the marks are not completed".
+            }
+            
             $noteConduiteValue = $noteC ? $noteC->note : 60;
             $appreciationConduite = 'Très mauvais';
             if ($noteConduiteValue >= 50) $appreciationConduite = 'Excellent';
@@ -166,9 +192,10 @@ class BulletinController extends Controller
                     'matricule' => $eleve->matricule,
                 ],
                 'cours' => $coursData,
-                'total_points' => $totalPoints,
+                'total_points' => $isComplete ? $totalPoints : null,
                 'total_max' => $totalMax,
                 'pourcentage' => $pourcentage,
+                'is_complete' => $isComplete,
                 'conduite' => [
                     'note' => $noteConduiteValue,
                     'max' => 60,
@@ -177,11 +204,18 @@ class BulletinController extends Controller
             ];
         }
 
-        // Calculate rankings
-        usort($bulletins, fn($a, $b) => $b['total_points'] <=> $a['total_points']);
+        // Calculate rankings only for completed marks
+        $completeBulletins = array_filter($bulletins, fn($b) => $b['is_complete']);
+        usort($completeBulletins, fn($a, $b) => $b['total_points'] <=> $a['total_points']);
+        
+        $ranks = [];
         $rank = 1;
+        foreach ($completeBulletins as $cb) {
+            $ranks[$cb['eleve']['id']] = $rank++;
+        }
+
         foreach ($bulletins as &$bulletin) {
-            $bulletin['rang'] = $rank++;
+            $bulletin['rang'] = $ranks[$bulletin['eleve']['id']] ?? null;
         }
 
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
@@ -210,10 +244,23 @@ class BulletinController extends Controller
         ]);
 
         // Reuse generate logic
+        // Reuse generate logic
+
         $bulletinResponse = $this->generate($request);
         $bulletinData = json_decode($bulletinResponse->getContent(), true)['data'];
 
-        $pdf = Pdf::loadView('bulletin.bulletin_pdf', [
+        // Determine view based on school level type_id
+        $classe = Classe::with('niveau.typeScolaire')->find($request->integer('classe_id'));
+        $viewName = 'bulletin.bulletin_pdf_post_fondamental';
+        
+        if ($classe && $classe->niveau && $classe->niveau->typeScolaire) {
+            $typeScolaireNom = strtoupper($classe->niveau->typeScolaire->nom);
+            if (str_contains($typeScolaireNom, 'FONDAMENTAL') && !str_contains($typeScolaireNom, 'POST')) {
+                $viewName = 'bulletin.bulletin_pdf_fondamental';
+            }
+        }
+
+        $pdf = Pdf::loadView($viewName, [
             'data' => $bulletinData,
         ]);
 
