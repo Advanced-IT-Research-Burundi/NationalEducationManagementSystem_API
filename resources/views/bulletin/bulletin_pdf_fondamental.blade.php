@@ -153,9 +153,8 @@
         <td>{{ $isT3 ? round($catTotals[$cat]['tot']) : '' }}</td>
         
         <!-- Annuel -->
-        <td>{{ round($catTotals[$cat]['max_tot'] * ($isAll ? 3 : 1)) }}</td>
+        <td>{{ round($catTotals[$cat]['max_tot'] * 3) }}</td>
         <td>{{ round($catTotals[$cat]['tot']) }}</td>
-        <td></td>
         <td></td>
       </tr>
       @endif
@@ -169,22 +168,22 @@
       <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE / DISCIPLINE</td>
       <td>-</td>
       <td>{{ $maxConduite }}</td>
-      <td>0</td>
+      <td></td>
       <td><strong>{{ $maxConduite }}</strong></td>
       
       <!-- T1 -->
       <td>{{ $isT1 || $isAll ? round($noteConduite) : '' }}</td>
-      <td>0</td>
+      <td></td>
       <td><strong>{{ $isT1 || $isAll ? round($noteConduite) : '' }}</strong></td>
       
       <!-- T2 -->
       <td>{{ $isT2 ? round($noteConduite) : '' }}</td>
-      <td>0</td>
+      <td></td>
       <td><strong>{{ $isT2 ? round($noteConduite) : '' }}</strong></td>
       
       <!-- T3 -->
       <td>{{ $isT3 ? round($noteConduite) : '' }}</td>
-      <td>0</td>
+      <td></td>
       <td><strong>{{ $isT3 ? round($noteConduite) : '' }}</strong></td>
       
       <!-- Annuel -->
@@ -242,9 +241,8 @@
       <td>{{ $isT3 && $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       
       <!-- Annuel -->
-      <td colspan="2"></td>
+      <td colspan="3"></td>
       <td>{{ $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
-      <td></td>
     </tr>
     
     <tr class="total-row" style="border-bottom: 2px solid #000;">
@@ -264,9 +262,8 @@
       <td>{{ $isT3 && $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       
       <!-- Annuel -->
-      <td colspan="2"></td>
+      <td colspan="3"></td>
       <td>{{ $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
-      <td></td>
     </tr>
 
     <!-- Signatures -->

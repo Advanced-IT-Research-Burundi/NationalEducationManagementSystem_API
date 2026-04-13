@@ -266,7 +266,9 @@ class BulletinController extends Controller
 
         $pdf->setPaper('A4', 'portrait');
 
-        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '.pdf';
+        //student name on the file name
+        $eleve = Eleve::find($request->integer('eleve_id'));
+        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . ($eleve->nom ?? 'eleve') . '_' . ($eleve->prenom ?? 'eleve') . '.pdf';
 
         return $pdf->download($filename);
     }
