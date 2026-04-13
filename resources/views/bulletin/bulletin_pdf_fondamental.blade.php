@@ -35,7 +35,7 @@
 
   <table>
     <tr>
-      <td colspan="24" style="text-align: left; font-weight: bold; border-bottom: 1px solid #000; border-top: 3px solid #000; padding: 4px;">
+      <td colspan="20" style="text-align: left; font-weight: bold; border-bottom: 1px solid #000; border-top: 3px solid #000; padding: 4px;">
         Nom et prénom : {{ $bulletin['eleve']['prenom'] }} {{ $bulletin['eleve']['nom'] }}
       </td>
     </tr>
@@ -44,10 +44,10 @@
         Classe de : {{ $data['classe']['nom'] }}<br>
         Nombre d'élèves : {{ $data['nombre_eleves'] }}
       </td>
-      <th colspan="4">MAXIMA</th>
-      <th colspan="4">Premier Trimestre</th>
-      <th colspan="4">Deuxième Trimestre</th>
-      <th colspan="4">Troisième Trimestre</th>
+      <th colspan="3">MAXIMA</th>
+      <th colspan="3">Premier Trimestre</th>
+      <th colspan="3">Deuxième Trimestre</th>
+      <th colspan="3">Troisième Trimestre</th>
       <th colspan="4">Résultats annuels</th>
     </tr>
     <tr>
@@ -103,25 +103,21 @@
         
         <!-- Maxima -->
         <td>{{ $cours['max_tj'] ? round($cours['max_tj']) : '' }}</td>
-        <td></td> <!-- COM -->
         <td>{{ $cours['max_examen'] ? round($cours['max_examen']) : '' }}</td>
         <td><strong>{{ $cours['max_total'] ? round($cours['max_total']) : '' }}</strong></td>
         
         <!-- Trimestre 1 -->
         <td>{{ ($isT1 || $isAll) && $cours['note_tj'] !== '' && $cours['note_tj'] !== null ? round($cours['note_tj']) : '' }}</td>
-        <td></td> <!-- COM -->
         <td>{{ ($isT1 || $isAll) && $cours['note_examen'] !== '' && $cours['note_examen'] !== null ? round($cours['note_examen']) : '' }}</td>
         <td><strong>{{ ($isT1 || $isAll) && $cours['note_total'] !== '' && $cours['note_total'] !== null ? round($cours['note_total']) : '' }}</strong></td>
         
         <!-- Trimestre 2 -->
         <td>{{ $isT2 && $cours['note_tj'] !== '' && $cours['note_tj'] !== null ? round($cours['note_tj']) : '' }}</td>
-        <td></td> <!-- COM -->
         <td>{{ $isT2 && $cours['note_examen'] !== '' && $cours['note_examen'] !== null ? round($cours['note_examen']) : '' }}</td>
         <td><strong>{{ $isT2 && $cours['note_total'] !== '' && $cours['note_total'] !== null ? round($cours['note_total']) : '' }}</strong></td>
         
         <!-- Trimestre 3 -->
         <td>{{ $isT3 && $cours['note_tj'] !== '' && $cours['note_tj'] !== null ? round($cours['note_tj']) : '' }}</td>
-        <td></td> <!-- COM -->
         <td>{{ $isT3 && $cours['note_examen'] !== '' && $cours['note_examen'] !== null ? round($cours['note_examen']) : '' }}</td>
         <td><strong>{{ $isT3 && $cours['note_total'] !== '' && $cours['note_total'] !== null ? round($cours['note_total']) : '' }}</strong></td>
         
@@ -143,19 +139,16 @@
         
         <!-- T1 -->
         <td>{{ $isT1 || $isAll ? round($catTotals[$cat]['tj']) : '' }}</td>
-        <td></td>
         <td>{{ $isT1 || $isAll ? round($catTotals[$cat]['res']) : '' }}</td>
         <td>{{ $isT1 || $isAll ? round($catTotals[$cat]['tot']) : '' }}</td>
         
         <!-- T2 -->
         <td>{{ $isT2 ? round($catTotals[$cat]['tj']) : '' }}</td>
-        <td></td>
         <td>{{ $isT2 ? round($catTotals[$cat]['res']) : '' }}</td>
         <td>{{ $isT2 ? round($catTotals[$cat]['tot']) : '' }}</td>
         
         <!-- T3 -->
         <td>{{ $isT3 ? round($catTotals[$cat]['tj']) : '' }}</td>
-        <td></td>
         <td>{{ $isT3 ? round($catTotals[$cat]['res']) : '' }}</td>
         <td>{{ $isT3 ? round($catTotals[$cat]['tot']) : '' }}</td>
         
@@ -173,29 +166,24 @@
       $noteConduite = $bulletin['conduite']['note'] ?? 60;
       $maxConduite = 60;
     @endphp
-    <tr>
       <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE / DISCIPLINE</td>
       <td>-</td>
       <td>{{ $maxConduite }}</td>
-      <td></td>
       <td>0</td>
       <td><strong>{{ $maxConduite }}</strong></td>
       
       <!-- T1 -->
       <td>{{ $isT1 || $isAll ? round($noteConduite) : '' }}</td>
-      <td></td>
       <td>0</td>
       <td><strong>{{ $isT1 || $isAll ? round($noteConduite) : '' }}</strong></td>
       
       <!-- T2 -->
       <td>{{ $isT2 ? round($noteConduite) : '' }}</td>
-      <td></td>
       <td>0</td>
       <td><strong>{{ $isT2 ? round($noteConduite) : '' }}</strong></td>
       
       <!-- T3 -->
       <td>{{ $isT3 ? round($noteConduite) : '' }}</td>
-      <td></td>
       <td>0</td>
       <td><strong>{{ $isT3 ? round($noteConduite) : '' }}</strong></td>
       
@@ -208,93 +196,93 @@
 
     <!-- Grand Total -->
     @php
-      $grandTotalPoints = $bulletin['total_points'] + $noteConduite;
+      $grandTotalPoints = $bulletin['total_points'] !== null ? $bulletin['total_points'] + $noteConduite : null;
       $grandTotalMax = $bulletin['total_max'] + $maxConduite;
-      $grandPourcentage = $grandTotalMax > 0 ? round(($grandTotalPoints / $grandTotalMax) * 100, 1) : 0;
+      $grandPourcentage = ($grandTotalMax > 0 && $grandTotalPoints !== null) ? round(($grandTotalPoints / $grandTotalMax) * 100, 1) : null;
     @endphp
     <tr class="total-row" style="border-top: 3px solid #000;">
       <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL GLOBAL</td>
       <td></td>
-      <td colspan="3"></td>
+      <td colspan="2"></td>
       <td>{{ round($grandTotalMax) }}</td>
       
       <!-- T1 -->
-      <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? round($grandTotalPoints) : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ ($isT1 || $isAll && $bulletin['is_complete']) && $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       
       <!-- T2 -->
-      <td colspan="3"></td>
-      <td>{{ $isT2 ? round($grandTotalPoints) : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ ($isT2 && $bulletin['is_complete']) && $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       
       <!-- T3 -->
-      <td colspan="3"></td>
-      <td>{{ $isT3 ? round($grandTotalPoints) : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ ($isT3 && $bulletin['is_complete']) && $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       
       <!-- Annuel -->
       <td>{{ round($grandTotalMax * ($isAll ? 3 : 1)) }}</td>
-      <td>{{ round($grandTotalPoints) }}</td>
+      <td>{{ $grandTotalPoints !== null ? round($grandTotalPoints) : '' }}</td>
       <td></td>
       <td></td>
     </tr>
     
     <tr class="total-row">
       <td colspan="3" style="text-align: left; padding-left: 5px;">Pourcentage</td>
-      <td colspan="5"></td>
+      <td colspan="4"></td>
       
       <!-- T1 -->
-      <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? $grandPourcentage . '%' : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ ($isT1 || $isAll) && $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       
       <!-- T2 -->
-      <td colspan="3"></td>
-      <td>{{ $isT2 ? $grandPourcentage . '%' : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ $isT2 && $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       
       <!-- T3 -->
-      <td colspan="3"></td>
-      <td>{{ $isT3 ? $grandPourcentage . '%' : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ $isT3 && $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       
       <!-- Annuel -->
       <td colspan="2"></td>
-      <td>{{ $grandPourcentage }}%</td>
+      <td>{{ $bulletin['pourcentage'] !== null ? $bulletin['pourcentage'] . '%' : '' }}</td>
       <td></td>
     </tr>
     
     <tr class="total-row" style="border-bottom: 2px solid #000;">
       <td colspan="3" style="text-align: left; padding-left: 5px;">Place</td>
-      <td colspan="5"></td>
+      <td colspan="4"></td>
       
       <!-- T1 -->
-      <td colspan="3"></td>
-      <td>{{ $isT1 || $isAll ? $bulletin['rang'] : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ ($isT1 || $isAll) && $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       
       <!-- T2 -->
-      <td colspan="3"></td>
-      <td>{{ $isT2 ? $bulletin['rang'] : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ $isT2 && $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       
       <!-- T3 -->
-      <td colspan="3"></td>
-      <td>{{ $isT3 ? $bulletin['rang'] : '' }}</td>
+      <td colspan="2"></td>
+      <td>{{ $isT3 && $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       
       <!-- Annuel -->
       <td colspan="2"></td>
-      <td>{{ $bulletin['rang'] }}</td>
+      <td>{{ $bulletin['rang'] !== null ? $bulletin['rang'] : '' }}</td>
       <td></td>
     </tr>
 
-    <!-- Signatures à l'intérieur du tableau -->
+    <!-- Signatures -->
     <tr class="total-row" style="border-bottom: 2px solid #000;">
       <td colspan="3" rowspan="2" class="sig-cell sig-cell-first">Signatures</td>
-      <td colspan="5" class="sig-cell">Titulaire</td>
-      <td colspan="4" class="sig-cell"></td>
-      <td colspan="4" class="sig-cell"></td>
-      <td colspan="4" class="sig-cell"></td>
+      <td colspan="4" class="sig-cell">Titulaire</td>
+      <td colspan="3" class="sig-cell"></td>
+      <td colspan="3" class="sig-cell"></td>
+      <td colspan="3" class="sig-cell"></td>
       <td colspan="4" class="sig-cell sig-cell-last"></td>
     </tr>
     <tr>
-      <td colspan="5" class="sig-cell">Parent</td>
-      <td colspan="4" class="sig-cell"></td>
-      <td colspan="4" class="sig-cell"></td>
-      <td colspan="4" class="sig-cell "></td>
+      <td colspan="4" class="sig-cell">Parent</td>
+      <td colspan="3" class="sig-cell"></td>
+      <td colspan="3" class="sig-cell"></td>
+      <td colspan="3" class="sig-cell "></td>
       <td colspan="4" class="sig-cell sig-cell-last"></td>
     </tr>
 
