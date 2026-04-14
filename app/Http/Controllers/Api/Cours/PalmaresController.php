@@ -10,20 +10,38 @@ use App\Models\Matiere;
 use App\Models\NoteConduite;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class PalmaresController extends Controller
 {
+    private static function palmaresCoursCode(Matiere $matiere): string
+    {
+        $raw = (string) ($matiere->code ?: $matiere->nom ?: '');
+        $raw = Str::upper($raw);
+        $raw = preg_replace('/\d+/', '', $raw);        // remove numbers
+        $raw = preg_replace('/[^A-Z]/', '', $raw);     // keep letters only
+
+        if (!empty($raw)) {
+            return Str::substr($raw, 0, 6);
+        }
+
+        $fallback = Str::upper(Str::substr(preg_replace('/\s+/', '', (string)($matiere->nom ?? '')), 0, 6));
+        return $fallback ?: 'COURS';
+    }
+
     public function index(Request $request): JsonResponse
     {
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'trimestre' => ['nullable', 'string'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
+            'type' => ['nullable', 'in:simple,detaille'],
         ]);
 
         $classeId = $request->integer('classe_id');
         $trimestre = $request->trimestre;
         $anneeScolaireId = $request->integer('annee_scolaire_id') ?: AnneeScolaire::current()?->id;
+        $type = $request->string('type')->toString() ?: 'simple';
 
         if (!$anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
@@ -50,6 +68,17 @@ class PalmaresController extends Controller
             })
             ->get();
 
+        $coursMeta = $cours->map(function ($matiere) {
+            $code = self::palmaresCoursCode($matiere);
+            return [
+                'id' => $matiere->id,
+                'nom' => $matiere->nom,
+                'code' => $code,
+                'ponderation_tj' => $matiere->ponderation_tj,
+                'ponderation_examen' => $matiere->ponderation_examen,
+            ];
+        })->values();
+
         // Get notes conduite
         $notesConduiteQuery = NoteConduite::where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
@@ -63,6 +92,9 @@ class PalmaresController extends Controller
         foreach ($eleves as $eleve) {
             $totalPoints = 0;
             $totalMax = 0;
+            $coursPoints = [];
+            $coursMaxima = [];
+            $coursEchecs = [];
 
             foreach ($cours as $matiere) {
                 $coursEvals = $evaluations->where('cours_id', $matiere->id);
@@ -102,6 +134,18 @@ class PalmaresController extends Controller
 
                 $totalPoints += $total;
                 $totalMax += $maxTotal;
+
+                if ($type === 'detaille') {
+                    $code = self::palmaresCoursCode($matiere);
+
+                    $coursPoints[$code] = round($total, 2);
+                    $coursMaxima[$code] = round($maxTotal, 2);
+
+                    $moitie = $maxTotal > 0 ? ($maxTotal / 2) : 0;
+                    if ($moitie > 0 && $total < $moitie) {
+                        $coursEchecs[$code] = round($moitie - $total, 2);
+                    }
+                }
             }
 
             $pourcentage = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
@@ -115,12 +159,21 @@ class PalmaresController extends Controller
             elseif ($noteConduiteValue >= 30) $appreciationConduite = 'Passable';
             elseif ($noteConduiteValue >= 20) $appreciationConduite = 'Mauvais';
 
-            $classement[] = [
+            $decision = null;
+            if ($type === 'detaille') {
+                $nbEchecs = count($coursEchecs);
+                if ($pourcentage >= 50 && $nbEchecs === 0) $decision = 'Admis';
+                elseif ($pourcentage >= 50 && $nbEchecs > 0) $decision = 'Admis (avec échecs)';
+                else $decision = 'Ajourné';
+            }
+
+            $entry = [
                 'eleve' => [
                     'id' => $eleve->id,
                     'nom' => $eleve->nom,
                     'prenom' => $eleve->prenom,
                     'matricule' => $eleve->matricule,
+                    'sexe' => $eleve->sexe ?? null,
                 ],
                 'total_points' => $totalPoints,
                 'total_max' => $totalMax,
@@ -131,6 +184,16 @@ class PalmaresController extends Controller
                     'appreciation' => $appreciationConduite
                 ]
             ];
+
+            if ($type === 'detaille') {
+                $entry['cours_points'] = $coursPoints;
+                $entry['cours_max'] = $coursMaxima;
+                $entry['echecs'] = $coursEchecs; // points manquants pour atteindre la moitié
+                $entry['decision_jury'] = $decision;
+                $entry['nombre_echecs'] = count($coursEchecs);
+            }
+
+            $classement[] = $entry;
         }
 
         // Sort by total descending
@@ -150,6 +213,8 @@ class PalmaresController extends Controller
                 'annee_scolaire' => $anneeScolaire,
                 'trimestre' => $trimestre,
                 'nombre_eleves' => count($eleves),
+                'type' => $type,
+                'cours' => $type === 'detaille' ? $coursMeta : null,
                 'classement' => $classement,
             ],
         ]);
@@ -164,12 +229,17 @@ class PalmaresController extends Controller
             'classe_id' => ['required', 'exists:classes,id'],
             'trimestre' => ['nullable', 'string'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
+            'type' => ['nullable', 'in:simple,detaille'],
         ]);
 
         $palmaresResponse = $this->index($request);
         $palmaresData = json_decode($palmaresResponse->getContent(), true)['data'];
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('bulletin.palmares_pdf', [
+        $view = ($palmaresData['type'] ?? 'simple') === 'detaille'
+            ? 'bulletin.palmares_detaille'
+            : 'bulletin.palmares_pdf_non_detaille';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, [
             'data' => $palmaresData,
         ]);
 

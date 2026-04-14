@@ -21,6 +21,8 @@
   th, td { border: 1px solid #333; text-align: center; padding: 6px; vertical-align: middle; }
   th { background: #e8e4dc; font-weight: bold; font-size: 11px; }
   .td-name { text-align: left; background: #fafaf6; font-weight: bold; }
+  .th-small { font-size: 9px; padding: 4px; }
+  .td-small { font-size: 9px; padding: 4px; }
 </style>
 </head>
 <body>
@@ -43,29 +45,66 @@
     </div>
   </div>
 
+  @php
+    $cours = $data['cours'] ?? [];
+    $classement = $data['classement'] ?? [];
+    $totalEleves = is_array($classement) ? count($classement) : 0;
+    $admisCount = 0;
+    if (is_array($classement)) {
+      foreach ($classement as $e) {
+        $dec = strtolower((string)($e['decision_jury'] ?? ''));
+        if (str_starts_with($dec, 'admis')) $admisCount++;
+      }
+    }
+    $tauxReussite = $totalEleves > 0 ? round(($admisCount / $totalEleves) * 100, 1) : null;
+  @endphp
+
   <table>
     <thead>
       <tr>
-        <th>Rang</th>
-        <th>Matricule</th>
-        <th>Nom et Prénom</th>
-        <th>Total</th>
-        <th>Maximum</th>
-        <th>Pourcentage</th>
+        <th>Place</th>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th>Sexe</th>
+        <th>Total<br/>points<br/>obtenus</th>
+        <th>%</th>
+        @foreach($cours as $c)
+          <th class="th-small">{{ $c['code'] }}</th>
+        @endforeach
+        <th>Échecs</th>
+        <th>Décision<br/>du jury</th>
       </tr>
     </thead>
     <tbody>
       @foreach($data['classement'] as $entry)
       <tr>
         <td><strong>{{ $entry['rang'] }}</strong></td>
-        <td>{{ $entry['eleve']['matricule'] }}</td>
-        <td class="td-name">{{ $entry['eleve']['prenom'] }} {{ $entry['eleve']['nom'] }}</td>
-        <td>{{ $entry['total_points'] }}</td>
-        <td>{{ $entry['total_max'] }}</td>
+        <td class="td-name">{{ $entry['eleve']['nom'] }}</td>
+        <td class="td-name">{{ $entry['eleve']['prenom'] }}</td>
+        <td>{{ $entry['eleve']['sexe'] ?? '—' }}</td>
+        <td><strong>{{ $entry['total_points'] }}</strong></td>
         <td><strong>{{ $entry['pourcentage'] }}%</strong></td>
+
+        @foreach($cours as $c)
+          @php $code = $c['code']; $def = $entry['echecs'][$code] ?? null; @endphp
+          <td class="td-small">
+            @if(!is_null($def) && $def !== '')
+              -{{ $def }}
+            @endif
+          </td>
+        @endforeach
+
+        <td><strong>{{ $entry['nombre_echecs'] ?? '' }}</strong></td>
+        <td><strong>{{ $entry['decision_jury'] ?? '' }}</strong></td>
       </tr>
       @endforeach
     </tbody>
   </table>
+
+  @if(!is_null($tauxReussite))
+    <div style="margin-top: 14px; font-weight: bold;">
+      Le taux de réussite de la classe : {{ $tauxReussite }}%
+    </div>
+  @endif
 </body>
 </html>
