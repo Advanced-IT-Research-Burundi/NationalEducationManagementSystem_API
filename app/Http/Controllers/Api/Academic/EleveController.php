@@ -433,6 +433,23 @@ public function show($id): JsonResponse
             ->pluck('classe_id');
 
         if (isset($request->niveau_id) && ! $isRedoublant) {
+            // Validation de la progression (Interdire le retour en arrière ou le maintien du même niveau)
+            $newNiveau = \App\Models\Niveau::find($request->niveau_id);
+            $currentNiveau = $eleve->niveau; // Relation BelongsTo Niveau
+
+            if ($currentNiveau && $newNiveau) {
+                $currentOrdre = (int)($currentNiveau->ordre ?? 0);
+                $targetOrdre = (int)($newNiveau->ordre ?? 0);
+
+                if ($currentOrdre > 0 && $targetOrdre <= $currentOrdre) {
+                     return response()->json([
+                        'message' => 'L\'élève ne peut pas être promu vers un niveau inférieur ou identique au niveau actuel.',
+                        'current_ordre' => $currentOrdre,
+                        'target_ordre' => $targetOrdre
+                    ], 422);
+                }
+            }
+
             $eleve->niveau_id = $request->niveau_id;
         }
         if ($isRedoublant) {
