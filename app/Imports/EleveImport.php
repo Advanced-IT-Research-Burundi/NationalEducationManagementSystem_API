@@ -10,29 +10,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithStartRow;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Maatwebsite\Excel\Validators\Failure;
 
-class EleveImport implements ToCollection, WithHeadingRow, WithStartRow, SkipsEmptyRows, WithChunkReading
+class EleveImport implements ToCollection, WithHeadingRow, SkipsEmptyRows, WithChunkReading
 {
-    /**
-     * Ligne 3 = headers (matricule, nom, prenom...)
-     */
     public function headingRow(): int
     {
         return 3;
-    }
-
-    /**
-     * Ligne 7 = première ligne de vraies données.
-     * Lignes 4-6 (type/exemple/notes) sont ignorées.
-     */
-    public function startRow(): int
-    {
-        return 7;
     }
 
     private array $collineCache = [];
@@ -98,6 +85,20 @@ class EleveImport implements ToCollection, WithHeadingRow, WithStartRow, SkipsEm
         return null;
     }
 
+    // ── Template meta-row detection ──────────────────────────────────────────
+
+    private function isTemplateMetaRow(array $data): bool
+    {
+        $sexe = mb_strtolower(trim((string) ($this->get($data, 'sexe') ?? '')));
+        if (! empty($sexe) && ! in_array($sexe, ['m', 'f'])) return true;
+
+        $matricule = mb_strtolower(trim((string) ($this->get($data, 'matricule') ?? '')));
+        foreach (['obligatoire', 'optionnel', 'el-2024-001', 'el_2024_001', 'nom id auto'] as $word) {
+            if (str_contains($matricule, $word)) return true;
+        }
+        return false;
+    }
+
     // ── Main collection ──────────────────────────────────────────────────────
 
     public function collection(Collection $rows): void
@@ -108,12 +109,12 @@ class EleveImport implements ToCollection, WithHeadingRow, WithStartRow, SkipsEm
 
         foreach ($rows as $index => $row) {
             $rawData  = $row->toArray();
-            // startRow=7, index 0-based → ligne Excel réelle
-            $excelRow = $index + 7;
+            $excelRow = $index + 4;
 
             $data = $this->normalizeRow($rawData);
 
-            // Ignorer lignes vraiment vides
+            if ($this->isTemplateMetaRow($data)) continue;
+
             $nonEmpty = array_filter(array_values($data), fn($v) => ! is_null($v) && $v !== '');
             if (empty($nonEmpty)) continue;
 
@@ -137,6 +138,7 @@ class EleveImport implements ToCollection, WithHeadingRow, WithStartRow, SkipsEm
                 'school_destination' => $this->get($data, 'school_destination'),
             ];
 
+            // Validation
             $validator = Validator::make($flat, [
                 'matricule'      => ['required', 'string', 'max:20'],
                 'nom'            => ['required', 'string', 'max:100'],
@@ -168,7 +170,7 @@ class EleveImport implements ToCollection, WithHeadingRow, WithStartRow, SkipsEm
                 'nom'                => $flat['nom'],
                 'prenom'             => $flat['prenom'],
                 'sexe'               => $flat['sexe'],
-                'date_naissance'     => $flat['date_naissance'],
+                'date_naissance'     => $flat['date_naissance'], // string "YYYY-MM-DD" pure
                 'lieu_naissance'     => $flat['lieu_naissance'],
                 'nationalite'        => $flat['nationalite'] ?: 'Burundaise',
                 'colline_origine_id' => $this->resolveCollineId($flat['colline_origine']),
@@ -186,13 +188,18 @@ class EleveImport implements ToCollection, WithHeadingRow, WithStartRow, SkipsEm
                 'updated_at'         => $now,
             ];
 
-            $existing = DB::table('eleves')->where('matricule', $flat['matricule'])->first();
+            // Vérifier existence directement en DB (contourne SoftDeletes + cast Eloquent)
+            $existing = DB::table('eleves')
+                ->where('matricule', $flat['matricule'])
+                ->first();
 
             if ($existing) {
+                // UPDATE : restaurer si deleted_at non null
                 DB::table('eleves')
                     ->where('matricule', $flat['matricule'])
                     ->update(array_merge($payload, ['deleted_at' => null]));
             } else {
+                // INSERT
                 DB::table('eleves')->insert(array_merge($payload, [
                     'matricule'  => $flat['matricule'],
                     'created_at' => $now,
