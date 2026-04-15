@@ -58,12 +58,12 @@ class StoreUserRequest extends FormRequest
                 }
             }
 
-            if (($data['role'] ?? null) === Role::SUPER_ADMIN) {
+            if (($data['role'] ?? null) === Role::SUPER_ADMIN && ! $user->isSuperAdmin()) {
                 $validator->errors()->add('role', 'Le rôle Super Administrateur est réservé au compte système.');
             }
 
             // Hierarchical Validation Logic (Prevent privilege escalation or cross-domain creation)
-            if ($user->hasRole('Admin National')) {
+            if ($user->isSuperAdmin() || $user->hasRole('Admin National')) {
                 return; // Can do anything
             }
 

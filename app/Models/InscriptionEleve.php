@@ -177,8 +177,8 @@ class InscriptionEleve extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        // Admin National sees everything
-        if ($user->hasRole('Admin National') || $user->admin_level === 'PAYS') {
+        // Super admin and national operators see everything
+        if ($user->isSuperAdmin() || $user->hasRole('Admin National') || $user->admin_level === 'PAYS') {
             return $query;
         }
 

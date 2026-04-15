@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Core;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,9 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         $users = User::with(['roles', 'creator'])->paginate(15);
+        $users->getCollection()->transform(function (User $user) {
+            return tap($user)->setAttribute('is_super_admin', $user->isSuperAdmin());
+        });
 
         return sendResponse($users, 'Users retrieved successfully');
     }
@@ -44,7 +48,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User created successfully',
-            'user' => $user->load('roles'),
+            'user' => tap($user->load('roles'))->setAttribute('is_super_admin', $user->isSuperAdmin()),
         ], 201);
     }
 
@@ -70,6 +74,7 @@ class UserController extends Controller
 
         $payload['role'] = $user->getPrimaryRole()?->toArray();
         $payload['primary_role'] = $user->getPrimaryRole()?->toArray();
+        $payload['is_super_admin'] = $user->isSuperAdmin();
         $payload['authorization'] = $user->getAuthorizationSnapshot();
 
         return response()->json($payload);
@@ -96,7 +101,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User updated successfully',
-            'user' => $user->load('roles'),
+            'user' => tap($user->load('roles'))->setAttribute('is_super_admin', $user->isSuperAdmin()),
         ]);
     }
 
@@ -173,12 +178,15 @@ class UserController extends Controller
 
         if ($roles !== []) {
             $user->syncRoles($roles);
+            $user->forceFill([
+                'is_super_admin' => in_array(Role::SUPER_ADMIN, $roles, true),
+            ])->save();
         }
     }
 
     protected function ensureNotProtectedUser(User $user): void
     {
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() && ! request()->user()?->isSuperAdmin()) {
             abort(Response::HTTP_FORBIDDEN, 'Le compte supAdmin (sudo) est protégé et ne peut pas être modifié via cette interface.');
         }
     }

@@ -139,7 +139,7 @@ class MouvementEleve extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->hasRole('Admin National') || $user->admin_level === 'PAYS') {
+        if ($user->isSuperAdmin() || $user->hasRole('Admin National') || $user->admin_level === 'PAYS') {
             return $query;
         }
 

@@ -289,6 +289,10 @@ class User extends Authenticatable
      */
     public function belongsToSchool(int $schoolId): bool
     {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
         if ($this->admin_level === 'ECOLE') {
             return $this->admin_entity_id === $schoolId || $this->school_id === $schoolId;
         }
@@ -303,7 +307,11 @@ class User extends Authenticatable
      */
     public function canAccessSchool(?School $school): bool
     {
-        if (!$school) {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if (! $school) {
             return $this->admin_level === 'PAYS';
         }
 

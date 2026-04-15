@@ -66,16 +66,16 @@ class UpdateUserRequest extends FormRequest
                 }
             }
 
-            if ($targetUser?->isSuperAdmin()) {
+            if ($targetUser?->isSuperAdmin() && ! $user->isSuperAdmin()) {
                 $validator->errors()->add('role', 'Le compte supAdmin (sudo) est protégé et ne peut pas être modifié via cette interface.');
             }
 
-            if (($data['role'] ?? null) === Role::SUPER_ADMIN) {
+            if (($data['role'] ?? null) === Role::SUPER_ADMIN && ! $user->isSuperAdmin()) {
                 $validator->errors()->add('role', 'Le rôle Super Administrateur est réservé au compte système.');
             }
 
             // Hierarchical Validation Logic
-            if ($user->hasRole('Admin National')) {
+            if ($user->isSuperAdmin() || $user->hasRole('Admin National')) {
                 return; // Can do anything
             }
 

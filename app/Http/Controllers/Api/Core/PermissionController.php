@@ -69,7 +69,7 @@ class PermissionController extends Controller
     {
         $permission = Permission::findOrFail($id);
         $this->authorize('update', $permission);
-        $this->ensurePermissionIsMutable($permission);
+        $this->ensurePermissionIsMutable($request, $permission);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('permissions', 'name')->ignore($permission->id)->where('guard_name', 'api')],
@@ -97,15 +97,15 @@ class PermissionController extends Controller
     {
         $permission = Permission::findOrFail($id);
         $this->authorize('delete', $permission);
-        $this->ensurePermissionIsMutable($permission);
+        $this->ensurePermissionIsMutable(request(), $permission);
         $permission->delete();
 
         return sendResponse(null, 'Permission deleted successfully');
     }
 
-    protected function ensurePermissionIsMutable(Permission $permission): void
+    protected function ensurePermissionIsMutable(Request $request, Permission $permission): void
     {
-        if ($permission->isSystemPermission()) {
+        if ($permission->isSystemPermission() && ! $request->user()?->isSuperAdmin()) {
             abort(Response::HTTP_FORBIDDEN, 'Cette permission système est verrouillée.');
         }
     }

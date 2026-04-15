@@ -73,7 +73,7 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
         $this->authorize('update', $role);
-        $this->ensureRoleIsMutable($role);
+        $this->ensureRoleIsMutable($request, $role);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($role->id)->where('guard_name', 'api')],
@@ -107,7 +107,7 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
         $this->authorize('delete', $role);
-        $this->ensureRoleIsMutable($role);
+        $this->ensureRoleIsMutable(request(), $role);
 
         if ($role->users()->exists()) {
             abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Ce rôle est encore attribué à des utilisateurs.');
@@ -125,7 +125,7 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
         $this->authorize('update', $role);
-        $this->ensureRoleIsMutable($role);
+        $this->ensureRoleIsMutable($request, $role);
 
         $validated = $request->validate([
             'permissions' => ['required', 'array'],
@@ -140,9 +140,9 @@ class RoleController extends Controller
         ]);
     }
 
-    protected function ensureRoleIsMutable(Role $role): void
+    protected function ensureRoleIsMutable(Request $request, Role $role): void
     {
-        if ($role->isSystemRole()) {
+        if ($role->isSystemRole() && ! $request->user()?->isSuperAdmin()) {
             abort(Response::HTTP_FORBIDDEN, 'Ce rôle système est verrouillé.');
         }
     }
