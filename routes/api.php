@@ -166,11 +166,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum'])->group(function () {
     // Route::get('inscriptions/statistics', [InscriptionController::class, 'statistics']);
     // Route::get('inscriptions/campagne-active', [InscriptionController::class, 'campagneActive']);
-    
+
     Route::post('inscriptions/{inscription}/soumettre', [InscriptionController::class, 'soumettre']);
     Route::post('inscriptions/{inscription}/valider', [InscriptionController::class, 'valider']);
     Route::post('inscriptions/{inscription}/rejeter', [InscriptionController::class, 'rejeter']);
-    
+
     Route::apiResource('inscriptions', InscriptionController::class);
 });
 
@@ -223,7 +223,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Campagnes d'Inscription
     // Route::get('campagnes-inscription/statistics', [CampagneInscriptionController::class, 'statistics']);
     // Route::get('campagnes-inscription/by-ecole/{ecole}', [CampagneInscriptionController::class, 'byEcole']);
-    
+
     // Note: Parameter binding for apiResource might need adjustment if it doesn't match $campagneInscription
     // Explicitly defining param for custom routes
     Route::post('campagnes-inscription/{campagneInscription}/ouvrir', [CampagneInscriptionController::class, 'ouvrir']);
@@ -231,4 +231,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('campagnes-inscription', CampagneInscriptionController::class)->parameters([
         'campagnes-inscription' => 'campagneInscription'
     ]);
+
+    // Route::get('eleves/export', [EleveController::class, 'export']);
 });

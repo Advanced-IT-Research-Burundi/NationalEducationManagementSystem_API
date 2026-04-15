@@ -628,4 +628,18 @@ public function show($id): JsonResponse
         }
         return Excel::download(new EleveTemplateExport, 'template_import_eleves.xlsx');
     }
+
+    public function export(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $this->authorize('viewAny', Eleve::class);
+
+        return Excel::download(
+            new EleveExport(
+                schoolId: $request->school_id,
+                statut:   $request->statut,
+                niveauId: $request->niveau_id,
+            ),
+            'eleves_' . now()->format('Y-m-d') . '.xlsx'
+        );
+    }
 }
