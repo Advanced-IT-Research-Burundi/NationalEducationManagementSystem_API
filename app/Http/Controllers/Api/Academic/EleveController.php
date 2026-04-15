@@ -224,7 +224,7 @@ public function show($id): JsonResponse
         $query = Eleve::with(['provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau'])->bySchool($schoolId);
 
         if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
+            $query->whereRaw('LOWER(statut_global) = ?', [strtolower($request->statut)]);
         } else {
             $query->actif();
         }
@@ -395,9 +395,10 @@ public function show($id): JsonResponse
             'total' => $query->count(),
             'by_status' => [
                 'actif' => (clone $query)->actif()->count(),
-                'suspendu' => (clone $query)->where('statut', 'SUSPENDU')->count(),
-                'transfere' => (clone $query)->where('statut', 'TRANSFERE')->count(),
-                'diplome' => (clone $query)->where('statut', 'DIPLOME')->count(),
+                'inactif' => (clone $query)->whereRaw('LOWER(statut_global) = ?', ['inactif'])->count(),
+                'transfere' => (clone $query)->whereRaw('LOWER(statut_global) = ?', ['transfere'])->count(),
+                'abandonne' => (clone $query)->whereRaw('LOWER(statut_global) = ?', ['abandonne'])->count(),
+                'decede' => (clone $query)->whereRaw('LOWER(statut_global) = ?', ['decede'])->count(),
             ],
             'by_sexe' => [
                 'garcons' => (clone $query)->bySexe('M')->count(),
