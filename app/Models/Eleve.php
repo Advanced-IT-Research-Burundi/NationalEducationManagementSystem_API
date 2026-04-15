@@ -92,6 +92,11 @@ class Eleve extends Model
         return $query->where('school_id', $schoolId);
     }
 
+    public function scopeBySexe($query, string $sexe)
+    {
+        return $query->where('sexe', strtoupper($sexe));
+    }
+
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {
