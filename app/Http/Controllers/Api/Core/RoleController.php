@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response;
 
 class RoleController extends Controller
 {
@@ -14,7 +16,13 @@ class RoleController extends Controller
      */
     public function index(): JsonResponse
     {
-        $roles = Role::with('permissions')->withCount('users')->get();
+        $this->authorize('viewAny', Role::class);
+
+        $roles = Role::with('permissions')
+            ->withCount('users')
+            ->orderByDesc('sort_order')
+            ->orderBy('name')
+            ->get();
 
         return response()->json($roles);
     }
@@ -24,18 +32,27 @@ class RoleController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Role::class);
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name',
-            'permissions' => 'array',
+            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->where('guard_name', 'api')],
+            'description' => ['nullable', 'string'],
+            'permissions' => ['array'],
+            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'api')],
         ]);
 
-        $role = Role::create(['name' => $validated['name'], 'guard_name' => 'web']);
+        $role = Role::create([
+            'name' => $validated['name'],
+            'guard_name' => 'api',
+            'description' => $validated['description'] ?? null,
+            'is_system' => false,
+        ]);
 
         if (isset($validated['permissions'])) {
             $role->syncPermissions($validated['permissions']);
         }
 
-        return response()->json($role->load('permissions'), 201);
+        return response()->json($role->load('permissions')->loadCount('users'), 201);
     }
 
     /**
@@ -44,8 +61,9 @@ class RoleController extends Controller
     public function show(string $id): JsonResponse
     {
         $role = Role::with('permissions')->findOrFail($id);
+        $this->authorize('view', $role);
 
-        return response()->json($role);
+        return response()->json($role->loadCount('users'));
     }
 
     /**
@@ -54,22 +72,32 @@ class RoleController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $role = Role::findOrFail($id);
+        $this->authorize('update', $role);
+        $this->ensureRoleIsMutable($role);
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255|unique:roles,name,' . $role->id,
-            'permissions' => 'array',
+            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($role->id)->where('guard_name', 'api')],
+            'description' => ['nullable', 'string'],
+            'permissions' => ['array'],
+            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'api')],
         ]);
 
         if (isset($validated['name'])) {
             $role->name = $validated['name'];
-            $role->save();
         }
+
+        if (array_key_exists('description', $validated)) {
+            $role->description = $validated['description'];
+        }
+
+        $role->guard_name = 'api';
+        $role->save();
 
         if (isset($validated['permissions'])) {
             $role->syncPermissions($validated['permissions']);
         }
 
-        return response()->json($role->load('permissions'));
+        return response()->json($role->load('permissions')->loadCount('users'));
     }
 
     /**
@@ -78,6 +106,13 @@ class RoleController extends Controller
     public function destroy(string $id): JsonResponse
     {
         $role = Role::findOrFail($id);
+        $this->authorize('delete', $role);
+        $this->ensureRoleIsMutable($role);
+
+        if ($role->users()->exists()) {
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Ce rôle est encore attribué à des utilisateurs.');
+        }
+
         $role->delete();
 
         return response()->json(null, 204);
@@ -89,16 +124,26 @@ class RoleController extends Controller
     public function syncPermissions(Request $request, string $id): JsonResponse
     {
         $role = Role::findOrFail($id);
+        $this->authorize('update', $role);
+        $this->ensureRoleIsMutable($role);
 
         $validated = $request->validate([
-            'permissions' => 'required|array',
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'api')],
         ]);
 
         $role->syncPermissions($validated['permissions']);
 
         return response()->json([
             'message' => 'Permissions synced successfully',
-            'role' => $role->load('permissions'),
+            'role' => $role->load('permissions')->loadCount('users'),
         ]);
+    }
+
+    protected function ensureRoleIsMutable(Role $role): void
+    {
+        if ($role->isSystemRole()) {
+            abort(Response::HTTP_FORBIDDEN, 'Ce rôle système est verrouillé.');
+        }
     }
 }

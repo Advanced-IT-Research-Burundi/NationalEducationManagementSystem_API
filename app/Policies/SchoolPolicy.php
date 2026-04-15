@@ -12,7 +12,10 @@ class SchoolPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('view_data');
+        return $user->hasPermission('view_data')
+            || $user->hasPermission('view_any_school')
+            || $user->hasPermission('view_school')
+            || $user->hasPermission('manage_schools');
     }
 
     /**
@@ -20,8 +23,12 @@ class SchoolPolicy
      */
     public function view(User $user, School $school): bool
     {
-        // AdminScope will filter, but we can add extra checks
-        return $user->hasPermission('view_data');
+        return $user->hasAnyPermissionName([
+            'view_data',
+            'view_school',
+            'view_any_school',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -29,8 +36,11 @@ class SchoolPolicy
      */
     public function create(User $user): bool
     {
-        // Typically, commune/zone/province level admins can create schools
-        return $user->hasPermission('create_data') || $user->hasPermission('manage_schools');
+        return $user->hasAnyPermissionName([
+            'create_data',
+            'create_school',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -43,7 +53,11 @@ class SchoolPolicy
             return false;
         }
         
-        return $user->hasPermission('update_data') || $user->hasPermission('manage_schools');
+        return $user->hasAnyPermissionName([
+            'update_data',
+            'update_school',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -53,8 +67,11 @@ class SchoolPolicy
     {
         // Only Admin National can delete schools, or those with explicit permission
         return $user->hasRole('Admin National') 
-            || $user->hasPermission('delete_data') 
-            || $user->hasPermission('manage_schools');
+            || $user->hasAnyPermissionName([
+                'delete_data',
+                'delete_school',
+                'manage_schools',
+            ]);
     }
 
     /**
@@ -68,7 +85,12 @@ class SchoolPolicy
             return false;
         }
 
-        return $user->hasPermission('update_data') || $user->hasPermission('manage_schools');
+        return $user->hasAnyPermissionName([
+            'update_data',
+            'update_school',
+            'submit_school',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -78,7 +100,7 @@ class SchoolPolicy
     public function validate(User $user, School $school): bool
     {
         // Must have validate_data permission
-        if (!$user->hasPermission('validate_data')) {
+        if (! $user->hasAnyPermissionName(['validate_data', 'validate_school'])) {
             return false;
         }
 
@@ -117,6 +139,10 @@ class SchoolPolicy
     {
         // Must be active to deactivate
         if ($school->statut !== School::STATUS_ACTIVE) {
+            return false;
+        }
+
+        if (! $user->hasAnyPermissionName(['deactivate_school', 'delete_school', 'manage_schools'])) {
             return false;
         }
 

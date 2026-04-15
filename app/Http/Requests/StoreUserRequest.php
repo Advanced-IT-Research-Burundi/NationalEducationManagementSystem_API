@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -27,7 +28,7 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', 'exists:roles,name'], // passing role name
+            'role' => ['required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'api')],
             'admin_level' => ['required', Rule::in(['PAYS', 'MINISTERE', 'PROVINCE', 'COMMUNE', 'ZONE', 'ECOLE'])],
 
             // Entity IDs - validation depends on level, but we can make them nullable generally
@@ -55,6 +56,10 @@ class StoreUserRequest extends FormRequest
                 if (empty($data['school_id'])) {
                     $validator->errors()->add('school_id', 'Le school_id est requis pour les utilisateurs de niveau ECOLE.');
                 }
+            }
+
+            if (($data['role'] ?? null) === Role::SUPER_ADMIN) {
+                $validator->errors()->add('role', 'Le rôle Super Administrateur est réservé au compte système.');
             }
 
             // Hierarchical Validation Logic (Prevent privilege escalation or cross-domain creation)

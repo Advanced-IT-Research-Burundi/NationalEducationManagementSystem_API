@@ -138,7 +138,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             'scope' => 'Commune Data',
             'modules' => ['core', 'schools', 'statistics'],
         ]);
-    })->middleware('role:officier_communal')->name('dashboard.commune');
+    })->middleware('role:agent_communal')->name('dashboard.commune');
 
     // School Director Dashboard
     Route::get('/school/dashboard', function () {

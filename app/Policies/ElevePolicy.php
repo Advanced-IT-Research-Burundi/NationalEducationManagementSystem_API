@@ -12,7 +12,12 @@ class ElevePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('view_data');
+        return $user->hasAnyPermissionName([
+            'view_data',
+            'view_eleve',
+            'view_any_eleve',
+            'manage_students',
+        ]);
     }
 
     /**
@@ -20,7 +25,12 @@ class ElevePolicy
      */
     public function view(User $user, Eleve $eleve): bool
     {
-        if (! $user->hasPermission('view_data')) {
+        if (! $user->hasAnyPermissionName([
+            'view_data',
+            'view_eleve',
+            'view_any_eleve',
+            'manage_students',
+        ])) {
             return false;
         }
 
@@ -33,8 +43,12 @@ class ElevePolicy
      */
     public function create(User $user): bool
     {
-        // School staff and teachers can create students
-        return $user->hasPermission('create_data') || $user->hasPermission('manage_schools');
+        return $user->hasAnyPermissionName([
+            'create_data',
+            'create_eleve',
+            'manage_students',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -42,7 +56,12 @@ class ElevePolicy
      */
     public function update(User $user, Eleve $eleve): bool
     {
-        if (! ($user->hasPermission('update_data') || $user->hasPermission('manage_schools'))) {
+        if (! $user->hasAnyPermissionName([
+            'update_data',
+            'update_eleve',
+            'manage_students',
+            'manage_schools',
+        ])) {
             return false;
         }
 
@@ -55,7 +74,12 @@ class ElevePolicy
      */
     public function delete(User $user, Eleve $eleve): bool
     {
-        if (! ($user->hasPermission('delete_data') || $user->hasPermission('manage_schools'))) {
+        if (! $user->hasAnyPermissionName([
+            'delete_data',
+            'delete_eleve',
+            'manage_students',
+            'manage_schools',
+        ])) {
             return false;
         }
 

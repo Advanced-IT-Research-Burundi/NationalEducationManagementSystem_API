@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -32,7 +33,7 @@ class UpdateUserRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($userId)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'], // Optional on update
-            'role' => ['sometimes', 'string', 'exists:roles,name'],
+            'role' => ['sometimes', 'string', Rule::exists('roles', 'name')->where('guard_name', 'api')],
             'admin_level' => ['sometimes', Rule::in(['PAYS', 'MINISTERE', 'PROVINCE', 'COMMUNE', 'ZONE', 'ECOLE'])],
             'admin_entity_id' => ['nullable', 'integer'],
 
@@ -63,6 +64,14 @@ class UpdateUserRequest extends FormRequest
                 if (empty($schoolId)) {
                     $validator->errors()->add('school_id', 'Le school_id est requis pour les utilisateurs de niveau ECOLE.');
                 }
+            }
+
+            if ($targetUser?->isSuperAdmin()) {
+                $validator->errors()->add('role', 'Le compte supAdmin (sudo) est protégé et ne peut pas être modifié via cette interface.');
+            }
+
+            if (($data['role'] ?? null) === Role::SUPER_ADMIN) {
+                $validator->errors()->add('role', 'Le rôle Super Administrateur est réservé au compte système.');
             }
 
             // Hierarchical Validation Logic

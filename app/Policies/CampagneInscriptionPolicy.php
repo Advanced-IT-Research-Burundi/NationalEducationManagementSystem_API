@@ -109,7 +109,7 @@ class CampagneInscriptionPolicy
     private function isInUserScope(User $user, CampagneInscription $campagne): bool
     {
         // National Admin sees everything
-        if ($user->role && $user->role->slug === 'admin_national') {
+        if ($user->isSuperAdmin() || $user->hasRole(\App\Models\Role::ADMIN_NATIONAL)) {
             return true;
         }
 

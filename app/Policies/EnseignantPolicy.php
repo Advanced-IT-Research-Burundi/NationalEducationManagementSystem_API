@@ -12,7 +12,13 @@ class EnseignantPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('view_data');
+        return $user->hasAnyPermissionName([
+            'view_data',
+            'view_enseignant',
+            'view_any_enseignant',
+            'manage_teachers',
+            'manage_users',
+        ]);
     }
 
     /**
@@ -20,7 +26,13 @@ class EnseignantPolicy
      */
     public function view(User $user, Enseignant $enseignant): bool
     {
-        if (! $user->hasPermission('view_data')) {
+        if (! $user->hasAnyPermissionName([
+            'view_data',
+            'view_enseignant',
+            'view_any_enseignant',
+            'manage_teachers',
+            'manage_users',
+        ])) {
             return false;
         }
 
@@ -39,9 +51,13 @@ class EnseignantPolicy
     public function create(User $user): bool
     {
         // School directors and admins can create teachers
-        return $user->hasPermission('create_data')
-            || $user->hasPermission('manage_users')
-            || $user->hasPermission('manage_schools');
+        return $user->hasAnyPermissionName([
+            'create_data',
+            'create_enseignant',
+            'manage_teachers',
+            'manage_users',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -49,7 +65,12 @@ class EnseignantPolicy
      */
     public function update(User $user, Enseignant $enseignant): bool
     {
-        if (! ($user->hasPermission('update_data') || $user->hasPermission('manage_users'))) {
+        if (! $user->hasAnyPermissionName([
+            'update_data',
+            'update_enseignant',
+            'manage_teachers',
+            'manage_users',
+        ])) {
             return false;
         }
 
@@ -62,7 +83,12 @@ class EnseignantPolicy
      */
     public function delete(User $user, Enseignant $enseignant): bool
     {
-        if (! ($user->hasPermission('delete_data') || $user->hasPermission('manage_users'))) {
+        if (! $user->hasAnyPermissionName([
+            'delete_data',
+            'delete_enseignant',
+            'manage_teachers',
+            'manage_users',
+        ])) {
             return false;
         }
 

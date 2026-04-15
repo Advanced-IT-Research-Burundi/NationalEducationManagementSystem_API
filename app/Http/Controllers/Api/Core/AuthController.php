@@ -12,6 +12,20 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Build a frontend-friendly authenticated user payload.
+     */
+    protected function serializeAuthenticatedUser(User $user): array
+    {
+        $user->loadAuthorizationRelations();
+
+        return array_merge($user->toArray(), [
+            'role' => $user->getPrimaryRole()?->toArray(),
+            'primary_role' => $user->getPrimaryRole()?->toArray(),
+            'authorization' => $user->getAuthorizationSnapshot(),
+        ]);
+    }
+
+    /**
      * Login user and create token.
      */
     public function login(Request $request): JsonResponse
@@ -41,7 +55,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user->load('roles', 'permissions', 'pays', 'ministere', 'province', 'commune', 'zone', 'colline', 'ecole'),
+            'user' => $this->serializeAuthenticatedUser($user),
         ]);
     }
 
@@ -62,19 +76,7 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load([
-            'roles',
-            'permissions',
-            'pays',
-            'ministere',
-            'province',
-            'commune',
-            'zone',
-            'colline',
-            'school',
-        ]);
-
-        return response()->json($user);
+        return response()->json($this->serializeAuthenticatedUser($request->user()));
     }
 
     /**

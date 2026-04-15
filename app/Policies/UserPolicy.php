@@ -11,7 +11,9 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('manage_users') || $user->hasPermission('view_data');
+        return $user->hasPermission('manage_users')
+            || $user->hasPermission('view_any_user')
+            || $user->hasPermission('view_user');
     }
 
     /**
@@ -21,6 +23,10 @@ class UserPolicy
     {
         if ($user->hasRole('Admin National')) {
             return true;
+        }
+
+        if (! ($user->hasPermission('manage_users') || $user->hasPermission('view_user') || $user->hasPermission('view_any_user'))) {
+            return false;
         }
 
         // Own profile
@@ -48,7 +54,7 @@ class UserPolicy
             return $model->province_id === $user->admin_entity_id;
         }
 
-        return $user->hasPermission('manage_users');
+        return $user->hasPermission('manage_users') || $user->hasPermission('view_any_user');
     }
 
     /**
@@ -56,7 +62,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermission('manage_users');
+        return $user->hasPermission('manage_users') || $user->hasPermission('create_user');
     }
 
     /**
@@ -69,6 +75,10 @@ class UserPolicy
             return true;
         }
 
+        if (! ($user->hasPermission('manage_users') || $user->hasPermission('update_user'))) {
+            return false;
+        }
+
         if ($user->hasRole('Admin National')) {
             return true;
         }
@@ -76,28 +86,28 @@ class UserPolicy
         // School-level user can only update users in their school
         if ($user->admin_level === 'ECOLE') {
             return $model->school_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('update_user'));
         }
 
         // Zone-level user can only update users in their zone
         if ($user->admin_level === 'ZONE') {
             return $model->zone_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('update_user'));
         }
 
         // Commune-level user can only update users in their commune
         if ($user->admin_level === 'COMMUNE') {
             return $model->commune_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('update_user'));
         }
 
         // Province-level user can only update users in their province
         if ($user->admin_level === 'PROVINCE') {
             return $model->province_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('update_user'));
         }
 
-        return $user->hasPermission('manage_users');
+        return $user->hasPermission('manage_users') || $user->hasPermission('update_user');
     }
 
     /**
@@ -109,6 +119,10 @@ class UserPolicy
             return false; // Cannot delete self
         }
 
+        if (! ($user->hasPermission('manage_users') || $user->hasPermission('delete_user'))) {
+            return false;
+        }
+
         if ($user->hasRole('Admin National')) {
             return true;
         }
@@ -116,27 +130,27 @@ class UserPolicy
         // School-level user can only delete users in their school
         if ($user->admin_level === 'ECOLE') {
             return $model->school_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('delete_user'));
         }
 
         // Zone-level user can only delete users in their zone
         if ($user->admin_level === 'ZONE') {
             return $model->zone_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('delete_user'));
         }
 
         // Commune-level user can only delete users in their commune
         if ($user->admin_level === 'COMMUNE') {
             return $model->commune_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('delete_user'));
         }
 
         // Province-level user can only delete users in their province
         if ($user->admin_level === 'PROVINCE') {
             return $model->province_id === $user->admin_entity_id
-                && $user->hasPermission('manage_users');
+                && ($user->hasPermission('manage_users') || $user->hasPermission('delete_user'));
         }
 
-        return $user->hasPermission('manage_users');
+        return $user->hasPermission('manage_users') || $user->hasPermission('delete_user');
     }
 }

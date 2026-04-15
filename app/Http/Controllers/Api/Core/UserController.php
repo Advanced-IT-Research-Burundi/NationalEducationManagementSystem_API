@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
@@ -20,17 +21,9 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        // Apply Data Scope automatically via AdminScope or manually if needed.
-        // Since we implemented AdminScope globally, User::all() or User::paginate() 
-        // will already be filtered by the logged-in user's administrative level.
-
-        $users = User::with(['role', 'creator'])->paginate(15);
-
-        return sendResponse($users, 'Users retrieved successfully');
-
         $users = User::with(['roles', 'creator'])->paginate(15);
 
-        return response()->json($users);
+        return sendResponse($users, 'Users retrieved successfully');
     }
 
     /**
@@ -47,9 +40,7 @@ class UserController extends Controller
         $user->statut = 'actif';
         $user->save();
 
-        if (isset($data['role'])) {
-            $user->assignRole($data['role']);
-        }
+        $this->syncUserRoles($user, $data);
 
         return response()->json([
             'message' => 'User created successfully',
@@ -64,7 +55,7 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
-        return response()->json($user->load([
+        $payload = $user->load([
             'roles',
             'permissions',
             'creator',
@@ -75,7 +66,13 @@ class UserController extends Controller
             'zone',
             'colline',
             'school',
-        ]));
+        ])->toArray();
+
+        $payload['role'] = $user->getPrimaryRole()?->toArray();
+        $payload['primary_role'] = $user->getPrimaryRole()?->toArray();
+        $payload['authorization'] = $user->getAuthorizationSnapshot();
+
+        return response()->json($payload);
     }
 
     /**
@@ -83,6 +80,8 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
+        $this->ensureNotProtectedUser($user);
+
         $data = $request->validated();
 
         if (isset($data['password'])) {
@@ -93,9 +92,7 @@ class UserController extends Controller
 
         $user->update($data);
 
-        if (isset($data['role'])) {
-            $user->syncRoles([$data['role']]);
-        }
+        $this->syncUserRoles($user, $data);
 
         return response()->json([
             'message' => 'User updated successfully',
@@ -109,6 +106,7 @@ class UserController extends Controller
     public function destroy(User $user): JsonResponse
     {
         $this->authorize('delete', $user);
+        $this->ensureNotProtectedUser($user);
 
         $user->delete();
 
@@ -121,6 +119,7 @@ class UserController extends Controller
     public function toggleStatus(Request $request, User $user): JsonResponse
     {
         $this->authorize('update', $user);
+        $this->ensureNotProtectedUser($user);
 
         $user->statut = $user->statut === 'actif' ? 'inactif' : 'actif';
         $user->save();
@@ -137,6 +136,7 @@ class UserController extends Controller
     public function resetPassword(Request $request, User $user): JsonResponse
     {
         $this->authorize('update', $user);
+        $this->ensureNotProtectedUser($user);
 
         $request->validate(['password' => 'required|string|min:8|confirmed']);
 
@@ -153,8 +153,33 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::where('statut', 'actif')->orderBy('name')->get(['id', 'name']);
+        $users = User::with('roles')
+            ->where('statut', 'actif')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
 
         return response()->json($users);
+    }
+
+    protected function syncUserRoles(User $user, array $data): void
+    {
+        $roles = [];
+
+        if (! empty($data['roles']) && is_array($data['roles'])) {
+            $roles = $data['roles'];
+        } elseif (! empty($data['role'])) {
+            $roles = [$data['role']];
+        }
+
+        if ($roles !== []) {
+            $user->syncRoles($roles);
+        }
+    }
+
+    protected function ensureNotProtectedUser(User $user): void
+    {
+        if ($user->isSuperAdmin()) {
+            abort(Response::HTTP_FORBIDDEN, 'Le compte supAdmin (sudo) est protégé et ne peut pas être modifié via cette interface.');
+        }
     }
 }

@@ -15,10 +15,23 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        // Split roles by pipe if multiple allowed: 'admin|manager'
-        $roles = explode('|', $role);
+        $user = $request->user();
 
-        if (! $request->user() || ! $request->user()->role || ! in_array($request->user()->role->slug, $roles)) {
+        if (! $user) {
+            return response()->json(['message' => 'Accès refusé. Rôle requis : ' . $role], 403);
+        }
+
+        if ($user->isSuperAdmin()) {
+            return $next($request);
+        }
+
+        $roles = collect(explode('|', $role))
+            ->map(fn (string $value) => trim($value))
+            ->filter();
+
+        $hasRequiredRole = $roles->contains(fn (string $value) => $user->matchesRoleIdentifier($value));
+
+        if (! $hasRequiredRole) {
             return response()->json(['message' => 'Accès refusé. Rôle requis : ' . $role], 403);
         }
 

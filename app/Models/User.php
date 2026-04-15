@@ -30,8 +30,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role_id',
         'statut',
+        'is_super_admin',
         'admin_level',
         'admin_entity_id',
         'pays_id',
@@ -63,6 +63,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_super_admin' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -75,18 +76,6 @@ class User extends Authenticatable
             ->logExcept(['password', 'remember_token'])
             ->useLogName('users')
             ->dontSubmitEmptyLogs();
-    }
-
-    // Relationships
-    // Note: role() relationship might key conflict with Spatie's roles() if not careful,
-    // but Spatie uses permissions based system.
-    // Ideally we should remove the 'role_id' column and 'role()' relation if we are fully switching to Spatie,
-    // but the task was to update the user table, not necessarily refactor everything immediately unless requested.
-    // However, keeping it simple for now.
-
-    public function role()
-    {
-        return $this->belongsTo(Role::class);
     }
 
     public function pays()
@@ -133,6 +122,130 @@ class User extends Authenticatable
     public function hasPermission($permissionSlug)
     {
         return $this->can($permissionSlug);
+    }
+
+    public function hasAnyPermissionName(array $permissionNames): bool
+    {
+        foreach ($permissionNames as $permissionName) {
+            if ($this->can($permissionName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function matchesRoleIdentifier(string $roleIdentifier): bool
+    {
+        $identifier = $this->normalizeRoleIdentifier($roleIdentifier);
+
+        if ($identifier === '') {
+            return false;
+        }
+
+        $roles = $this->relationLoaded('roles') ? $this->roles : $this->roles()->get();
+
+        return $roles->contains(function (Role $role) use ($identifier) {
+            $roleName = $this->normalizeRoleIdentifier($role->name);
+
+            return $roleName === $identifier
+                || $this->normalizeRoleIdentifier($role->slug) === $identifier;
+        });
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        if ($this->is_super_admin) {
+            return true;
+        }
+
+        return $this->hasRole(Role::SUPER_ADMIN);
+    }
+
+    public function getRoleAttribute(): ?Role
+    {
+        $roles = $this->relationLoaded('roles') ? $this->roles : $this->roles()->get();
+
+        return $roles
+            ->sortByDesc(fn (Role $role) => $role->sort_order)
+            ->sortByDesc(fn (Role $role) => $role->isSuperAdminRole())
+            ->first();
+    }
+
+    public function getPrimaryRole(): ?Role
+    {
+        return $this->role;
+    }
+
+    public function loadAuthorizationRelations(): self
+    {
+        return tap($this)->loadMissing([
+            'roles.permissions',
+            'permissions',
+            'pays',
+            'ministere',
+            'province',
+            'commune',
+            'zone',
+            'colline',
+            'school',
+        ]);
+    }
+
+    public function getAuthorizationSnapshot(): array
+    {
+        $this->loadAuthorizationRelations();
+
+        /** @var \Illuminate\Support\Collection<int, Role> $roles */
+        $roles = $this->roles->sortByDesc('sort_order')->values();
+        $directPermissions = $this->permissions->keyBy('id');
+        $allPermissions = $this->getAllPermissions()
+            ->sortBy(fn (Permission $permission) => sprintf(
+                '%s-%06d-%s',
+                $permission->group_name ?? 'zzz',
+                $permission->sort_order ?? 0,
+                $permission->name
+            ))
+            ->values();
+
+        return [
+            'is_super_admin' => $this->isSuperAdmin(),
+            'primary_role' => $this->role ? [
+                'id' => $this->role->id,
+                'name' => $this->role->name,
+                'slug' => $this->role->slug,
+                'description' => $this->role->description,
+                'is_system' => $this->role->is_system,
+            ] : null,
+            'role_names' => $roles->pluck('name')->values()->all(),
+            'roles' => $roles->map(fn (Role $role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'description' => $role->description,
+                'is_system' => $role->is_system,
+            ])->all(),
+            'permission_names' => $allPermissions->pluck('name')->values()->all(),
+            'permissions' => $allPermissions->map(function (Permission $permission) use ($roles, $directPermissions) {
+                $viaRoles = $roles
+                    ->filter(fn (Role $role) => $role->permissions->contains('id', $permission->id))
+                    ->pluck('name')
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'label' => $permission->label,
+                    'description' => $permission->description,
+                    'group_name' => $permission->group_name,
+                    'group_label' => $permission->group_label,
+                    'is_system' => $permission->is_system,
+                    'source' => $directPermissions->has($permission->id) ? 'direct' : 'role',
+                    'via_roles' => $viaRoles,
+                ];
+            })->all(),
+        ];
     }
 
     /**
@@ -202,6 +315,19 @@ class User extends Authenticatable
             'ZONE' => $school->zone_id === $this->admin_entity_id,
             'ECOLE' => $school->id === $this->admin_entity_id,
             default => false,
+        };
+    }
+
+    protected function normalizeRoleIdentifier(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[^a-z0-9]+/', '_', $normalized) ?? $normalized;
+        $normalized = trim($normalized, '_');
+
+        return match ($normalized) {
+            'officier_communal', 'responsable_communal' => 'agent_communal',
+            'agent_administratif' => 'personnel_administratif',
+            default => $normalized,
         };
     }
 }

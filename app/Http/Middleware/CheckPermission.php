@@ -15,7 +15,21 @@ class CheckPermission
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        if (! $request->user() || ! $request->user()->hasPermission($permission)) {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['message' => 'Accès refusé. Permission requise : ' . $permission], 403);
+        }
+
+        if ($user->isSuperAdmin()) {
+            return $next($request);
+        }
+
+        $permissions = collect(explode('|', $permission))
+            ->map(fn (string $value) => trim($value))
+            ->filter();
+
+        if (! $user->hasAnyPermissionName($permissions->all())) {
             return response()->json(['message' => 'Accès refusé. Permission requise : ' . $permission], 403);
         }
 

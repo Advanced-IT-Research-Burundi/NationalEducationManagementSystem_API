@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Commune;
 use App\Models\Pays;
 use App\Models\Province;
+use App\Models\Role;
 use App\Models\School;
 use App\Models\User;
 use App\Models\Zone;
@@ -37,7 +38,7 @@ class TestUsersSeeder extends Seeder
                 'pays_id' => $pays?->id,
             ]
         );
-        $adminNational->assignRole('Admin National');
+        $adminNational->syncRoles([Role::ADMIN_NATIONAL]);
         $this->command->info("Admin National: admin@nems.bi / password123");
 
         // 2. Directeur Provincial
@@ -54,7 +55,7 @@ class TestUsersSeeder extends Seeder
                     'province_id' => $province->id,
                 ]
             );
-            $directeurProvincial->assignRole('Admin National');
+            $directeurProvincial->syncRoles([Role::DIRECTEUR_PROVINCIAL]);
             $this->command->info("Directeur Provincial: provincial@nems.bi / password123 (Province: {$province->name})");
         }
 
@@ -73,7 +74,7 @@ class TestUsersSeeder extends Seeder
                     'commune_id' => $commune->id,
                 ]
             );
-            $agentCommunal->assignRole('Admin National');
+            $agentCommunal->syncRoles([Role::AGENT_COMMUNAL]);
             $this->command->info("Agent Communal: communal@nems.bi / password123 (Commune: {$commune->name})");
         }
 
@@ -93,7 +94,7 @@ class TestUsersSeeder extends Seeder
                     'zone_id' => $zone->id,
                 ]
             );
-            $superviseurZone->assignRole('Admin National');
+            $superviseurZone->syncRoles([Role::SUPERVISEUR_ZONE]);
             $this->command->info("Superviseur Zone: zone@nems.bi / password123 (Zone: {$zone->name})");
         }
 
@@ -114,7 +115,7 @@ class TestUsersSeeder extends Seeder
                     'school_id' => $school->id,
                 ]
             );
-            $directeurEcole->assignRole('Admin National');
+            $directeurEcole->syncRoles([Role::DIRECTEUR_ECOLE]);
             $this->command->info("Directeur Ecole: ecole@nems.bi / password123 (Ecole: {$school->name})");
         } else {
             $this->command->warn("Aucune ecole trouvee. L'utilisateur de niveau ECOLE n'a pas ete cree.");

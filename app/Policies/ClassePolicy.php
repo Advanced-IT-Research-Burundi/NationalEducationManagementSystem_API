@@ -12,7 +12,13 @@ class ClassePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('view_data');
+        return $user->hasAnyPermissionName([
+            'view_data',
+            'view_classe',
+            'view_any_classe',
+            'manage_classes',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -20,7 +26,13 @@ class ClassePolicy
      */
     public function view(User $user, Classe $classe): bool
     {
-        if (! $user->hasPermission('view_data')) {
+        if (! $user->hasAnyPermissionName([
+            'view_data',
+            'view_classe',
+            'view_any_classe',
+            'manage_classes',
+            'manage_schools',
+        ])) {
             return false;
         }
 
@@ -34,7 +46,12 @@ class ClassePolicy
     public function create(User $user): bool
     {
         // School directors and admins can create classes
-        return $user->hasPermission('create_data') || $user->hasPermission('manage_schools');
+        return $user->hasAnyPermissionName([
+            'create_data',
+            'create_classe',
+            'manage_classes',
+            'manage_schools',
+        ]);
     }
 
     /**
@@ -42,7 +59,12 @@ class ClassePolicy
      */
     public function update(User $user, Classe $classe): bool
     {
-        if (! ($user->hasPermission('update_data') || $user->hasPermission('manage_schools'))) {
+        if (! $user->hasAnyPermissionName([
+            'update_data',
+            'update_classe',
+            'manage_classes',
+            'manage_schools',
+        ])) {
             return false;
         }
 
@@ -55,7 +77,12 @@ class ClassePolicy
      */
     public function delete(User $user, Classe $classe): bool
     {
-        if (! ($user->hasPermission('delete_data') || $user->hasPermission('manage_schools'))) {
+        if (! $user->hasAnyPermissionName([
+            'delete_data',
+            'delete_classe',
+            'manage_classes',
+            'manage_schools',
+        ])) {
             return false;
         }
 

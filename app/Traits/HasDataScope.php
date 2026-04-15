@@ -17,7 +17,7 @@ trait HasDataScope
     public function scopeForUser(Builder $query, User $user)
     {
         // 1. National Admin sees everything
-        if ($user->role && $user->role->slug === 'admin_national') {
+        if ($user->isSuperAdmin() || $user->hasRole(\App\Models\Role::ADMIN_NATIONAL)) {
             return $query;
         }
 
