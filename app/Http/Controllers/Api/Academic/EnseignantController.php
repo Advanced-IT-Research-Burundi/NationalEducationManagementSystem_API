@@ -33,9 +33,7 @@ class EnseignantController extends Controller
 
         // School filter
         if ($request->filled('school_id')) {
-            $query->whereHas('ecoles', function($q) use ($request) {
-                $q->where('school_id', $request->school_id);
-            });
+            $query->bySchool($request->school_id);
         }
 
 
