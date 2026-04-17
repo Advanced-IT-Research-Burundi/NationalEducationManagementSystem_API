@@ -155,6 +155,7 @@ class BulletinController extends Controller
                     'note_tj' => $scaledTj,
                     'note_examen' => $scaledExam,
                     'note_total' => $total,
+                    'credit_heures' => (int)$matiere->credit_heures,
                 ];
             }
 
