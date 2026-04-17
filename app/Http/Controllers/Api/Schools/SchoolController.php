@@ -225,32 +225,44 @@ class SchoolController extends Controller
 
         $request->validate([
             'user_id' => 'required|exists:users,id',
+            'matricule' => 'nullable|string|max:50|unique:enseignants,matricule',
         ]);
-
-        $existing = Enseignant::withTrashed()
-            ->where('user_id', $request->user_id)
-            ->where('school_id', $school->id)
-            ->first();
-
-        if ($existing && ! $existing->trashed()) {
-            return response()->json([
-                'message' => 'Cet utilisateur est déjà enseignant dans cet établissement.',
-            ], 422);
-        }
 
         $user = User::findOrFail($request->user_id);
 
-        if ($existing && $existing->trashed()) {
-            $existing->restore();
-            $existing->update(['statut' => Enseignant::STATUS_ACTIF]);
-            $enseignant = $existing;
+        // Check if user already has an enseignant profile globally
+        $enseignant = Enseignant::where('user_id', $user->id)->first();
+
+        if ($enseignant) {
+            // Check if already linked to this school (using the updated bySchool logic)
+            $isLinked = Enseignant::where('id', $enseignant->id)->bySchool($school->id)->exists();
+
+            if ($isLinked) {
+                return response()->json([
+                    'message' => 'Cet utilisateur est déjà enseignant dans cet établissement.',
+                ], 422);
+            }
+
+            // Just link them to the new school in the pivot table
+            $enseignant->ecoles()->attach($school->id);
         } else {
+            // If they are not an enseignant yet, we need a matricule to create the profile.
+            // If none provided, we gracefully tell the user.
+            if (!$request->filled('matricule')) {
+                return response()->json([
+                    'message' => "Cet utilisateur n'a pas encore de profil enseignant. Veuillez d'abord le créer dans la gestion des enseignants ou fournir un matricule.",
+                ], 422);
+            }
+
             $enseignant = Enseignant::create([
                 'user_id' => $user->id,
                 'school_id' => $school->id,
+                'matricule' => $request->matricule,
                 'statut' => Enseignant::STATUS_ACTIF,
                 'created_by' => Auth::id(),
             ]);
+
+            $enseignant->ecoles()->attach($school->id);
         }
 
         if (! $user->hasRole('Enseignant')) {
@@ -270,7 +282,10 @@ class SchoolController extends Controller
     {
         $this->authorize('update', $school);
 
-        if ($enseignant->school_id !== $school->id) {
+        $isDirectlyLinked = $enseignant->school_id === $school->id;
+        $isPivotLinked = $enseignant->ecoles()->where('schools.id', $school->id)->exists();
+
+        if (!$isDirectlyLinked && !$isPivotLinked) {
             return response()->json([
                 'message' => "Cet enseignant n'appartient pas à cet établissement.",
             ], 422);
@@ -278,13 +293,21 @@ class SchoolController extends Controller
 
         if ($enseignant->affectations()->where('statut', 'ACTIVE')->exists()) {
             return response()->json([
-                'message' => 'Impossible de retirer cet enseignant car il a des affectations actives.',
+                'message' => 'Impossible de retirer cet enseignant car il a des affectations actives (classes/matières).',
             ], 422);
         }
 
-        $enseignant->delete();
+        // 1. Detach from pivot table if linked
+        if ($isPivotLinked) {
+            $enseignant->ecoles()->detach($school->id);
+        }
 
-        return response()->json(['message' => 'Enseignant retiré avec succès']);
+        // 2. Clear school_id if it was the main school
+        if ($isDirectlyLinked) {
+            $enseignant->update(['school_id' => null]);
+        }
+
+        return response()->json(['message' => 'Enseignant retiré de l’établissement avec succès']);
     }
 
     /**

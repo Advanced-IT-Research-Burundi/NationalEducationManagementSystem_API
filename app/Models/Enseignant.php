@@ -71,7 +71,12 @@ class Enseignant extends Model
 
     public function scopeBySchool($query, int $schoolId)
     {
-        return $query->where('school_id', $schoolId);
+        return $query->where(function ($q) use ($schoolId) {
+            $q->where('school_id', $schoolId)
+              ->orWhereHas('ecoles', function ($sq) use ($schoolId) {
+                  $sq->where('schools.id', $schoolId);
+              });
+        });
     }
 
 

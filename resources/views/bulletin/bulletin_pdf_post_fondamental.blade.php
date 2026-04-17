@@ -30,7 +30,7 @@
 <div class="page">
   <div class="header-titles">
     <h1>BULLETIN SCOLAIRE DE L'ENSEIGNEMENT POST-FONDAMENTAL</h1>
-    <h2>{{ $data['classe']['school']['nom'] ?? "LYCEE D'EXCELLENCE NGAGARA" }}</h2>
+    <h2>{{ $data['classe']['school']['nom'] ?? "—" }}</h2>
   </div>
 
   <table>
