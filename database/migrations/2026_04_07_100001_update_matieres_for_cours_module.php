@@ -23,7 +23,7 @@ return new class extends Migration
                 $table->decimal('ponderation_examen', 5, 2)->default(0)->after('ponderation_tj');
             }
             if (!Schema::hasColumn('matieres', 'credit_heures')) {
-                $table->decimal('credit_heures', 5, 2)->default(0)->after('ponderation_examen');
+                $table->integer('credit_heures')->default(0)->after('ponderation_examen');
             }
             if (!Schema::hasColumn('matieres', 'section_id')) {
                 $table->foreignId('section_id')->nullable()->after('niveau_id')

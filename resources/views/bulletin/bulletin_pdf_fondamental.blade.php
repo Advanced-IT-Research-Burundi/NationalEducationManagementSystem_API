@@ -99,13 +99,36 @@
         @endif
         
         <td class="td-name">{{ $cours['nom'] }}</td>
-        <td>1</td> <!-- Default H/S -->
+        <td>{{ $cours['credit_heures'] }}</td> <!-- Default H/S -->
         
         <!-- Maxima -->
         <td>{{ $cours['max_tj'] ? round($cours['max_tj']) : '' }}</td>
         <td>{{ $cours['max_examen'] ? round($cours['max_examen']) : '' }}</td>
         <td><strong>{{ $cours['max_total'] ? round($cours['max_total']) : '' }}</strong></td>
         
+        <!-- Trimestre 1 -->
+        <td>{{ round($cours['note_tj']) }}</td>
+        <td>{{ round($cours['note_examen']) }}</td>
+        <td><strong>{{ round($cours['note_total']) }}</strong></td>
+        
+        <!-- Trimestre 2 -->
+        <td>{{ round($cours['note_tj']) }}</td>
+        <td>{{ round($cours['note_examen']) }}</td>
+        <td><strong>{{ round($cours['note_total']) }}</strong></td>
+        
+        <!-- Trimestre 3 -->
+        <td>{{ round($cours['note_tj']) }}</td>
+        <td>{{ round($cours['note_examen']) }}</td>
+        <td><strong>{{ round($cours['note_total']) }}</strong></td>
+        
+        <!-- Annuel -->
+        <td>{{round($cours['max_total'] * ($isAll ? 3 : 1)) }}</td>
+        <td>{{ round($cours['note_total']) }}</td>
+        <td></td>
+        <td></td>
+
+
+{{-- 
         <!-- Trimestre 1 -->
         <td>{{ ($isT1 || $isAll) && $cours['note_tj'] !== '' && $cours['note_tj'] !== null ? round($cours['note_tj']) : '' }}</td>
         <td>{{ ($isT1 || $isAll) && $cours['note_examen'] !== '' && $cours['note_examen'] !== null ? round($cours['note_examen']) : '' }}</td>
@@ -125,7 +148,7 @@
         <td>{{ $cours['max_total'] ? round($cours['max_total'] * ($isAll ? 3 : 1)) : '' }}</td>
         <td>{{ $cours['note_total'] !== '' && $cours['note_total'] !== null ? round($cours['note_total']) : '' }}</td>
         <td></td>
-        <td></td>
+        <td></td> --}}
       </tr>
       @if (array_search($cours, $bulletin['cours']) === array_sum(array_slice($catCounts, 0, array_search($cat, array_keys($catCounts)) + 1)) - 1)
       <!-- Sous-total de la catégorie -->
@@ -133,7 +156,6 @@
         <td style="text-align: left; padding-left: 5px;">Total</td>
         <td>-</td>
         <td>{{ round($catTotals[$cat]['max_tj']) }}</td>
-        <td></td>
         <td>{{ round($catTotals[$cat]['max_res']) }}</td>
         <td>{{ round($catTotals[$cat]['max_tot']) }}</td>
         
@@ -155,6 +177,7 @@
         <!-- Annuel -->
         <td>{{ round($catTotals[$cat]['max_tot'] * 3) }}</td>
         <td>{{ round($catTotals[$cat]['tot']) }}</td>
+        <td></td>
         <td></td>
       </tr>
       @endif
@@ -185,6 +208,7 @@
       <td>{{ $isT3 ? round($noteConduite) : '' }}</td>
       <td></td>
       <td><strong>{{ $isT3 ? round($noteConduite) : '' }}</strong></td>
+
       
       <!-- Annuel -->
       <td>{{ $maxConduite * ($isAll ? 3 : 1) }}</td>
@@ -200,7 +224,7 @@
       $grandPourcentage = ($grandTotalMax > 0 && $grandTotalPoints !== null) ? round(($grandTotalPoints / $grandTotalMax) * 100, 1) : null;
     @endphp
     <tr class="total-row" style="border-top: 3px solid #000;">
-      <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL GLOBAL</td>
+      <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL</td>
       <td></td>
       <td colspan="2"></td>
       <td>{{ round($grandTotalMax) }}</td>
