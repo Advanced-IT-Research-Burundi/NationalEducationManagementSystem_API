@@ -24,7 +24,7 @@ class EnseignantController extends Controller
     {
         $this->authorize('viewAny', Enseignant::class);
 
-        $query = Enseignant::with(['user', 'school', 'ecoles', 'creator']);
+        $query = Enseignant::with(['user', 'school', 'ecoles', 'creator', 'classes']);
 
         // Search filter
         if ($request->filled('search')) {
@@ -189,7 +189,12 @@ class EnseignantController extends Controller
      */
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
-        $query = Enseignant::bySchool($schoolId)->with('user');
+        $query = Enseignant::bySchool($schoolId)->with([
+            'user', 
+            'classes' => function($q) use ($schoolId) {
+                $q->where('classes.school_id', $schoolId);
+            }
+        ]);
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
