@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateCollineRequest;
 use App\Models\Colline;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CollineController extends Controller
 {
@@ -39,6 +40,9 @@ class CollineController extends Controller
         }
 
         $collines = $query->paginate($request->input('per_page', 15));
+
+        //cache them for 24 hours
+        Cache::put('collines', $collines, 24 * 60 * 60);
 
         return sendResponse($collines, 'Collines retrieved successfully.');
     }

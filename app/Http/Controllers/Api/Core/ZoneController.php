@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ZoneController extends Controller
 {
@@ -33,6 +34,9 @@ class ZoneController extends Controller
         }
 
         $zones = $query->paginate($request->input('per_page', 15));
+
+        //cache them for 24 hours
+        Cache::put('zones', $zones, 24 * 60 * 60);
 
         return sendResponse($zones, 'Zones retrieved successfully.');
     }
