@@ -48,6 +48,8 @@ class AffectationMatiereController extends Controller
             'school_id' => 'nullable|exists:schools,id',
             'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
             'statut' => 'nullable|in:ACTIVE,INACTIVE',
+            'classe_ids' => 'nullable|array',
+            'classe_ids.*' => 'exists:classes,id',
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -68,7 +70,7 @@ class AffectationMatiereController extends Controller
                 array_merge($validated, ['matiere_id' => $matiereId, 'deleted_at' => null])
             );
             
-            $this->syncWithClasseAssignments($affectation);
+            $this->syncWithClasseAssignments($affectation, $request->input('classe_ids', []));
             $results[] = $affectation;
         }
 
@@ -83,12 +85,14 @@ class AffectationMatiereController extends Controller
             'school_id' => 'nullable|exists:schools,id',
             'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
             'statut' => 'nullable|in:ACTIVE,INACTIVE',
+            'classe_ids' => 'nullable|array',
+            'classe_ids.*' => 'exists:classes,id',
         ]);
 
         $affectation = AffectationMatiere::findOrFail($id);
         $affectation->update($validated);
         
-        $this->syncWithClasseAssignments($affectation);
+        $this->syncWithClasseAssignments($affectation, $request->input('classe_ids', []));
 
         return response()->json($affectation);
     }
@@ -116,44 +120,22 @@ class AffectationMatiereController extends Controller
     /**
      * Synchronize teacher subject assignment with class assignments.
      */
-    protected function syncWithClasseAssignments(AffectationMatiere $affectation)
+    protected function syncWithClasseAssignments(AffectationMatiere $affectation, array $classeIds = [])
     {
         if ($affectation->statut !== 'ACTIVE') {
             return;
         }
 
+        if (empty($classeIds)) {
+            return; // No classes selected, skip syncing
+        }
+
         $matiere = Matiere::find($affectation->matiere_id);
-        if (!$matiere || !$affectation->annee_scolaire_id) {
+        if (!$matiere) {
             return;
         }
 
-        // We find ALL schools associated with this teacher to be safe, 
-        // as the subject assignment might be intended for any of them.
-        $schoolIds = [];
-        $enseignant = \App\Models\Enseignant::find($affectation->enseignant_id);
-        if ($enseignant) {
-            if ($enseignant->school_id) {
-                $schoolIds[] = $enseignant->school_id;
-            }
-            $pivotSchools = $enseignant->ecoles()->pluck('schools.id')->toArray();
-            $schoolIds = array_unique(array_merge($schoolIds, $pivotSchools));
-        }
-
-        if (empty($schoolIds)) {
-            // Fallback to the affectation's school_id if teacher has no schools linked (unlikely)
-            if ($affectation->school_id) {
-                $schoolIds = [$affectation->school_id];
-            } else {
-                return;
-            }
-        }
-
-        // Find matching classes based on all available school contexts
-        $classes = Classe::whereIn('school_id', $schoolIds)
-            ->where('annee_scolaire_id', $affectation->annee_scolaire_id)
-            ->where('niveau_id', $matiere->niveau_id)
-            ->where('section_id', $matiere->section_id)
-            ->get();
+        $classes = Classe::whereIn('id', $classeIds)->get();
 
         foreach ($classes as $classe) {
             AffectationEnseignant::withTrashed()->updateOrCreate(

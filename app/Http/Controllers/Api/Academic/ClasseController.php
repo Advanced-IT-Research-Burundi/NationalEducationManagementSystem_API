@@ -119,10 +119,11 @@ class ClasseController extends Controller
      */
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
-        $query = Classe::bySchool($schoolId)->with(['niveau']);
+        $query = Classe::bySchool($schoolId)->with(['niveau', 'section']);
 
-        if ($request->filled('annee_scolaire')) {
-            $query->byAnneeScolaire($request->annee_scolaire);
+        $anneeId = $request->input('annee_scolaire_id') ?? $request->input('annee_scolaire');
+        if ($anneeId) {
+            $query->byAnneeScolaire((int) $anneeId);
         }
 
         if ($request->filled('statut')) {
