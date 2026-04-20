@@ -11,6 +11,7 @@ use App\Models\AffectationClasse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ClasseController extends Controller
@@ -50,6 +51,9 @@ class ClasseController extends Controller
         }
 
         $classes = $query->latest()->paginate($request->get('per_page', 15));
+
+        //cache them for 24 hours
+        Cache::put('classes', $classes, 24 * 60 * 60);
 
         return response()->json($classes);
     }

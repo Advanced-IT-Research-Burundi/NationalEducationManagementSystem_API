@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pays;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PaysController extends Controller
 {
@@ -15,6 +16,9 @@ class PaysController extends Controller
     public function index(): JsonResponse
     {
         $pays = Pays::all();
+
+        //cache for 24 hours
+        Cache::put('pays', $pays, 24 * 60 * 60);
 
         return response()->json($pays);
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Commune;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CommuneController extends Controller
 {
@@ -29,6 +30,9 @@ class CommuneController extends Controller
         }
 
         $communes = $query->paginate(10);
+
+        //cache them for 24 hours
+        Cache::put('communes', $communes, 24 * 60 * 60);
 
         return sendResponse($communes, 'Communes retrieved successfully.');
     }

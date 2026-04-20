@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class SchoolController extends Controller
 {
@@ -62,6 +63,9 @@ class SchoolController extends Controller
         $schools = $query
             ->latest('id')
             ->paginate($request->integer('per_page', 15));
+
+        //cache them for 24 hours
+        Cache::put('schools', $schools, 24 * 60 * 60);
 
         return response()->json($schools);
     }

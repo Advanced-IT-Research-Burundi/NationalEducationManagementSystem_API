@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Province;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ProvinceController extends Controller
 {
@@ -25,6 +26,9 @@ class ProvinceController extends Controller
         }
 
         $provinces = $query->paginate(10);
+
+        //cache them for 24 hours
+        Cache::put('provinces', $provinces, 24 * 60 * 60);
 
         return sendResponse($provinces, 'Provinces retrieved successfully.');
     }

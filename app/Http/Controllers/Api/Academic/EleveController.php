@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\AffectationClasse;
 use App\Imports\EleveImport;
 use App\Exports\EleveTemplateExport;
+use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
 
@@ -75,6 +76,9 @@ class EleveController extends Controller
         }
 
         $eleves = $query->latest()->paginate($request->get('per_page', 15));
+
+        //cache them for 24 hours
+        Cache::put('eleves', $eleves, 24 * 60 * 60);
 
         return response()->json($eleves);
     }
