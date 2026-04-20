@@ -49,7 +49,7 @@ class MatiereController extends Controller
             $query->where('niveau_id', $request->integer('niveau_id'));
         }
 
-        $matieres = $query->get(['id', 'nom', 'code', 'niveau_id']);
+        $matieres = $query->get(['id', 'nom', 'code', 'niveau_id', 'section_id']);
 
         return response()->json($matieres);
     }
