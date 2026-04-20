@@ -96,24 +96,44 @@ class BulletinController extends Controller
                 $tjEvals = $coursEvals->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
                 $examEvals = $coursEvals->where('type_evaluation', 'Examen');
 
-                $tjNote = null;
+                $tjNote = 0;
                 $tjMax = 0;
+                $tjComplete = true;
+
                 foreach ($tjEvals as $eval) {
                     $tjMax += $eval->note_maximale;
+
                     $note = $eval->notes->where('eleve_id', $eleve->id)->first();
-                    if (!is_null($note)) {
-                        $tjNote = ($tjNote ?? 0) + $note->note;
+
+                    if (is_null($note)) {
+                        $tjComplete = false;
+                    } else {
+                        $tjNote += $note->note;
                     }
                 }
 
-                $examNote = null;
+                if (!$tjComplete) {
+                    $tjNote = null;
+                }
+
+                $examNote = 0;
                 $examMax = 0;
+                $examComplete = true;
+
                 foreach ($examEvals as $eval) {
                     $examMax += $eval->note_maximale;
+
                     $note = $eval->notes->where('eleve_id', $eleve->id)->first();
-                    if (!is_null($note)) {
-                        $examNote = ($examNote ?? 0) + $note->note;
+
+                    if (is_null($note)) {
+                        $examComplete = false;
+                    } else {
+                        $examNote += $note->note;
                     }
+                }
+
+                if (!$examComplete) {
+                    $examNote = null;
                 }
 
                 // Scale to ponderation if configured
@@ -122,7 +142,7 @@ class BulletinController extends Controller
 
                 $scaledTj = ($ponderationTj > 0 && $tjMax > 0 && !is_null($tjNote))
                     ? round(($tjNote / $tjMax) * $ponderationTj, 2)
-                    : $tjNote;
+                    : $tjNote;  
                 $scaledExam = ($ponderationExam > 0 && $examMax > 0 && !is_null($examNote))
                     ? round(($examNote / $examMax) * $ponderationExam, 2)
                     : $examNote;

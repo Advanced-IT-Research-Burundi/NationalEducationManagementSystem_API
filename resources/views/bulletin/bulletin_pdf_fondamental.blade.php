@@ -106,7 +106,7 @@
         <td>{{ $cours['max_examen'] ? round($cours['max_examen']) : '' }}</td>
         <td><strong>{{ $cours['max_total'] ? round($cours['max_total']) : '' }}</strong></td>
         
-        <!-- Trimestre 1 -->
+        {{--<!-- Trimestre 1 -->
         <td>{{ round($cours['note_tj']) }}</td>
         <td>{{ round($cours['note_examen']) }}</td>
         <td><strong>{{ round($cours['note_total']) }}</strong></td>
@@ -125,10 +125,10 @@
         <td>{{round($cours['max_total'] * ($isAll ? 3 : 1)) }}</td>
         <td>{{ round($cours['note_total']) }}</td>
         <td></td>
-        <td></td>
+        <td></td> --}}
 
 
-{{-- 
+
         <!-- Trimestre 1 -->
         <td>{{ ($isT1 || $isAll) && $cours['note_tj'] !== '' && $cours['note_tj'] !== null ? round($cours['note_tj']) : '' }}</td>
         <td>{{ ($isT1 || $isAll) && $cours['note_examen'] !== '' && $cours['note_examen'] !== null ? round($cours['note_examen']) : '' }}</td>
@@ -148,7 +148,7 @@
         <td>{{ $cours['max_total'] ? round($cours['max_total'] * ($isAll ? 3 : 1)) : '' }}</td>
         <td>{{ $cours['note_total'] !== '' && $cours['note_total'] !== null ? round($cours['note_total']) : '' }}</td>
         <td></td>
-        <td></td> --}}
+        <td></td>
       </tr>
       @if (array_search($cours, $bulletin['cours']) === array_sum(array_slice($catCounts, 0, array_search($cat, array_keys($catCounts)) + 1)) - 1)
       <!-- Sous-total de la catégorie -->
