@@ -19,6 +19,7 @@ class AdminScope implements Scope
         }
 
         $user = Auth::user();
+        $qualify = fn (string $column) => $model->qualifyColumn($column);
 
         // 1. Super admin and national operators see everything
         if ($user->isSuperAdmin() || $user->hasRole('Admin National') || $user->admin_level === 'PAYS') {
@@ -44,36 +45,36 @@ class AdminScope implements Scope
                  // Usually sees everything within their ministry, or all schools if ministry is national.
                  // If the model has ministere_id, usage it.
                  if ($this->hasColumn($model, 'ministere_id')) {
-                     $builder->where('ministere_id', $entityId);
+                     $builder->where($qualify('ministere_id'), $entityId);
                  }
                 break;
 
             case 'PROVINCE':
                 if ($this->hasColumn($model, 'province_id')) {
-                    $builder->where('province_id', $entityId);
+                    $builder->where($qualify('province_id'), $entityId);
                 }
                 break;
 
             case 'COMMUNE':
                 if ($this->hasColumn($model, 'commune_id')) {
-                    $builder->where('commune_id', $entityId);
+                    $builder->where($qualify('commune_id'), $entityId);
                 }
                 break;
 
             case 'ZONE':
                 if ($this->hasColumn($model, 'zone_id')) {
-                    $builder->where('zone_id', $entityId);
+                    $builder->where($qualify('zone_id'), $entityId);
                 }
                 break;
 
             case 'ECOLE':
                 // If the model IS School, then filter by ID
                 if ($model instanceof \App\Models\School) {
-                    $builder->where('id', $entityId);
+                    $builder->where($qualify('id'), $entityId);
                 } 
                 // If it's related to school (e.g. Student, Teacher), filter by school_id
                 elseif ($this->hasColumn($model, 'school_id')) {
-                    $builder->where('school_id', $entityId);
+                    $builder->where($qualify('school_id'), $entityId);
                 }
                 break;
         }

@@ -325,4 +325,55 @@ class SchoolController extends Controller
 
         return response()->json($schools);
     }
+
+    /**
+     * Get dashboard school data for the authenticated teacher.
+     */
+    public function getTeacherDashboardData(Request $request): JsonResponse
+    {
+        $user = $request->user()->loadMissing([
+            'enseignant.user',
+            'enseignant.school.province',
+            'enseignant.school.commune',
+            'enseignant.school.zone',
+            'enseignant.school.colline',
+            'enseignant.ecoles.province',
+            'enseignant.ecoles.commune',
+            'enseignant.ecoles.zone',
+            'enseignant.ecoles.colline',
+        ]);
+
+        $enseignant = $user->enseignant;
+
+        if (! $enseignant) {
+            return response()->json([
+                'message' => 'Aucun profil enseignant trouvé pour cet utilisateur.',
+                'data' => [
+                    'enseignant' => null,
+                    'school' => null,
+                    'schools' => [],
+                ],
+            ], 404);
+        }
+
+        $schools = collect();
+
+        if ($enseignant->school) {
+            $schools->push($enseignant->school);
+        }
+
+        foreach ($enseignant->ecoles as $school) {
+            if (! $schools->contains(fn ($item) => $item->id === $school->id)) {
+                $schools->push($school);
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'enseignant' => $enseignant->loadMissing('user'),
+                'school' => $enseignant->school,
+                'schools' => $schools->values(),
+            ],
+        ]);
+    }
 }

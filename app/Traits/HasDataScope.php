@@ -16,6 +16,8 @@ trait HasDataScope
      */
     public function scopeForUser(Builder $query, User $user)
     {
+        $qualify = fn (string $column) => $query->getModel()->qualifyColumn($column);
+
         // 1. National Admin sees everything
         if ($user->isSuperAdmin() || $user->hasRole(\App\Models\Role::ADMIN_NATIONAL)) {
             return $query;
@@ -29,40 +31,40 @@ trait HasDataScope
         if ($user->school_id) {
             // If the model IS a School, filter by ID
             if ($this->isSchoolModel()) {
-                 return $query->where('id', $user->school_id);
+                 return $query->where($qualify('id'), $user->school_id);
             }
             // If the model belongs to a school (e.g. Student), filter by school_id column
-            return $query->where('school_id', $user->school_id);
+            return $query->where($qualify('school_id'), $user->school_id);
         }
 
         // If the user is restricted to a Colline (not realistic for User but possible for data)
         if ($user->colline_id) {
-             return $query->where('colline_id', $user->colline_id);
+             return $query->where($qualify('colline_id'), $user->colline_id);
         }
 
         // Zone
         if ($user->zone_id) {
-             return $query->where('zone_id', $user->zone_id);
+             return $query->where($qualify('zone_id'), $user->zone_id);
         }
 
         // Commune
         if ($user->commune_id) {
-             return $query->where('commune_id', $user->commune_id);
+             return $query->where($qualify('commune_id'), $user->commune_id);
         }
 
         // Province
         if ($user->province_id) {
-             return $query->where('province_id', $user->province_id);
+             return $query->where($qualify('province_id'), $user->province_id);
         }
 
         // Ministere
         if ($user->ministere_id) {
-             return $query->where('ministere_id', $user->ministere_id);
+             return $query->where($qualify('ministere_id'), $user->ministere_id);
         }
 
         // Pays
         if ($user->pays_id) {
-             return $query->where('pays_id', $user->pays_id);
+             return $query->where($qualify('pays_id'), $user->pays_id);
         }
 
         // Fallback: If no administrative context found, return nothing (safety)
