@@ -20,6 +20,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Schools CRUD
     Route::get('schools/list', [SchoolController::class, 'list'])->name('schools.list');
+    Route::get('schools/teacher', [SchoolController::class, 'getTeacherSchools'])->name('schools.teacher');
     Route::apiResource('schools', SchoolController::class);
 
     // School Workflow Actions

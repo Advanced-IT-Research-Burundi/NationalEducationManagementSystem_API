@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -118,6 +119,11 @@ class User extends Authenticatable
         return $this->belongsTo(School::class);
     }
 
+    public function enseignant(): HasOne
+    {
+        return $this->hasOne(Enseignant::class);
+    }
+
     // Helper to check permission (Manual implementation if needed, but Spatie provides can())
     public function hasPermission($permissionSlug)
     {
@@ -189,6 +195,20 @@ class User extends Authenticatable
             'zone',
             'colline',
             'school',
+            'school.colline',
+            'school.zone',
+            'school.commune',
+            'school.province',
+            'enseignant.school',
+            'enseignant.school.colline',
+            'enseignant.school.zone',
+            'enseignant.school.commune',
+            'enseignant.school.province',
+            'enseignant.ecoles',
+            'enseignant.ecoles.colline',
+            'enseignant.ecoles.zone',
+            'enseignant.ecoles.commune',
+            'enseignant.ecoles.province',
         ]);
     }
 
