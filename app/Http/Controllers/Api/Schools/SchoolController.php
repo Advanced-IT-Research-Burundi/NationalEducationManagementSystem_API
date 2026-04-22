@@ -60,6 +60,14 @@ class SchoolController extends Controller
             $q->where('commune_id', $request->commune_id)
         );
 
+        $query->when($request->filled('zone_id'), fn ($q) =>
+            $q->where('zone_id', $request->zone_id)
+        );
+
+        $query->when($request->filled('colline_id'), fn ($q) =>
+            $q->where('colline_id', $request->colline_id)
+        );
+
         $schools = $query
             ->latest('id')
             ->paginate($request->integer('per_page', 15));
@@ -67,7 +75,7 @@ class SchoolController extends Controller
         //cache them for 24 hours
         Cache::put('schools', $schools, 24 * 60 * 60);
 
-        return response()->json($schools);
+        return sendResponse($schools, 'Schools retrieved successfully.');
     }
 
     /**
