@@ -72,9 +72,6 @@ class SchoolController extends Controller
             ->latest('id')
             ->paginate($request->integer('per_page', 15));
 
-        //cache them for 24 hours
-        Cache::put('schools', $schools, 24 * 60 * 60);
-
         return sendResponse($schools, 'Schools retrieved successfully.');
     }
 
