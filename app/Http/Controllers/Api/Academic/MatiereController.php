@@ -33,6 +33,12 @@ class MatiereController extends Controller
             $query->where('niveau_id', $request->integer('niveau_id'));
         }
 
+        if ($request->filled('school_id')) {
+            $query->forSchool($request->integer('school_id'));
+        } elseif (auth()->check() && auth()->user()->school_id) {
+            $query->forSchool(auth()->user()->school_id);
+        }
+
         $matieres = $query->latest()->paginate($request->get('per_page', 15));
 
         return response()->json($matieres);
@@ -47,6 +53,12 @@ class MatiereController extends Controller
 
         if ($request->filled('niveau_id')) {
             $query->where('niveau_id', $request->integer('niveau_id'));
+        }
+
+        if ($request->filled('school_id')) {
+            $query->forSchool($request->integer('school_id'));
+        } elseif (auth()->check() && auth()->user()->school_id) {
+            $query->forSchool(auth()->user()->school_id);
         }
 
         $matieres = $query->get(['id', 'nom', 'code', 'niveau_id', 'section_id']);

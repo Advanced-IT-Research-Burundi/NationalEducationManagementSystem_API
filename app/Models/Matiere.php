@@ -96,6 +96,18 @@ class Matiere extends Model
     }
 
     /**
+     * Filter matieres by levels associated with a specific school.
+     */
+    public function scopeForSchool($query, $schoolId)
+    {
+        return $query->whereIn('niveau_id', function ($q) use ($schoolId) {
+            $q->select('niveau_scolaire_id')
+                ->from('niveau_school')
+                ->where('school_id', $schoolId);
+        });
+    }
+
+    /**
      * Relationships
      */
     public function categorieCours(): BelongsTo

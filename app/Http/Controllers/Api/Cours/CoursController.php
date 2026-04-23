@@ -61,6 +61,12 @@ class CoursController extends Controller
             $query->where('actif', $request->boolean('actif'));
         }
 
+        if ($request->filled('school_id')) {
+            $query->forSchool($request->integer('school_id'));
+        } elseif (auth()->check() && auth()->user()->school_id) {
+            $query->forSchool(auth()->user()->school_id);
+        }
+
         if ($request->filled('est_principale')) {
             if (Schema::hasColumn('matieres', 'est_principale')) {
                 $query->where('est_principale', $request->boolean('est_principale'));
@@ -92,6 +98,12 @@ class CoursController extends Controller
             if (Schema::hasColumn('matieres', 'categorie_cours_id')) {
                 $query->byCategorie($request->integer('categorie_cours_id'));
             }
+        }
+
+        if ($request->filled('school_id')) {
+            $query->forSchool($request->integer('school_id'));
+        } elseif (auth()->check() && auth()->user()->school_id) {
+            $query->forSchool(auth()->user()->school_id);
         }
 
         $columns = ['id', 'nom', 'code'];
