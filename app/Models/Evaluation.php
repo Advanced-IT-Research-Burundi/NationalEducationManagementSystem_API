@@ -97,4 +97,11 @@ class Evaluation extends Model
     {
         return $query->where('type_evaluation', $type);
     }
+
+    public function scopeBySchool($query, int $schoolId)
+    {
+        return $query->whereHas('classe', function ($q) use ($schoolId) {
+            $q->where('school_id', $schoolId);
+        });
+    }
 }

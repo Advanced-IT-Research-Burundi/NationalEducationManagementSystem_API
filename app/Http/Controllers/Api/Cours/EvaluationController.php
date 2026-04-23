@@ -42,6 +42,12 @@ class EvaluationController extends Controller
             $query->byAnneeScolaire($request->integer('annee_scolaire_id'));
         }
 
+        if ($request->filled('school_id')) {
+            $query->bySchool($request->integer('school_id'));
+        } elseif (auth()->check() && auth()->user()->school_id) {
+            $query->bySchool(auth()->user()->school_id);
+        }
+
         $evaluations = $query->latest()->paginate($request->get('per_page', 15));
 
         return response()->json($evaluations);

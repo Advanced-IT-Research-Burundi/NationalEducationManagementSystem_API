@@ -32,6 +32,16 @@ class NoteController extends Controller
             });
         }
 
+        if ($request->filled('school_id')) {
+            $query->whereHas('evaluation.classe', function ($q) use ($request) {
+                $q->where('school_id', $request->integer('school_id'));
+            });
+        } elseif (auth()->check() && auth()->user()->school_id) {
+            $query->whereHas('evaluation.classe', function ($q) {
+                $q->where('school_id', auth()->user()->school_id);
+            });
+        }
+
         // Filter by cours (through evaluation)
         if ($request->filled('cours_id')) {
             $query->whereHas('evaluation', function ($q) use ($request) {
