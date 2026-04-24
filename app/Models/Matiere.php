@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -92,7 +93,22 @@ class Matiere extends Model
 
     public function scopeBySection($query, int $sectionId)
     {
-        return $query->where('section_id', $sectionId);
+        return $query->where(function ($q) use ($sectionId) {
+            $q->where('section_id', $sectionId)
+              ->orWhereHas('sections', function ($sq) use ($sectionId) {
+                  $sq->where('sections.id', $sectionId);
+              });
+        });
+    }
+
+    public function scopeByNiveau($query, int $niveauId)
+    {
+        return $query->where(function ($q) use ($niveauId) {
+            $q->where('niveau_id', $niveauId)
+              ->orWhereHas('niveaux', function ($nq) use ($niveauId) {
+                  $nq->where('niveaux_scolaires.id', $niveauId);
+              });
+        });
     }
 
     /**
@@ -100,10 +116,18 @@ class Matiere extends Model
      */
     public function scopeForSchool($query, $schoolId)
     {
-        return $query->whereIn('niveau_id', function ($q) use ($schoolId) {
-            $q->select('niveau_scolaire_id')
-                ->from('niveau_school')
-                ->where('school_id', $schoolId);
+        return $query->where(function ($q) use ($schoolId) {
+            $q->whereIn('niveau_id', function ($sub) use ($schoolId) {
+                $sub->select('niveau_scolaire_id')
+                    ->from('niveau_school')
+                    ->where('school_id', $schoolId);
+            })->orWhereHas('niveaux', function ($nq) use ($schoolId) {
+                $nq->whereIn('niveaux_scolaires.id', function ($sub) use ($schoolId) {
+                    $sub->select('niveau_scolaire_id')
+                        ->from('niveau_school')
+                        ->where('school_id', $schoolId);
+                });
+            });
         });
     }
 
@@ -123,6 +147,18 @@ class Matiere extends Model
     public function section(): BelongsTo
     {
         return $this->belongsTo(Section::class, 'section_id');
+    }
+
+    public function niveaux(): BelongsToMany
+    {
+        return $this->belongsToMany(Niveau::class, 'matiere_niveaux', 'matiere_id', 'niveau_id')
+            ->withTimestamps();
+    }
+
+    public function sections(): BelongsToMany
+    {
+        return $this->belongsToMany(Section::class, 'matiere_sections', 'matiere_id', 'section_id')
+            ->withTimestamps();
     }
 
     public function enseignant(): BelongsTo

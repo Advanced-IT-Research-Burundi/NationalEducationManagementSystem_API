@@ -18,6 +18,8 @@ class MatiereController extends Controller
     {
         $query = Matiere::query()->with([
             'niveau:id,nom,code,type_id',
+            'niveaux:id,nom,code,type_id',
+            'sections:id,nom,code',
             'niveau.typeScolaire:id,nom',
         ]);
 
@@ -30,7 +32,27 @@ class MatiereController extends Controller
         }
 
         if ($request->filled('niveau_id')) {
-            $query->where('niveau_id', $request->integer('niveau_id'));
+            $query->where(function ($q) use ($request) {
+                $q->where('niveau_id', $request->niveau_id)
+                  ->orWhereHas('niveaux', function ($nq) use ($request) {
+                      $nq->where('niveaux_scolaires.id', $request->niveau_id);
+                  });
+            });
+        }
+        
+        if ($request->filled('section_id')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('section_id', $request->section_id)
+                  ->orWhereHas('sections', function ($sq) use ($request) {
+                      $sq->where('sections.id', $request->section_id);
+                  });
+            });
+        }
+        
+        if ($request->filled('section_ids')) {
+            $query->whereHas('sections', function ($sq) use ($request) {
+                $sq->whereIn('sections.id', (array) $request->section_ids);
+            });
         }
 
         if ($request->filled('school_id')) {
@@ -49,10 +71,24 @@ class MatiereController extends Controller
      */
     public function list(Request $request): JsonResponse
     {
-        $query = Matiere::active()->orderBy('nom');
+        $query = Matiere::active()->with(['niveaux:id', 'sections:id'])->orderBy('nom');
 
         if ($request->filled('niveau_id')) {
-            $query->where('niveau_id', $request->integer('niveau_id'));
+            $query->where(function ($q) use ($request) {
+                $q->where('niveau_id', $request->niveau_id)
+                  ->orWhereHas('niveaux', function ($nq) use ($request) {
+                      $nq->where('niveaux_scolaires.id', $request->niveau_id);
+                  });
+            });
+        }
+        
+        if ($request->filled('section_id')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('section_id', $request->section_id)
+                  ->orWhereHas('sections', function ($sq) use ($request) {
+                      $sq->where('sections.id', $request->section_id);
+                  });
+            });
         }
 
         if ($request->filled('school_id')) {
@@ -71,11 +107,24 @@ class MatiereController extends Controller
      */
     public function store(StoreMatiereRequest $request): JsonResponse
     {
-        $matiere = Matiere::create($request->validated());
+        $data = $request->validated();
+        $matiere = Matiere::create($data);
+
+        if (isset($data['niveau_ids'])) {
+            $matiere->niveaux()->sync($data['niveau_ids']);
+        } elseif (isset($data['niveau_id'])) {
+            $matiere->niveaux()->sync([$data['niveau_id']]);
+        }
+
+        if (isset($data['section_ids'])) {
+            $matiere->sections()->sync($data['section_ids']);
+        } elseif (isset($data['section_id'])) {
+            $matiere->sections()->sync([$data['section_id']]);
+        }
 
         return response()->json([
             'message' => 'Matière créée avec succès',
-            'matiere' => $matiere,
+            'matiere' => $matiere->load(['niveaux', 'sections']),
         ], 201);
     }
 
@@ -87,6 +136,8 @@ class MatiereController extends Controller
         return response()->json($matiere->load([
             'affectations.enseignant.user',
             'niveau:id,nom,code,type_id',
+            'niveaux:id,nom,code,type_id',
+            'sections:id,nom,code',
             'niveau.typeScolaire:id,nom',
         ]));
     }
@@ -96,11 +147,24 @@ class MatiereController extends Controller
      */
     public function update(UpdateMatiereRequest $request, Matiere $matiere): JsonResponse
     {
-        $matiere->update($request->validated());
+        $data = $request->validated();
+        $matiere->update($data);
+
+        if (isset($data['niveau_ids'])) {
+            $matiere->niveaux()->sync($data['niveau_ids']);
+        } elseif (isset($data['niveau_id'])) {
+            $matiere->niveaux()->sync([$data['niveau_id']]);
+        }
+
+        if (isset($data['section_ids'])) {
+            $matiere->sections()->sync($data['section_ids']);
+        } elseif (isset($data['section_id'])) {
+            $matiere->sections()->sync([$data['section_id']]);
+        }
 
         return response()->json([
             'message' => 'Matière mise à jour avec succès',
-            'matiere' => $matiere,
+            'matiere' => $matiere->load(['niveaux', 'sections']),
         ]);
     }
 

@@ -28,6 +28,8 @@ class CoursController extends Controller
         }
         if (Schema::hasColumn('matieres', 'niveau_id')) {
             $with[] = 'niveau:id,nom,code';
+            $with[] = 'niveaux:id,nom,code';
+            $with[] = 'sections:id,nom,code';
             $with[] = 'niveau';
         }
 
@@ -84,7 +86,7 @@ class CoursController extends Controller
 
         if ($request->filled('niveau_id')) {
             if (Schema::hasColumn('matieres', 'niveau_id')) {
-                $query->where('niveau_id', $request->integer('niveau_id'));
+                $query->byNiveau($request->integer('niveau_id'));
             }
         }
 
@@ -119,11 +121,24 @@ class CoursController extends Controller
 
     public function store(StoreCoursRequest $request): JsonResponse
     {
-        $cours = Matiere::create($request->validated());
+        $data = $request->validated();
+        $cours = Matiere::create($data);
+
+        if (isset($data['niveau_ids'])) {
+            $cours->niveaux()->sync($data['niveau_ids']);
+        } elseif (isset($data['niveau_id']) && $data['niveau_id'] !== "_none") {
+            $cours->niveaux()->sync([$data['niveau_id']]);
+        }
+
+        if (isset($data['section_ids'])) {
+            $cours->sections()->sync($data['section_ids']);
+        } elseif (isset($data['section_id']) && $data['section_id'] !== "_none") {
+            $cours->sections()->sync([$data['section_id']]);
+        }
 
         return response()->json([
             'message' => 'Cours créé avec succès',
-            'data' => $cours->load(['categorieCours', 'enseignant.user', 'section', 'niveau']),
+            'data' => $cours->load(['categorieCours', 'enseignant.user', 'sections', 'niveaux']),
         ], 201);
     }
 
@@ -133,20 +148,32 @@ class CoursController extends Controller
             'data' => $cour->load([
                 'categorieCours',
                 'enseignant.user',
-                'section',
-                'niveau',
-
+                'sections',
+                'niveaux',
             ]),
         ]);
     }
 
     public function update(UpdateCoursRequest $request, Matiere $cour): JsonResponse
     {
-        $cour->update($request->validated());
+        $data = $request->validated();
+        $cour->update($data);
+
+        if (isset($data['niveau_ids'])) {
+            $cour->niveaux()->sync($data['niveau_ids']);
+        } elseif (isset($data['niveau_id']) && $data['niveau_id'] !== "_none") {
+            $cour->niveaux()->sync([$data['niveau_id']]);
+        }
+
+        if (isset($data['section_ids'])) {
+            $cour->sections()->sync($data['section_ids']);
+        } elseif (isset($data['section_id']) && $data['section_id'] !== "_none") {
+            $cour->sections()->sync([$data['section_id']]);
+        }
 
         return response()->json([
             'message' => 'Cours mis à jour avec succès',
-            'data' => $cour->load(['categorieCours', 'enseignant.user', 'section', 'niveau']),
+            'data' => $cour->load(['categorieCours', 'enseignant.user', 'sections', 'niveaux']),
         ]);
     }
 
