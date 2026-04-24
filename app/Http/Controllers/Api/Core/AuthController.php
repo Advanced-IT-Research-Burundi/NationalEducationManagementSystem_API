@@ -18,11 +18,13 @@ class AuthController extends Controller
     {
         $user->loadAuthorizationRelations();
 
-        return array_merge($user->toArray(), [
+        return array_merge($user->toArray(), 
+        [
             'role' => $user->getPrimaryRole()?->toArray(),
             'primary_role' => $user->getPrimaryRole()?->toArray(),
             'authorization' => $user->getAuthorizationSnapshot(),
-        ]);
+        ]
+    );
     }
 
     /**
