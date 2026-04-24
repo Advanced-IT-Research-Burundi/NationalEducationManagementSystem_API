@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
+use App\Models\Evaluation;
 use App\Models\NoteConduite;
 use App\Models\SanctionEleve;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class ConduiteController extends Controller
 {
@@ -16,12 +18,18 @@ class ConduiteController extends Controller
             'eleve_id' => 'required|exists:eleves,id',
             'classe_id' => 'required|exists:classes,id',
             'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-            'trimestre' => 'required',
+            'trimestre' => ['required', 'string'],
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
             'observation' => 'nullable|string'
         ]);
+
+        $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
+        validator(
+            ['trimestre' => $validated['trimestre']],
+            ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
+        )->validate();
 
         try {
             DB::beginTransaction();
@@ -78,12 +86,18 @@ class ConduiteController extends Controller
             'eleve_ids.*' => 'exists:eleves,id',
             'classe_id' => 'required|exists:classes,id',
             'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-            'trimestre' => 'required',
+            'trimestre' => ['required', 'string'],
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
             'observation' => 'nullable|string'
         ]);
+
+        $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
+        validator(
+            ['trimestre' => $validated['trimestre']],
+            ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
+        )->validate();
 
         try {
             DB::beginTransaction();
@@ -135,8 +149,10 @@ class ConduiteController extends Controller
          $validated = $request->validate([
             'classe_id' => 'required|exists:classes,id',
             'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
-            'trimestre' => 'required'
+            'trimestre' => ['required', 'string']
          ]);
+
+         $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
 
          $notes = NoteConduite::with('eleve')
             ->where('classe_id', $validated['classe_id'])
@@ -185,7 +201,7 @@ class ConduiteController extends Controller
             $query->where('sanction_eleves.annee_scolaire_id', $request->annee_scolaire_id);
         }
         if ($request->filled('trimestre')) {
-            $query->where('sanction_eleves.trimestre', $request->trimestre);
+            $query->where('sanction_eleves.trimestre', $this->normalizeTrimestre($request->trimestre));
         }
 
         $type = $request->input('type', 'details');
@@ -237,5 +253,18 @@ class ConduiteController extends Controller
         }
 
         return response()->json($data);
+    }
+
+    private function normalizeTrimestre(?string $trimestre): ?string
+    {
+        if ($trimestre === null) {
+            return null;
+        }
+
+        return match (trim($trimestre)) {
+            '2eme Trimestre' => '2e Trimestre',
+            '3eme Trimestre' => '3e Trimestre',
+            default => trim($trimestre),
+        };
     }
 }
