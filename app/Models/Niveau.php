@@ -74,4 +74,10 @@ class Niveau extends Model
     {
         return $this->hasMany(Matiere::class, 'niveau_id');
     }
+
+    public function schools()
+    {
+        return $this->belongsToMany(School::class, 'niveau_school', 'niveau_scolaire_id', 'school_id')
+                    ->withTimestamps();
+    }
 }

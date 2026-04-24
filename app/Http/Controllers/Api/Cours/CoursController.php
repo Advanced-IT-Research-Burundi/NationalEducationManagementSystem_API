@@ -114,7 +114,7 @@ class CoursController extends Controller
                 $columns[] = $col;
             }
         }
-        $cours = $query->get($columns);
+        $cours = $query->with(['niveaux:id', 'sections:id'])->get($columns);
 
         return response()->json($cours);
     }

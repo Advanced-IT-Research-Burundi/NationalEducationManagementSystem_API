@@ -117,16 +117,15 @@ class Matiere extends Model
     public function scopeForSchool($query, $schoolId)
     {
         return $query->where(function ($q) use ($schoolId) {
+            // Check legacy niveau_id
             $q->whereIn('niveau_id', function ($sub) use ($schoolId) {
                 $sub->select('niveau_scolaire_id')
                     ->from('niveau_school')
                     ->where('school_id', $schoolId);
-            })->orWhereHas('niveaux', function ($nq) use ($schoolId) {
-                $nq->whereIn('niveaux_scolaires.id', function ($sub) use ($schoolId) {
-                    $sub->select('niveau_scolaire_id')
-                        ->from('niveau_school')
-                        ->where('school_id', $schoolId);
-                });
+            })
+            // Check many-to-many relationship
+            ->orWhereHas('niveaux.schools', function ($sq) use ($schoolId) {
+                $sq->where('schools.id', $schoolId);
             });
         });
     }

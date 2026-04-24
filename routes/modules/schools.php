@@ -20,6 +20,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Schools CRUD
     Route::get('schools/list', [SchoolController::class, 'list'])->name('schools.list');
+    Route::get('schools/{school}/niveaux', [SchoolController::class, 'niveaux'])->name('schools.niveaux');
     Route::get('schools/teacher', [SchoolController::class, 'getTeacherSchools'])->name('schools.teacher');
     Route::get('schools/teacher-dashboard', [SchoolController::class, 'getTeacherDashboardData'])->name('schools.teacher-dashboard');
     Route::apiResource('schools', SchoolController::class);

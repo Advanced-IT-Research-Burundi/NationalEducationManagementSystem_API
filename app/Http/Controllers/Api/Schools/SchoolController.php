@@ -381,4 +381,12 @@ class SchoolController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Get levels associated with a school.
+     */
+    public function niveaux(School $school): JsonResponse
+    {
+        return response()->json($school->niveauxScolaires);
+    }
 }
