@@ -1,4 +1,5 @@
 <?php
+// Test comment
 
 namespace App\Http\Controllers\Api\Academic;
 
@@ -22,14 +23,15 @@ class SectionController extends Controller
         $query = Section::query()->with([
             'typeScolaire:id,nom',
             'niveau:id,nom,code,type_id',
-            'niveau.typeScolaire:id,nom',
+            'niveaux:id,nom,code,type_id',
+            'niveaux.typeScolaire:id,nom',
         ]);
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($builder) use ($search) {
                 $builder->search($search)
-                    ->orWhereHas('niveau', function ($niveauQuery) use ($search) {
+                    ->orWhereHas('niveaux', function ($niveauQuery) use ($search) {
                         $niveauQuery->where('nom', 'LIKE', "%{$search}%")
                             ->orWhere('code', 'LIKE', "%{$search}%");
                     });
@@ -45,7 +47,12 @@ class SectionController extends Controller
         }
 
         if ($request->filled('niveau_id')) {
-            $query->where('niveau_id', $request->integer('niveau_id'));
+            $query->where(function ($q) use ($request) {
+                $q->where('niveau_id', $request->niveau_id)
+                  ->orWhereHas('niveaux', function ($nq) use ($request) {
+                      $nq->where('niveaux_scolaires.id', $request->niveau_id);
+                  });
+            });
         }
 
         $sections = $query->latest()->paginate($request->integer('per_page', 15));
@@ -58,14 +65,19 @@ class SectionController extends Controller
      */
     public function list(Request $request): JsonResponse
     {
-        $query = Section::query()->active()->with('niveau:id,nom,code,type_id')->orderBy('nom');
+        $query = Section::query()->active()->with('niveaux:id,nom,code,type_id')->orderBy('nom');
 
         if ($request->filled('type_id')) {
             $query->where('type_id', $request->integer('type_id'));
         }
 
         if ($request->filled('niveau_id')) {
-            $query->where('niveau_id', $request->integer('niveau_id'));
+            $query->where(function ($q) use ($request) {
+                $q->where('niveau_id', $request->niveau_id)
+                  ->orWhereHas('niveaux', function ($nq) use ($request) {
+                      $nq->where('niveaux_scolaires.id', $request->niveau_id);
+                  });
+            });
         }
 
         $sections = $query->get(['id', 'nom', 'code', 'type_id', 'niveau_id']);
@@ -79,15 +91,23 @@ class SectionController extends Controller
     public function store(StoreSectionRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['type_id'] = isset($data['niveau_id'])
-            ? Niveau::query()->find($data['niveau_id'])?->type_id
+        
+        $firstNiveauId = $data['niveau_id'] ?? ($data['niveau_ids'][0] ?? null);
+        $data['type_id'] = $firstNiveauId
+            ? Niveau::query()->find($firstNiveauId)?->type_id
             : null;
 
         $section = Section::create($data);
 
+        if (isset($data['niveau_ids'])) {
+            $section->niveaux()->sync($data['niveau_ids']);
+        } elseif (isset($data['niveau_id'])) {
+            $section->niveaux()->sync([$data['niveau_id']]);
+        }
+
         return response()->json([
             'message' => 'Section créée avec succès',
-            'section' => $section,
+            'section' => $section->load('niveaux'),
         ], 201);
     }
 
@@ -102,7 +122,8 @@ class SectionController extends Controller
             'classes',
             'typeScolaire:id,nom',
             'niveau:id,nom,code,type_id',
-            'niveau.typeScolaire:id,nom',
+            'niveaux:id,nom,code,type_id',
+            'niveaux.typeScolaire:id,nom',
         ]));
     }
 
@@ -112,15 +133,23 @@ class SectionController extends Controller
     public function update(UpdateSectionRequest $request, Section $section): JsonResponse
     {
         $data = $request->validated();
-        $data['type_id'] = isset($data['niveau_id'])
-            ? Niveau::query()->find($data['niveau_id'])?->type_id
-            : null;
+        
+        $firstNiveauId = $data['niveau_id'] ?? ($data['niveau_ids'][0] ?? null);
+        if ($firstNiveauId) {
+            $data['type_id'] = Niveau::query()->find($firstNiveauId)?->type_id;
+        }
 
         $section->update($data);
 
+        if (isset($data['niveau_ids'])) {
+            $section->niveaux()->sync($data['niveau_ids']);
+        } elseif (isset($data['niveau_id'])) {
+            $section->niveaux()->sync([$data['niveau_id']]);
+        }
+
         return response()->json([
             'message' => 'Section mise à jour avec succès',
-            'section' => $section,
+            'section' => $section->load('niveaux'),
         ]);
     }
 

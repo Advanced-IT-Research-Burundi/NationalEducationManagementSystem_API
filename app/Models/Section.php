@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\HasMatricule;
@@ -58,5 +59,11 @@ class Section extends Model
     public function niveau(): BelongsTo
     {
         return $this->belongsTo(Niveau::class, 'niveau_id');
+    }
+
+    public function niveaux(): BelongsToMany
+    {
+        return $this->belongsToMany(Niveau::class, 'section_niveaux', 'section_id', 'niveau_id')
+            ->withTimestamps();
     }
 }

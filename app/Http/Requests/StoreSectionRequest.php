@@ -19,6 +19,8 @@ class StoreSectionRequest extends FormRequest
             'code' => ['required', 'string', 'max:20', 'unique:sections,code'],
             'description' => ['nullable', 'string', 'max:500'],
             'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
+            'niveau_ids' => ['nullable', 'array'],
+            'niveau_ids.*' => ['exists:niveaux_scolaires,id'],
             'actif' => ['nullable', 'boolean'],
         ];
     }
@@ -30,6 +32,8 @@ class StoreSectionRequest extends FormRequest
             'code.required' => 'Le code de la section est requis.',
             'code.unique' => 'Ce code de section existe déjà.',
             'niveau_id.exists' => 'Le niveau sélectionné n\'existe pas.',
+            'niveau_ids.array' => 'Les niveaux doivent être un tableau.',
+            'niveau_ids.*.exists' => 'Un des niveaux sélectionnés n\'existe pas.',
         ];
     }
 }
