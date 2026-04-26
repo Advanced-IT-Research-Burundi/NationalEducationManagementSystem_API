@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\AnneeScolaire;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,13 +23,35 @@ class UpdateAnneeScolaireRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Récupère l'ID à ignorer quel que soit le nom du paramètre utilisé par la route
+        // (`anneeScolaire`, `annee_scolaire`, `annees_scolaire`...) — on cherche dans
+        // l'ordre une instance de modèle, puis la dernière valeur scalaire de l'URL.
+        $ignoreId = null;
+        $route = $this->route();
+        if ($route) {
+            foreach ($route->parameters() as $param) {
+                if ($param instanceof AnneeScolaire) {
+                    $ignoreId = $param->id;
+                    break;
+                }
+            }
+            if (!$ignoreId) {
+                foreach ($route->parameters() as $param) {
+                    if (is_numeric($param)) {
+                        $ignoreId = (int) $param;
+                        break;
+                    }
+                }
+            }
+        }
+
         return [
             'code' => [
                 'sometimes',
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('annee_scolaires', 'code')->ignore($this->route('annee_scolaire')),
+                Rule::unique('annee_scolaires', 'code')->ignore($ignoreId),
             ],
             'libelle' => ['sometimes', 'required', 'string', 'max:100'],
             'date_debut' => ['sometimes', 'required', 'date'],

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Exams;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreResultatRequest;
 use App\Http\Requests\UpdateResultatRequest;
+use App\Models\AnneeScolaire;
 use App\Models\Resultat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,10 +78,13 @@ class ResultatController extends Controller
     {
         $query = Resultat::with(['inscription.eleve', 'inscription.session.examen']);
 
-        // Filter by school year
-        if ($request->filled('annee_scolaire_id')) {
-            $query->whereHas('inscription.session.examen', function ($q) use ($request) {
-                $q->where('annee_scolaire_id', $request->annee_scolaire_id);
+        // Filter by school year — fallback automatique sur l'année active.
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($anneeScolaireId) {
+            $query->whereHas('inscription.session.examen', function ($q) use ($anneeScolaireId) {
+                $q->where('annee_scolaire_id', $anneeScolaireId);
             });
         }
 

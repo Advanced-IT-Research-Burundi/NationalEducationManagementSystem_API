@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Statistics;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnneeScolaire;
 use App\Services\StatisticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,8 +27,12 @@ class DashboardController extends Controller
     {
         $filters = [];
 
-        if ($request->filled('annee_scolaire_id')) {
-            $filters['annee_scolaire_id'] = $request->input('annee_scolaire_id');
+        // Fallback automatique sur l'année scolaire active si non fournie.
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->input('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($anneeScolaireId) {
+            $filters['annee_scolaire_id'] = $anneeScolaireId;
         }
         if ($request->filled('niveau')) {
             $filters['niveau'] = $request->input('niveau');

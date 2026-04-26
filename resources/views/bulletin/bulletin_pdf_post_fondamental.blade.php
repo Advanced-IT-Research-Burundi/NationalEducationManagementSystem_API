@@ -42,7 +42,8 @@
     <tr>
       <td colspan="4" style="text-align: left; font-weight: bold; padding: 4px;">
         Classe de : {{ $data['classe']['nom'] }}<br>
-        Nombre d'élèves : {{ $data['nombre_eleves'] }}
+        Nombre d'élèves : {{ $data['nombre_eleves'] }}<br>
+        Année scolaire : {{ $data['annee_scolaire']['libelle'] ?? ($data['annee_scolaire']['code'] ?? '—') }}
       </td>
       <th colspan="4">MAXIMA</th>
       <th colspan="4">Premier Trimestre</th>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Statistics;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnneeScolaire;
 use App\Services\StatisticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -239,8 +240,12 @@ class KpiController extends Controller
     {
         $filters = [];
 
-        if ($request->filled('annee_scolaire_id')) {
-            $filters['annee_scolaire_id'] = $request->input('annee_scolaire_id');
+        // Fallback automatique sur l'année scolaire active si non fournie.
+        $filters['annee_scolaire_id'] = $request->filled('annee_scolaire_id')
+            ? $request->input('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if (empty($filters['annee_scolaire_id'])) {
+            unset($filters['annee_scolaire_id']);
         }
         if ($request->filled('province_id')) {
             $filters['province_id'] = $request->input('province_id');

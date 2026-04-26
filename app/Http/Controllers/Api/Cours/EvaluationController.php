@@ -38,8 +38,13 @@ class EvaluationController extends Controller
             $query->byType($request->type_evaluation);
         }
 
-        if ($request->filled('annee_scolaire_id')) {
-            $query->byAnneeScolaire($request->integer('annee_scolaire_id'));
+        // Si l'année scolaire n'est pas explicitement fournie, on retombe sur l'année active
+        // afin que l'utilisateur voie par défaut les évaluations de l'année courante.
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($anneeScolaireId) {
+            $query->byAnneeScolaire($anneeScolaireId);
         }
 
         if ($request->filled('school_id')) {

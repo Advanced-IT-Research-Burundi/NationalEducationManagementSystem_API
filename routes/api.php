@@ -183,8 +183,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Années Scolaires (alias without /academic prefix for UI)
     Route::get('annees-scolaires/list', [AnneeScolaireController::class, 'list']);
     Route::get('annees-scolaires/current', [AnneeScolaireController::class, 'current']);
-    Route::post('annees-scolaires/{annee_scolaire}/toggle-active', [AnneeScolaireController::class, 'toggleActive']);
-    Route::apiResource('annees-scolaires', AnneeScolaireController::class);
+    Route::post('annees-scolaires/{anneeScolaire}/toggle-active', [AnneeScolaireController::class, 'toggleActive']);
+    // Paramètre nommé `anneeScolaire` (camelCase) pour aligner avec le binding implicite
+    // de `AnneeScolaire $anneeScolaire` dans le contrôleur, et avec routes/modules/academic.php.
+    Route::apiResource('annees-scolaires', AnneeScolaireController::class)->parameters([
+        'annees-scolaires' => 'anneeScolaire',
+    ]);
 
     // Niveaux Scolaires (alias without /academic prefix for UI)
     Route::get('niveaux-scolaires/list', [NiveauController::class, 'list']);

@@ -148,16 +148,22 @@ class PalmaresController extends Controller
                 }
             }
 
-            $pourcentage = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
+            $pourcentageCours = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
 
             // Note de conduite
             $noteC = $notesConduite->where('eleve_id', $eleve->id)->first();
             $noteConduiteValue = $noteC ? $noteC->note : 60;
+            $conduiteMax = 60;
             $appreciationConduite = 'Très mauvais';
             if ($noteConduiteValue >= 50) $appreciationConduite = 'Excellent';
             elseif ($noteConduiteValue >= 40) $appreciationConduite = 'Bon';
             elseif ($noteConduiteValue >= 30) $appreciationConduite = 'Passable';
             elseif ($noteConduiteValue >= 20) $appreciationConduite = 'Mauvais';
+
+            // Totaux globaux (cours + conduite) — cohérents avec le grand total du PDF du bulletin
+            $globalPoints = round($totalPoints + $noteConduiteValue, 2);
+            $globalMax = round($totalMax + $conduiteMax, 2);
+            $pourcentage = $globalMax > 0 ? round(($globalPoints / $globalMax) * 100, 1) : 0;
 
             $decision = null;
             if ($type === 'detaille') {
@@ -175,12 +181,17 @@ class PalmaresController extends Controller
                     'matricule' => $eleve->matricule,
                     'sexe' => $eleve->sexe ?? null,
                 ],
-                'total_points' => $totalPoints,
-                'total_max' => $totalMax,
+                // Totaux affichés = cours + conduite (cohérence avec bulletin PDF)
+                'total_points' => $globalPoints,
+                'total_max' => $globalMax,
                 'pourcentage' => $pourcentage,
+                // Détail "cours seul" — disponible pour debug ou affichage ultérieur
+                'total_points_cours' => round($totalPoints, 2),
+                'total_max_cours' => round($totalMax, 2),
+                'pourcentage_cours' => $pourcentageCours,
                 'conduite' => [
                     'note' => $noteConduiteValue,
-                    'max' => 60,
+                    'max' => $conduiteMax,
                     'appreciation' => $appreciationConduite
                 ]
             ];

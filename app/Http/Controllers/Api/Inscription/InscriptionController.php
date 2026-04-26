@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Inscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnneeScolaire;
 use App\Models\Inscription;
 use App\Models\School;
 use Illuminate\Http\Request;
@@ -22,8 +23,12 @@ class InscriptionController extends Controller
         }
 
 
-        if ($request->filled('annee_scolaire_id')) {
-            $query->where('annee_scolaire_id', $request->annee_scolaire_id);
+        // Fallback automatique sur l'année scolaire active si non fournie.
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($anneeScolaireId) {
+            $query->where('annee_scolaire_id', $anneeScolaireId);
         }
 
         if ($request->filled('statut')) {
@@ -66,12 +71,19 @@ $validated = $request->validate([
     'eleve_id' => 'required|exists:eleves,id',
     'campagne_id' => 'required|exists:campagnes_inscription,id',
     'school_id' => 'required|exists:schools,id',
-    'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+    'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
     'niveau_demande_id' => 'required|exists:niveaux_scolaires,id',
     'type_inscription' => ['required', Rule::in(['nouvelle', 'reinscription', 'transfert_entrant'])],
     'pieces_fournies' => 'nullable|array',
     'observations' => 'nullable|string',
 ]);
+
+        // Si l'année scolaire n'est pas fournie, on retombe automatiquement sur l'année active.
+        $validated['annee_scolaire_id'] = $validated['annee_scolaire_id']
+            ?? AnneeScolaire::current()?->id;
+        if (!$validated['annee_scolaire_id']) {
+            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
+        }
 
         // Generate numero_inscription logic here or inside model boot
         // For now, simplify assignment

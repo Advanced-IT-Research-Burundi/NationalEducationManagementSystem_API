@@ -7,6 +7,7 @@ use App\Enums\TypeMouvement;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMouvementEleveRequest;
 use App\Http\Requests\UpdateMouvementEleveRequest;
+use App\Models\AnneeScolaire;
 use App\Models\Eleve;
 use App\Models\MouvementEleve;
 use Illuminate\Http\JsonResponse;
@@ -44,9 +45,12 @@ class MouvementEleveController extends Controller
             });
         }
 
-        // Filter by année scolaire
-        if ($request->filled('annee_scolaire_id')) {
-            $query->byAnneeScolaire($request->annee_scolaire_id);
+        // Filter by année scolaire — fallback automatique sur l'année active si non fournie.
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($anneeScolaireId) {
+            $query->byAnneeScolaire($anneeScolaireId);
         }
 
         // Filter by type
@@ -313,8 +317,12 @@ class MouvementEleveController extends Controller
             });
         }
 
-        if ($request->filled('annee_scolaire_id')) {
-            $query->byAnneeScolaire($request->annee_scolaire_id);
+        // Fallback sur l'année active si non précisée.
+        $statsAnneeId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($statsAnneeId) {
+            $query->byAnneeScolaire($statsAnneeId);
         }
 
         // Get counts by type

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnneeScolaire;
 use App\Models\Note;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -56,10 +57,13 @@ class NoteController extends Controller
             });
         }
 
-        // Filter by annee_scolaire
-        if ($request->filled('annee_scolaire_id')) {
-            $query->whereHas('evaluation', function ($q) use ($request) {
-                $q->where('annee_scolaire_id', $request->integer('annee_scolaire_id'));
+        // Filter by annee_scolaire — fallback automatique sur l'année active si non fournie.
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($anneeScolaireId) {
+            $query->whereHas('evaluation', function ($q) use ($anneeScolaireId) {
+                $q->where('annee_scolaire_id', $anneeScolaireId);
             });
         }
 

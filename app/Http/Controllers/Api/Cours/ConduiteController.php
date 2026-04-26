@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnneeScolaire;
 use App\Models\Evaluation;
 use App\Models\NoteConduite;
 use App\Models\SanctionEleve;
@@ -12,18 +13,32 @@ use Illuminate\Validation\Rule;
 
 class ConduiteController extends Controller
 {
+    /**
+     * Résout l'année scolaire à utiliser. Si non fournie, retombe sur l'année active.
+     * Renvoie null si aucune année active n'est définie.
+     */
+    private function resolveAnneeScolaireId(?int $providedId): ?int
+    {
+        return $providedId ?: AnneeScolaire::current()?->id;
+    }
+
     public function modifierConduite(Request $request)
     {
         $validated = $request->validate([
             'eleve_id' => 'required|exists:eleves,id',
             'classe_id' => 'required|exists:classes,id',
-            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+            'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
             'trimestre' => ['required', 'string'],
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
             'observation' => 'nullable|string'
         ]);
+
+        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
+        if (!$validated['annee_scolaire_id']) {
+            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
+        }
 
         $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
         validator(
@@ -85,13 +100,18 @@ class ConduiteController extends Controller
             'eleve_ids' => 'required|array',
             'eleve_ids.*' => 'exists:eleves,id',
             'classe_id' => 'required|exists:classes,id',
-            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+            'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
             'trimestre' => ['required', 'string'],
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
             'observation' => 'nullable|string'
         ]);
+
+        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
+        if (!$validated['annee_scolaire_id']) {
+            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
+        }
 
         $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
         validator(
@@ -148,9 +168,14 @@ class ConduiteController extends Controller
     {
          $validated = $request->validate([
             'classe_id' => 'required|exists:classes,id',
-            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+            'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
             'trimestre' => ['required', 'string']
          ]);
+
+         $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
+         if (!$validated['annee_scolaire_id']) {
+             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
+         }
 
          $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
 
@@ -197,8 +222,12 @@ class ConduiteController extends Controller
         if ($request->filled('eleve_id')) {
             $query->where('sanction_eleves.eleve_id', $request->eleve_id);
         }
-        if ($request->filled('annee_scolaire_id')) {
-            $query->where('sanction_eleves.annee_scolaire_id', $request->annee_scolaire_id);
+        // Si aucune année n'est passée, on retombe sur l'année scolaire active.
+        $statsAnneeId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($statsAnneeId) {
+            $query->where('sanction_eleves.annee_scolaire_id', $statsAnneeId);
         }
         if ($request->filled('trimestre')) {
             $query->where('sanction_eleves.trimestre', $this->normalizeTrimestre($request->trimestre));

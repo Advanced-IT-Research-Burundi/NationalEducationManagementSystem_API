@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Inscription;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnneeScolaire;
 use App\Models\CampagneInscription;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -18,8 +19,12 @@ class CampagneInscriptionController extends Controller
             $query->where('school_id', $request->school_id);
         }
 
-        if ($request->filled('annee_scolaire_id')) {
-            $query->where('annee_scolaire_id', $request->annee_scolaire_id);
+        // Fallback automatique sur l'année scolaire active si non fournie.
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : AnneeScolaire::current()?->id;
+        if ($anneeScolaireId) {
+            $query->where('annee_scolaire_id', $anneeScolaireId);
         }
 
         if ($request->filled('statut')) {
@@ -34,13 +39,20 @@ class CampagneInscriptionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'annee_scolaire_id' => 'required|exists:annee_scolaires,id',
+            'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
             'school_id' => 'required|exists:schools,id',
             'type' => 'required|in:nouvelle,reinscription',
             'date_ouverture' => 'required|date',
             'date_cloture' => 'required|date|after:date_ouverture',
             'quota_max' => 'nullable|integer|min:1',
         ]);
+
+        // Si l'année n'est pas fournie, on retombe automatiquement sur l'année active.
+        $validated['annee_scolaire_id'] = $validated['annee_scolaire_id']
+            ?? AnneeScolaire::current()?->id;
+        if (!$validated['annee_scolaire_id']) {
+            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
+        }
 
         $validated['created_by'] = $request->user()->id;
         $validated['statut'] = 'planifiee';

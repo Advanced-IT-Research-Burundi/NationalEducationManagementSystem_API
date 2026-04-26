@@ -43,12 +43,10 @@ class BulletinController extends Controller
 
         $classe = Classe::with(['school:id,name', 'niveau:id,nom', 'section:id,nom'])->findOrFail($classeId);
 
-        // Get students
-        $elevesQuery = $classe->eleves()->orderBy('nom')->orderBy('prenom');
-        if ($request->filled('eleve_id')) {
-            $elevesQuery->where('eleves.id', $request->integer('eleve_id'));
-        }
-        $eleves = $elevesQuery->get();
+        // Toujours charger TOUS les élèves de la classe pour calculer correctement
+        // les rangs et l'effectif. Le filtre eleve_id sera appliqué sur la sortie finale.
+        $eleves = $classe->eleves()->orderBy('nom')->orderBy('prenom')->get();
+        $requestedEleveId = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
 
         // Get all courses for this class's section/niveau
         $coursQuery = Matiere::query()->where('actif', true);
@@ -160,17 +158,37 @@ class BulletinController extends Controller
                 $isComplete = !$summary['has_incomplete'];
                 $noteConduite = $notesConduiteByTrimestre->get($currentTrimestre);
                 $conduiteValue = $noteConduite ? $noteConduite->note : 60;
+                $conduiteMax = 60;
+
+                $globalPoints = $isComplete
+                    ? round($summary['total_points'] + $conduiteValue, 2)
+                    : null;
+                $globalMax = round($summary['total_max'] + $conduiteMax, 2);
+                $globalPourcentage = ($isComplete && $globalMax > 0)
+                    ? round(($globalPoints / $globalMax) * 100, 1)
+                    : null;
 
                 $bulletinTrimestres[$currentTrimestre] = [
+                    // Cours seuls (sans conduite) — utilisés par les vues PDF
                     'total_points' => $isComplete ? round($summary['total_points'], 2) : null,
                     'total_max' => round($summary['total_max'], 2),
                     'pourcentage' => ($isComplete && $summary['total_max'] > 0)
                         ? round(($summary['total_points'] / $summary['total_max']) * 100, 1)
                         : null,
+                    // Aliases explicites (mêmes valeurs, nommage non ambigu)
+                    'total_points_cours' => $isComplete ? round($summary['total_points'], 2) : null,
+                    'total_max_cours' => round($summary['total_max'], 2),
+                    'pourcentage_cours' => ($isComplete && $summary['total_max'] > 0)
+                        ? round(($summary['total_points'] / $summary['total_max']) * 100, 1)
+                        : null,
+                    // Totaux GLOBAUX (cours + conduite) — affichés dans l'UI et le grand total PDF
+                    'total_points_global' => $globalPoints,
+                    'total_max_global' => $globalMax,
+                    'pourcentage_global' => $globalPourcentage,
                     'is_complete' => $isComplete,
                     'conduite' => [
                         'note' => $conduiteValue,
-                        'max' => 60,
+                        'max' => $conduiteMax,
                         'appreciation' => $this->buildConduiteAppreciation($conduiteValue),
                     ],
                 ];
@@ -188,6 +206,13 @@ class BulletinController extends Controller
             $annualConduiteMax = count($requestedTrimestres) * 60;
             $annualIsComplete = !$annualHasIncomplete;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
+            $annualGlobalPoints = $annualIsComplete
+                ? round($annualTotalPoints + $annualConduiteNote, 2)
+                : null;
+            $annualGlobalMax = round($annualTotalMax + $annualConduiteMax, 2);
+            $annualGlobalPourcentage = ($annualIsComplete && $annualGlobalMax > 0)
+                ? round(($annualGlobalPoints / $annualGlobalMax) * 100, 1)
+                : null;
             $displayBulletin = $trimestre
                 ? ($bulletinTrimestres[$trimestre] ?? null)
                 : null;
@@ -200,6 +225,7 @@ class BulletinController extends Controller
                     'matricule' => $eleve->matricule,
                 ],
                 'cours' => $coursData,
+                // Cours seuls (sans conduite) — conservés pour rétrocompatibilité PDF
                 'total_points' => $trimestre
                     ? ($displayBulletin['total_points'] ?? null)
                     : $annualDisplayPoints,
@@ -209,6 +235,16 @@ class BulletinController extends Controller
                 'pourcentage' => $trimestre
                     ? ($displayBulletin['pourcentage'] ?? null)
                     : (($annualIsComplete && $annualTotalMax > 0) ? round(($annualTotalPoints / $annualTotalMax) * 100, 1) : null),
+                // Totaux GLOBAUX (cours + conduite) — utilisés par l'UI et cohérents avec le grand total du PDF
+                'total_points_global' => $trimestre
+                    ? ($displayBulletin['total_points_global'] ?? null)
+                    : $annualGlobalPoints,
+                'total_max_global' => $trimestre
+                    ? ($displayBulletin['total_max_global'] ?? 0)
+                    : $annualGlobalMax,
+                'pourcentage_global' => $trimestre
+                    ? ($displayBulletin['pourcentage_global'] ?? null)
+                    : $annualGlobalPourcentage,
                 'is_complete' => $trimestre
                     ? ($displayBulletin['is_complete'] ?? false)
                     : $annualIsComplete,
@@ -230,6 +266,14 @@ class BulletinController extends Controller
                     'pourcentage' => ($annualIsComplete && $annualTotalMax > 0)
                         ? round(($annualTotalPoints / $annualTotalMax) * 100, 1)
                         : null,
+                    'total_points_cours' => $annualDisplayPoints,
+                    'total_max_cours' => round($annualTotalMax, 2),
+                    'pourcentage_cours' => ($annualIsComplete && $annualTotalMax > 0)
+                        ? round(($annualTotalPoints / $annualTotalMax) * 100, 1)
+                        : null,
+                    'total_points_global' => $annualGlobalPoints,
+                    'total_max_global' => $annualGlobalMax,
+                    'pourcentage_global' => $annualGlobalPourcentage,
                     'is_complete' => $annualIsComplete,
                     'conduite' => [
                         'note' => $annualConduiteNote,
@@ -264,6 +308,20 @@ class BulletinController extends Controller
                 ? ($bulletin['trimestres'][$trimestre]['rang'] ?? null)
                 : $bulletin['annuel']['rang'];
         }
+        unset($bulletin);
+
+        // Effectif total de la classe (gardé même quand on extrait un seul bulletin
+        // afin de conserver l'information "rang X / N").
+        $effectifClasse = count($eleves);
+
+        // Si un élève précis est demandé, on filtre la sortie APRÈS calcul des rangs
+        // pour que le rang reflète bien la position dans toute la classe.
+        if ($requestedEleveId) {
+            $bulletins = array_values(array_filter(
+                $bulletins,
+                fn ($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
+            ));
+        }
 
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
@@ -272,7 +330,7 @@ class BulletinController extends Controller
                 'classe' => $classe,
                 'annee_scolaire' => $anneeScolaire,
                 'trimestre' => $trimestre,
-                'nombre_eleves' => count($eleves),
+                'nombre_eleves' => $effectifClasse,
                 'bulletins' => $bulletins,
             ],
         ]);
@@ -475,19 +533,27 @@ class BulletinController extends Controller
 
     private function buildRanks(array $bulletins, callable $extractor): array
     {
-        $rankable = array_values(array_filter($bulletins, function ($bulletin) use ($extractor) {
+        $extractRankPoints = static function (?array $summary): ?float {
+            if (!$summary) {
+                return null;
+            }
+
+            return $summary['total_points_global']
+                ?? $summary['total_points']
+                ?? null;
+        };
+
+        $rankable = array_values(array_filter($bulletins, function ($bulletin) use ($extractor, $extractRankPoints) {
             $summary = $extractor($bulletin);
 
             return $summary
                 && ($summary['is_complete'] ?? false)
-                && !is_null($summary['total_points'] ?? null);
+                && !is_null($extractRankPoints($summary));
         }));
 
-        usort($rankable, function ($a, $b) use ($extractor) {
-            $summaryA = $extractor($a);
-            $summaryB = $extractor($b);
-
-            return ($summaryB['total_points'] ?? 0) <=> ($summaryA['total_points'] ?? 0);
+        usort($rankable, function ($a, $b) use ($extractor, $extractRankPoints) {
+            return ($extractRankPoints($extractor($b)) ?? 0)
+                <=> ($extractRankPoints($extractor($a)) ?? 0);
         });
 
         $ranks = [];
