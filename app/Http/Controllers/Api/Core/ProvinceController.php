@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProvinceResource;
 use App\Models\Province;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,10 +28,9 @@ class ProvinceController extends Controller
 
         $provinces = $query->paginate(10);
 
-        //cache them for 24 hours
         Cache::put('provinces', $provinces, 24 * 60 * 60);
 
-        return sendResponse($provinces, 'Provinces retrieved successfully.');
+        return ProvinceResource::collection($provinces)->response();
     }
 
     /**
@@ -47,7 +47,10 @@ class ProvinceController extends Controller
 
         $province = Province::create($validated);
 
-        return response()->json($province->load(['ministere', 'pays']), 201);
+        return (new ProvinceResource($province->load(['ministere', 'pays'])))
+            ->additional(['message' => 'Province created successfully.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -57,7 +60,7 @@ class ProvinceController extends Controller
     {
         $province = Province::with(['ministere', 'pays', 'communes'])->findOrFail($id);
 
-        return response()->json($province);
+        return (new ProvinceResource($province))->response();
     }
 
     /**
@@ -76,7 +79,9 @@ class ProvinceController extends Controller
 
         $province->update($validated);
 
-        return response()->json($province->load(['ministere', 'pays']));
+        return (new ProvinceResource($province->load(['ministere', 'pays'])))
+            ->additional(['message' => 'Province updated successfully.'])
+            ->response();
     }
 
     /**

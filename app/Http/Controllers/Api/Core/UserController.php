@@ -4,9 +4,16 @@ namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
-use App\Models\School;
 use App\Http\Requests\UpdateUserRequest;
+use App\Http\Resources\CollineResource;
+use App\Http\Resources\CommuneResource;
+use App\Http\Resources\MinistereResource;
+use App\Http\Resources\PaysResource;
+use App\Http\Resources\ProvinceResource;
+use App\Http\Resources\SchoolResource;
+use App\Http\Resources\ZoneResource;
 use App\Models\Role;
+use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,7 +68,7 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
-        $payload = $user->load([
+        $user->load([
             'roles',
             'permissions',
             'creator',
@@ -72,7 +79,31 @@ class UserController extends Controller
             'zone',
             'colline',
             'school',
-        ])->toArray();
+        ]);
+
+        $payload = $user->toArray();
+
+        $payload['pays'] = $user->relationLoaded('pays') && $user->pays
+            ? (new PaysResource($user->pays))->resolve()
+            : null;
+        $payload['ministere'] = $user->relationLoaded('ministere') && $user->ministere
+            ? (new MinistereResource($user->ministere))->resolve()
+            : null;
+        $payload['province'] = $user->relationLoaded('province') && $user->province
+            ? (new ProvinceResource($user->province))->resolve()
+            : null;
+        $payload['commune'] = $user->relationLoaded('commune') && $user->commune
+            ? (new CommuneResource($user->commune))->resolve()
+            : null;
+        $payload['zone'] = $user->relationLoaded('zone') && $user->zone
+            ? (new ZoneResource($user->zone))->resolve()
+            : null;
+        $payload['colline'] = $user->relationLoaded('colline') && $user->colline
+            ? (new CollineResource($user->colline))->resolve()
+            : null;
+        $payload['school'] = $user->relationLoaded('school') && $user->school
+            ? (new SchoolResource($user->school))->resolve()
+            : null;
 
         $payload['role'] = $user->getPrimaryRole()?->toArray();
         $payload['primary_role'] = $user->getPrimaryRole()?->toArray();

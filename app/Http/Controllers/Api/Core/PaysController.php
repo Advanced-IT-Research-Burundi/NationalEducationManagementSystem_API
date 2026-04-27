@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PaysResource;
 use App\Models\Pays;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,10 +18,9 @@ class PaysController extends Controller
     {
         $pays = Pays::all();
 
-        //cache for 24 hours
         Cache::put('pays', $pays, 24 * 60 * 60);
 
-        return response()->json($pays);
+        return PaysResource::collection($pays)->response();
     }
 
     /**
@@ -35,7 +35,10 @@ class PaysController extends Controller
 
         $pays = Pays::create($validated);
 
-        return response()->json($pays, 201);
+        return (new PaysResource($pays))
+            ->additional(['message' => 'Pays created successfully.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -45,7 +48,7 @@ class PaysController extends Controller
     {
         $pays = Pays::findOrFail($id);
 
-        return response()->json($pays);
+        return (new PaysResource($pays))->response();
     }
 
     /**
@@ -62,7 +65,9 @@ class PaysController extends Controller
 
         $pays->update($validated);
 
-        return response()->json($pays);
+        return (new PaysResource($pays))
+            ->additional(['message' => 'Pays updated successfully.'])
+            ->response();
     }
 
     /**

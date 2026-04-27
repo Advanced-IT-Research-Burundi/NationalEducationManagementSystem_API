@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CommuneResource;
 use App\Models\Commune;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,10 +32,9 @@ class CommuneController extends Controller
 
         $communes = $query->paginate(10);
 
-        //cache them for 24 hours
         Cache::put('communes', $communes, 24 * 60 * 60);
 
-        return sendResponse($communes, 'Communes retrieved successfully.');
+        return CommuneResource::collection($communes)->response();
     }
 
     /**
@@ -55,7 +55,10 @@ class CommuneController extends Controller
 
         $commune = Commune::create($validated);
 
-        return response()->json($commune->load(['province', 'ministere', 'pays']), 201);
+        return (new CommuneResource($commune->load(['province', 'ministere', 'pays'])))
+            ->additional(['message' => 'Commune created successfully.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -65,7 +68,7 @@ class CommuneController extends Controller
     {
         $commune = Commune::with(['province', 'ministere', 'pays', 'zones'])->findOrFail($id);
 
-        return response()->json($commune);
+        return (new CommuneResource($commune))->response();
     }
 
     /**
@@ -89,7 +92,9 @@ class CommuneController extends Controller
 
         $commune->update($validated);
 
-        return response()->json($commune->load(['province', 'ministere', 'pays']));
+        return (new CommuneResource($commune->load(['province', 'ministere', 'pays'])))
+            ->additional(['message' => 'Commune updated successfully.'])
+            ->response();
     }
 
     /**

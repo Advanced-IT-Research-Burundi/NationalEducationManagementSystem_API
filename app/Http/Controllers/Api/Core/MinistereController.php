@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\MinistereResource;
 use App\Models\Ministere;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ class MinistereController extends Controller
 
         $ministeres = $query->paginate(10);
 
-        return sendResponse($ministeres, 'Ministeres retrieved successfully.');
+        return MinistereResource::collection($ministeres)->response();
     }
 
     /**
@@ -38,7 +39,10 @@ class MinistereController extends Controller
 
         $ministere = Ministere::create($validated);
 
-        return response()->json($ministere->load('pays'), 201);
+        return (new MinistereResource($ministere->load('pays')))
+            ->additional(['message' => 'Ministere created successfully.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -48,7 +52,7 @@ class MinistereController extends Controller
     {
         $ministere = Ministere::with('pays')->findOrFail($id);
 
-        return response()->json($ministere);
+        return (new MinistereResource($ministere))->response();
     }
 
     /**
@@ -66,7 +70,9 @@ class MinistereController extends Controller
 
         $ministere->update($validated);
 
-        return response()->json($ministere->load('pays'));
+        return (new MinistereResource($ministere->load('pays')))
+            ->additional(['message' => 'Ministere updated successfully.'])
+            ->response();
     }
 
     /**

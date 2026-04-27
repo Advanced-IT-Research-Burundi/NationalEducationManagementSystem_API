@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Core;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCollineRequest;
 use App\Http\Requests\UpdateCollineRequest;
+use App\Http\Resources\CollineResource;
 use App\Models\Colline;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,10 +42,9 @@ class CollineController extends Controller
 
         $collines = $query->paginate($request->input('per_page', 15));
 
-        //cache them for 24 hours
         Cache::put('collines', $collines, 24 * 60 * 60);
 
-        return sendResponse($collines, 'Collines retrieved successfully.');
+        return CollineResource::collection($collines)->response();
     }
 
     /**
@@ -63,7 +63,10 @@ class CollineController extends Controller
 
         $colline = Colline::create($validated);
 
-        return response()->json($colline->load(['zone', 'commune', 'province', 'ministere', 'pays']), 201);
+        return (new CollineResource($colline->load(['zone', 'commune', 'province', 'ministere', 'pays'])))
+            ->additional(['message' => 'Colline created successfully.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -73,7 +76,7 @@ class CollineController extends Controller
     {
         $colline = Colline::with(['zone', 'commune', 'province', 'ministere', 'pays', 'schools'])->findOrFail($id);
 
-        return response()->json($colline);
+        return (new CollineResource($colline))->response();
     }
 
     /**
@@ -94,7 +97,9 @@ class CollineController extends Controller
 
         $colline->update($validated);
 
-        return response()->json($colline->load(['zone', 'commune', 'province', 'ministere', 'pays']));
+        return (new CollineResource($colline->load(['zone', 'commune', 'province', 'ministere', 'pays'])))
+            ->additional(['message' => 'Colline updated successfully.'])
+            ->response();
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Schools;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSchoolRequest;
 use App\Http\Requests\UpdateSchoolRequest;
+use App\Http\Resources\SchoolResource;
 use App\Models\Colline;
 use App\Models\Enseignant;
 use App\Models\School;
@@ -72,7 +73,7 @@ class SchoolController extends Controller
             ->latest('id')
             ->paginate($request->integer('per_page', 15));
 
-        return sendResponse($schools, 'Schools retrieved successfully.');
+        return SchoolResource::collection($schools)->response();
     }
 
     /**
@@ -100,10 +101,10 @@ class SchoolController extends Controller
             $school->niveauxScolaires()->sync($data['niveau_scolaire_ids']);
         }
 
-        return response()->json([
-            'message' => 'School created successfully',
-            'school' => $school->load('niveauxScolaires'),
-        ], 201);
+        return (new SchoolResource($school->load('niveauxScolaires')))
+            ->additional(['message' => 'School created successfully'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -113,11 +114,13 @@ class SchoolController extends Controller
     {
         $this->authorize('view', $school);
 
-        return response()->json($school->load([
+        $school->load([
             'colline', 'zone', 'commune', 'province',
             'creator', 'validator', 'niveauxScolaires',
             'enseignants.user', 'directeur',
-        ]));
+        ]);
+
+        return (new SchoolResource($school))->response();
     }
 
     /**
@@ -141,10 +144,9 @@ class SchoolController extends Controller
             $school->niveauxScolaires()->sync($request->niveau_scolaire_ids);
         }
 
-        return response()->json([
-            'message' => 'School updated successfully',
-            'school' => $school->load('niveauxScolaires'),
-        ]);
+        return (new SchoolResource($school->load('niveauxScolaires')))
+            ->additional(['message' => 'School updated successfully'])
+            ->response();
     }
 
     /**
@@ -198,7 +200,7 @@ class SchoolController extends Controller
             ->with(['colline', 'zone', 'commune', 'province'])
             ->paginate($request->get('per_page', 15));
 
-        return response()->json($schools);
+        return SchoolResource::collection($schools)->response();
     }
 
     /**
@@ -219,10 +221,9 @@ class SchoolController extends Controller
             'directeur_name' => $user->name,
         ]);
 
-        return response()->json([
-            'message' => 'Directeur assigné avec succès',
-            'school' => $school->load(['directeur', 'enseignants.user', 'niveauxScolaires']),
-        ]);
+        return (new SchoolResource($school->load(['directeur', 'enseignants.user', 'niveauxScolaires'])))
+            ->additional(['message' => 'Directeur assigné avec succès'])
+            ->response();
     }
 
     /**
@@ -316,7 +317,7 @@ class SchoolController extends Controller
             $enseignant->update(['school_id' => null]);
         }
 
-        return response()->json(['message' => 'Enseignant retiré de l’établissement avec succès']);
+        return response()->json(['message' => "Enseignant retiré de l'établissement avec succès"]);
     }
 
     /**
@@ -376,8 +377,8 @@ class SchoolController extends Controller
         return response()->json([
             'data' => [
                 'enseignant' => $enseignant->loadMissing('user'),
-                'school' => $enseignant->school,
-                'schools' => $schools->values(),
+                'school' => $enseignant->school ? new SchoolResource($enseignant->school) : null,
+                'schools' => SchoolResource::collection($schools->values()),
             ],
         ]);
     }
