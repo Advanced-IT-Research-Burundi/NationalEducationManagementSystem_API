@@ -30,7 +30,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::with(['roles', 'creator'])->paginate(15);
+        $users = User::with(['roles', 'creator', 'enseignant'])->paginate(15);
         $users->getCollection()->transform(function (User $user) {
             return tap($user)->setAttribute('is_super_admin', $user->isSuperAdmin());
         });
