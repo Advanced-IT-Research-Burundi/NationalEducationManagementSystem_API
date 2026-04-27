@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
+use App\Models\Enseignant;
 use App\Models\School;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Role;
@@ -47,6 +48,7 @@ class UserController extends Controller
 
         $this->syncUserRoles($user, $data);
         $this->syncSchoolDirectorAssignment($user);
+        $this->syncEnseignantProfile($user, $data);
 
         return response()->json([
             'message' => 'User created successfully',
@@ -103,6 +105,7 @@ class UserController extends Controller
 
         $this->syncUserRoles($user, $data);
         $this->syncSchoolDirectorAssignment($user, $previousSchoolId, $wasSchoolDirector);
+        $this->syncEnseignantProfile($user, $data);
 
         return response()->json([
             'message' => 'User updated successfully',
@@ -187,6 +190,43 @@ class UserController extends Controller
             $user->forceFill([
                 'is_super_admin' => in_array(Role::SUPER_ADMIN, $roles, true),
             ])->save();
+        }
+    }
+
+    /**
+     * Ensure a user with the Enseignant role has a matching enseignants profile.
+     */
+    protected function syncEnseignantProfile(User $user, array $data): void
+    {
+        $user->loadMissing('roles');
+
+        if (! $user->hasRole(Role::ENSEIGNANT)) {
+            return;
+        }
+
+        if ($user->enseignant()->exists()) {
+            return;
+        }
+
+        if (empty($data['matricule'])) {
+            return;
+        }
+
+        $schoolId = ($user->admin_level === 'ECOLE' && $user->admin_entity_id)
+            ? $user->admin_entity_id
+            : null;
+
+        $enseignant = Enseignant::create([
+            'user_id'           => $user->id,
+            'school_id'         => $schoolId,
+            'matricule'         => $data['matricule'],
+            'statut'            => Enseignant::STATUS_ACTIF,
+            'annees_experience' => 0,
+            'created_by'        => Auth::id(),
+        ]);
+
+        if ($schoolId) {
+            $enseignant->ecoles()->attach($schoolId);
         }
     }
 

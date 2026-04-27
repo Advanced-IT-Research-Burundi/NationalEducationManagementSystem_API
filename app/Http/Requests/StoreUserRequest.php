@@ -42,6 +42,11 @@ class StoreUserRequest extends FormRequest
             'zone_id' => ['nullable', 'exists:zones,id'],
             'colline_id' => ['nullable', 'exists:collines,id'],
             'school_id' => ['nullable', 'exists:schools,id'],
+
+            'matricule' => [
+                Rule::requiredIf(fn () => $this->input('role') === Role::ENSEIGNANT),
+                'nullable', 'string', 'max:50', 'unique:enseignants,matricule',
+            ],
         ];
     }
 
