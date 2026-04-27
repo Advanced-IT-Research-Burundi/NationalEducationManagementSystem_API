@@ -123,6 +123,11 @@ class ClasseController extends Controller
      */
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
+        \Illuminate\Support\Facades\Log::info('Fetching classes for school', [
+            'school_id' => $schoolId,
+            'annee_scolaire_id' => $request->input('annee_scolaire_id'),
+            'user_id' => auth()->id()
+        ]);
         $query = Classe::bySchool($schoolId)->with(['niveau', 'section']);
 
         $anneeId = $request->input('annee_scolaire_id') ?? $request->input('annee_scolaire');
