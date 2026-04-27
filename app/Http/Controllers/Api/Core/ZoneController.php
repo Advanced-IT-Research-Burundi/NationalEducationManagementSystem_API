@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ZoneResource;
 use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,10 +36,9 @@ class ZoneController extends Controller
 
         $zones = $query->paginate($request->input('per_page', 15));
 
-        //cache them for 24 hours
         Cache::put('zones', $zones, 24 * 60 * 60);
 
-        return sendResponse($zones, 'Zones retrieved successfully.');
+        return ZoneResource::collection($zones)->response();
     }
 
     /**
@@ -60,7 +60,10 @@ class ZoneController extends Controller
 
         $zone = Zone::create($validated);
 
-        return response()->json($zone->load(['commune', 'province', 'ministere', 'pays']), 201);
+        return (new ZoneResource($zone->load(['commune', 'province', 'ministere', 'pays'])))
+            ->additional(['message' => 'Zone created successfully.'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -70,7 +73,7 @@ class ZoneController extends Controller
     {
         $zone = Zone::with(['commune', 'province', 'ministere', 'pays', 'collines'])->findOrFail($id);
 
-        return response()->json($zone);
+        return (new ZoneResource($zone))->response();
     }
 
     /**
@@ -95,7 +98,9 @@ class ZoneController extends Controller
 
         $zone->update($validated);
 
-        return response()->json($zone->load(['commune', 'province', 'ministere', 'pays']));
+        return (new ZoneResource($zone->load(['commune', 'province', 'ministere', 'pays'])))
+            ->additional(['message' => 'Zone updated successfully.'])
+            ->response();
     }
 
     /**

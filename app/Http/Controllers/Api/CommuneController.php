@@ -14,7 +14,7 @@ class CommuneController extends Controller
     public function index()
     {
         $communes = Commune::with('province')->paginate(10);
-        return sendResponse($communes, 'Communes retrieved successfully');
+        return sendResponse(CommuneResource::collection($communes), 'Communes retrieved successfully');
     }
 
     /**

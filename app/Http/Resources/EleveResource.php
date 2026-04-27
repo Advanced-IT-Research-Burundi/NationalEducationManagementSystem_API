@@ -27,27 +27,11 @@ class EleveResource extends JsonResource
             'colline_origine_id' => $this->colline_origine_id,
             'niveau_id' => $this->niveau_id,
 
-            'province_origine' => $this->whenLoaded('provinceOrigine', fn () => [
-                'id' => $this->provinceOrigine->id,
-                'name' => $this->provinceOrigine->name,
-            ]),
-            'commune_origine' => $this->whenLoaded('communeOrigine', fn () => [
-                'id' => $this->communeOrigine->id,
-                'name' => $this->communeOrigine->name,
-            ]),
-            'zone_origine' => $this->whenLoaded('zoneOrigine', fn () => [
-                'id' => $this->zoneOrigine->id,
-                'name' => $this->zoneOrigine->name,
-            ]),
-            'colline_origine' => $this->whenLoaded('collineOrigine', fn () => [
-                'id' => $this->collineOrigine->id,
-                'name' => $this->collineOrigine->name,
-            ]),
-            'niveau' => $this->whenLoaded('niveau', fn () => [
-                'id' => $this->niveau->id,
-                'nom' => $this->niveau->nom,
-                'code' => $this->niveau->code,
-            ]),
+            'province_origine' => new ProvinceResource($this->whenLoaded('provinceOrigine')),
+            'commune_origine' => new CommuneResource($this->whenLoaded('communeOrigine')),
+            'zone_origine' => new ZoneResource($this->whenLoaded('zoneOrigine')),
+            'colline_origine' => new CollineResource($this->whenLoaded('collineOrigine')),
+            'niveau' => new NiveauResource($this->whenLoaded('niveau')),
 
             'nom_pere' => $this->nom_pere,
             'nom_mere' => $this->nom_mere,
@@ -59,10 +43,7 @@ class EleveResource extends JsonResource
 
             'school_id' => $this->school_id,
             'statut_global' => $this->statut_global,
-            'school' => $this->whenLoaded('ecole', fn () => [
-                'id' => $this->ecole->id,
-                'name' => $this->ecole->name,
-            ]),
+            'school' => new SchoolResource($this->whenLoaded('ecole')),
 
             'classes' => $this->whenLoaded('classes', function () {
                 return $this->classes->map(fn ($classe) => [

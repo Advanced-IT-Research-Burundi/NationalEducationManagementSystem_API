@@ -77,10 +77,9 @@ class EleveController extends Controller
 
         $eleves = $query->latest()->paginate($request->get('per_page', 15));
 
-        //cache them for 24 hours
         Cache::put('eleves', $eleves, 24 * 60 * 60);
 
-        return response()->json($eleves);
+        return EleveResource::collection($eleves)->response();
     }
 
     /**
@@ -137,10 +136,12 @@ class EleveController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'message' => 'Élève créé avec succès',
-                'eleve' => $eleve->load(['ecole', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau', 'inscriptions.classe']),
-            ], 201);
+            $eleve->load(['ecole', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau', 'inscriptions.classe']);
+
+            return (new EleveResource($eleve))
+                ->additional(['message' => 'Élève créé avec succès'])
+                ->response()
+                ->setStatusCode(201);
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
@@ -170,10 +171,7 @@ public function show($id): JsonResponse
         'inscriptions.classe.niveau'
     ]);
 
-    return response()->json([
-        'success' => true,
-        'data' => new EleveResource($eleve)
-    ]);
+    return (new EleveResource($eleve))->response();
 }
 
     /**
@@ -185,10 +183,11 @@ public function show($id): JsonResponse
 
         $eleve->update($request->validated());
 
-        return response()->json([
-            'message' => 'Élève mis à jour avec succès',
-            'eleve' => $eleve->load(['ecole', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau']),
-        ]);
+        $eleve->load(['ecole', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau']);
+
+        return (new EleveResource($eleve))
+            ->additional(['message' => 'Élève mis à jour avec succès'])
+            ->response();
     }
 
     /**
@@ -235,7 +234,7 @@ public function show($id): JsonResponse
 
         $eleves = $query->get();
 
-        return response()->json($eleves);
+        return EleveResource::collection($eleves)->response();
     }
 
     /**
@@ -250,7 +249,7 @@ public function show($id): JsonResponse
             ->wherePivot('statut', 'ACTIVE')
             ->get();
 
-        return response()->json($eleves);
+        return EleveResource::collection($eleves)->response();
     }
 
     /**
@@ -298,7 +297,6 @@ public function show($id): JsonResponse
              'date_inscription' => $data['date_inscription'] ?? now(),
              'statut' => 'ACTIVE',
              'created_by' => Auth::id(),
-             // Add other fields from data as needed, filtering out classe_id
         ]);
 
         AffectationClasse::create([
@@ -489,7 +487,6 @@ public function show($id): JsonResponse
                 'updated_at' => now(),
             ]);
 
-        // ✅ Recalculer l'effectif de chaque classe quittée
         foreach ($classesActives as $classeId) {
             $newEffectif = DB::table('eleve_class')
                 ->where('classe_id', $classeId)
@@ -507,10 +504,11 @@ public function show($id): JsonResponse
             ? 'Élève marqué comme redoublant avec succès'
             : 'Élève promu au niveau supérieur avec succès';
 
-        return response()->json([
-            'message' => $message,
-            'eleve' => $eleve->load(['niveau', 'ecole', 'inscriptions.classe.niveau']),
-        ]);
+        $eleve->load(['niveau', 'ecole', 'inscriptions.classe.niveau']);
+
+        return (new EleveResource($eleve))
+            ->additional(['message' => $message])
+            ->response();
 
     } catch (\Exception $e) {
         DB::rollBack();
@@ -534,7 +532,6 @@ public function show($id): JsonResponse
 
         DB::beginTransaction();
         try {
-            // ✅ Récupérer les classes actives AVANT de les désactiver
             $classesActives = DB::table('eleve_class')
                 ->where('eleve_id', $eleve->id)
                 ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
@@ -566,7 +563,6 @@ public function show($id): JsonResponse
                     'updated_at' => now()
                 ]);
 
-            // ✅ Recalculer l'effectif de chaque classe quittée
             foreach ($classesActives as $classeId) {
                 $newEffectif = DB::table('eleve_class')
                     ->where('classe_id', $classeId)
@@ -580,10 +576,11 @@ public function show($id): JsonResponse
 
             DB::commit();
 
-            return response()->json([
-                'message' => 'Élève transféré avec succès',
-                'eleve' => $eleve->load(['ecole']),
-            ]);
+            $eleve->load('ecole');
+
+            return (new EleveResource($eleve))
+                ->additional(['message' => 'Élève transféré avec succès'])
+                ->response();
         } catch (\Exception $e) {
             DB::rollBack();
 
