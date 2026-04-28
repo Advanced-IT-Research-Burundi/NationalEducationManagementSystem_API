@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,14 +13,28 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class CampagneCollecte extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasAcademicYearScope, HasFactory, LogsActivity;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     const STATUT_BROUILLON = 'brouillon';
+
     const STATUT_OUVERTE = 'ouverte';
+
     const STATUT_FERMEE = 'fermee';
 
     const NIVEAU_ZONE = 'zone';
+
     const NIVEAU_COMMUNE = 'commune';
+
     const NIVEAU_PROVINCE = 'province';
 
     protected $table = 'campagnes_collecte';

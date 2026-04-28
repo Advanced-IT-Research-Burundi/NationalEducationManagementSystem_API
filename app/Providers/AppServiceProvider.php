@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\AnneeScolaire;
 use App\Models\User;
+use App\Observers\AnneeScolaireObserver;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\ScrambleServiceProvider;
 use Dedoc\Scramble\Support\Generator\OpenApi;
@@ -27,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        AnneeScolaire::observe(AnneeScolaireObserver::class);
+
         Gate::before(function (User $user) {
             if ($user->isSuperAdmin()) {
                 return true;

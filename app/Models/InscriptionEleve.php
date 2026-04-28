@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,17 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class InscriptionEleve extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasAcademicYearScope, HasFactory, LogsActivity;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     // Status constants
     const STATUS_BROUILLON = 'brouillon';

@@ -2,12 +2,23 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class NoteConduite extends Model
 {
-    use HasFactory;
+    use HasAcademicYearScope, HasFactory;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     protected $fillable = [
         'eleve_id',

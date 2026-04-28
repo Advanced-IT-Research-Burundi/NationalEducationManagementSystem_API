@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use App\Traits\HasDataScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Inscription extends Model
 {
-    use HasFactory, HasDataScope;
+    use HasAcademicYearScope, HasDataScope, HasFactory;
 
     protected $fillable = [
         'numero_inscription',
@@ -40,6 +42,16 @@ class Inscription extends Model
         'est_redoublant' => 'boolean',
         'pieces_fournies' => 'array',
     ];
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     // Scopes
     protected static function getScopeColumn(): ?string
@@ -98,7 +110,7 @@ class Inscription extends Model
         return $this->hasOne(AffectationClasse::class, 'inscription_id');
     }
 
-    public function classe(): \Illuminate\Database\Eloquent\Relations\HasOneThrough
+    public function classe(): HasOneThrough
     {
         return $this->hasOneThrough(
             Classe::class,
@@ -109,7 +121,4 @@ class Inscription extends Model
             'classe_id'       // Local key on AffectationClasse table
         );
     }
-
-
-    
 }

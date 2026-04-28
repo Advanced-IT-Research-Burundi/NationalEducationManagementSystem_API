@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AffectationMatiere extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasAcademicYearScope, HasFactory, SoftDeletes;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     protected $table = 'affectations_matieres';
 

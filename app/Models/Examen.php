@@ -2,13 +2,24 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Examen extends Model
 {
-    use HasFactory, HasMatricule;
+    use HasAcademicYearScope, HasFactory, HasMatricule;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     protected $fillable = [
         'code',

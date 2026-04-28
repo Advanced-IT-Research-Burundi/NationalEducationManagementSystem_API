@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use App\Traits\HasDataScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CampagneInscription extends Model
 {
-    use HasFactory, HasDataScope;
+    use HasAcademicYearScope, HasDataScope, HasFactory;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     protected $table = 'campagnes_inscription';
 

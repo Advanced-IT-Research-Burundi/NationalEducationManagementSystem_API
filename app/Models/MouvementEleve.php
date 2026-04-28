@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\StatutMouvement;
 use App\Enums\TypeMouvement;
+use App\Traits\HasAcademicYearScope;
 use App\Traits\HasDataScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,17 @@ use Illuminate\Support\Facades\DB;
 
 class MouvementEleve extends Model
 {
-    use HasDataScope, HasFactory;
+    use HasAcademicYearScope, HasDataScope, HasFactory;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     protected $table = 'mouvements_eleve';
 

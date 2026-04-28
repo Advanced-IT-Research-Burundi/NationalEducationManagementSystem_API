@@ -2,13 +2,24 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AffectationClasse extends Model
 {
-    use HasFactory;
+    use HasAcademicYearScope, HasFactory;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return null;
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return 'classe';
+    }
 
     protected $table = 'affectations_classe';
 

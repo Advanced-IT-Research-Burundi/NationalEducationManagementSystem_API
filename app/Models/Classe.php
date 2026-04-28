@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use App\Traits\HasDataScope;
 use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,11 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Classe extends Model
 {
-    use HasDataScope, HasFactory, SoftDeletes, HasMatricule;
+    use HasAcademicYearScope, HasDataScope, HasFactory, HasMatricule, SoftDeletes;
 
     // Status constants
     const STATUS_ACTIVE = 'ACTIVE';
@@ -45,6 +47,16 @@ class Classe extends Model
     ];
 
     protected $appends = ['statut_label'];
+
+    protected static function academicYearColumn(): ?string
+    {
+        return 'annee_scolaire_id';
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return null;
+    }
 
     /**
      * Query Scopes
@@ -89,8 +101,6 @@ class Classe extends Model
             default => 'Inconnu',
         };
     }
-
-
 
     /**
      * Relationships
@@ -137,7 +147,7 @@ class Classe extends Model
         return $this->hasMany(AffectationEnseignant::class, 'classe_id');
     }
 
-    public function inscriptions(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    public function inscriptions(): HasManyThrough
     {
         return $this->hasManyThrough(
             Inscription::class,
@@ -175,7 +185,4 @@ class Classe extends Model
 
         return $this->effectif < $this->capacite;
     }
-
-
-    
 }

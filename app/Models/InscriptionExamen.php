@@ -2,12 +2,23 @@
 
 namespace App\Models;
 
+use App\Traits\HasAcademicYearScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class InscriptionExamen extends Model
 {
-    use HasFactory;
+    use HasAcademicYearScope, HasFactory;
+
+    protected static function academicYearColumn(): ?string
+    {
+        return null;
+    }
+
+    protected static function academicYearRelation(): ?string
+    {
+        return 'session.examen';
+    }
 
     protected $table = 'inscriptions_examen';
 
