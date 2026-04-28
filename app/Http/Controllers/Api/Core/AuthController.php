@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +18,7 @@ class AuthController extends Controller
      */
     protected function serializeAuthenticatedUser(User $user): array
     {
+        $user->synchronizeDirectorSchoolScope();
         $user->loadMissing(['roles.permissions', 'permissions', 'school', 'enseignant.school']);
 
         $primaryRole = $user->getPrimaryRole();
@@ -117,15 +120,62 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        // Delete current token
         $user->currentAccessToken()->delete();
 
-        // Create new token
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
+        ]);
+    }
+
+    /**
+     * List the authenticated user's permissions.
+     */
+    public function myPermissions(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->loadMissing(['roles.permissions', 'permissions']);
+
+        $directPermissions = $user->permissions->keyBy('id');
+        $allPermissions = $user->getAllPermissions()
+            ->sortBy(['group_name', 'sort_order', 'name'])
+            ->values();
+
+        return response()->json([
+            'permissions' => $allPermissions->map(fn (Permission $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'label' => $p->label,
+                'description' => $p->description,
+                'group_name' => $p->group_name,
+                'group_label' => $p->group_label,
+                'is_system' => $p->is_system,
+                'source' => $directPermissions->has($p->id) ? 'direct' : 'role',
+            ])->all(),
+            'total' => $allPermissions->count(),
+        ]);
+    }
+
+    /**
+     * List the authenticated user's roles.
+     */
+    public function myRoles(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->loadMissing('roles.permissions');
+
+        return response()->json([
+            'roles' => $user->roles->sortByDesc('sort_order')->values()->map(fn (Role $r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'slug' => $r->slug,
+                'description' => $r->description,
+                'is_system' => $r->is_system,
+                'permissions_count' => $r->permissions->count(),
+            ])->all(),
+            'primary_role' => $user->getPrimaryRole()?->only(['id', 'name', 'slug']),
         ]);
     }
 }

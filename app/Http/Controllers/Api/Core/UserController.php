@@ -12,6 +12,7 @@ use App\Http\Resources\PaysResource;
 use App\Http\Resources\ProvinceResource;
 use App\Http\Resources\SchoolResource;
 use App\Http\Resources\ZoneResource;
+use App\Models\Enseignant;
 use App\Models\Role;
 use App\Models\School;
 use App\Models\User;
@@ -19,6 +20,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
@@ -300,6 +302,56 @@ class UserController extends Controller
                 'directeur_id' => null,
                 'directeur_name' => null,
             ]);
+    }
+
+    /**
+     * Sync direct permissions for a specific user (admin action).
+     */
+    public function syncPermissions(Request $request, User $user): JsonResponse
+    {
+        $this->authorize('syncPermissions', $user);
+        $this->ensureNotProtectedUser($user);
+
+        $validated = $request->validate([
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'api')],
+        ]);
+
+        $user->syncPermissions($validated['permissions']);
+
+        return response()->json([
+            'message' => 'Permissions utilisateur mises à jour.',
+            'user' => tap($user->load(['roles', 'permissions']))->setAttribute('is_super_admin', $user->isSuperAdmin()),
+        ]);
+    }
+
+    /**
+     * Sync roles for a specific user (admin action).
+     */
+    public function syncRoles(Request $request, User $user): JsonResponse
+    {
+        $this->authorize('syncRoles', $user);
+        $this->ensureNotProtectedUser($user);
+
+        $validated = $request->validate([
+            'roles' => ['required', 'array'],
+            'roles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'api')],
+        ]);
+
+        $previousSchoolId = $user->school_id;
+        $wasSchoolDirector = $user->hasRole(Role::DIRECTEUR_ECOLE);
+
+        $user->syncRoles($validated['roles']);
+        $user->forceFill([
+            'is_super_admin' => in_array(Role::SUPER_ADMIN, $validated['roles'], true),
+        ])->save();
+
+        $this->syncSchoolDirectorAssignment($user, $previousSchoolId, $wasSchoolDirector);
+
+        return response()->json([
+            'message' => 'Rôles utilisateur mis à jour.',
+            'user' => tap($user->load(['roles', 'permissions']))->setAttribute('is_super_admin', $user->isSuperAdmin()),
+        ]);
     }
 
     protected function ensureNotProtectedUser(User $user): void
