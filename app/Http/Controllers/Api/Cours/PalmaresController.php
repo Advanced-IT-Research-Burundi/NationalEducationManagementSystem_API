@@ -8,6 +8,8 @@ use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\Matiere;
 use App\Models\NoteConduite;
+use App\Services\ConduiteConfigService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,11 +23,12 @@ class PalmaresController extends Controller
         $raw = preg_replace('/\d+/', '', $raw);        // remove numbers
         $raw = preg_replace('/[^A-Z]/', '', $raw);     // keep letters only
 
-        if (!empty($raw)) {
+        if (! empty($raw)) {
             return Str::substr($raw, 0, 6);
         }
 
-        $fallback = Str::upper(Str::substr(preg_replace('/\s+/', '', (string)($matiere->nom ?? '')), 0, 6));
+        $fallback = Str::upper(Str::substr(preg_replace('/\s+/', '', (string) ($matiere->nom ?? '')), 0, 6));
+
         return $fallback ?: 'COURS';
     }
 
@@ -43,11 +46,13 @@ class PalmaresController extends Controller
         $anneeScolaireId = $request->integer('annee_scolaire_id') ?: AnneeScolaire::current()?->id;
         $type = $request->string('type')->toString() ?: 'simple';
 
-        if (!$anneeScolaireId) {
+        if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $classe = Classe::with(['school:id,name', 'niveau:id,nom', 'section:id,nom'])->findOrFail($classeId);
+        $classe = Classe::with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])->findOrFail($classeId);
+        $conduiteConfig = ConduiteConfigService::resolveForClasse($classe);
+        $conduiteMax = $conduiteConfig['max_note'];
         $eleves = $classe->eleves()->orderBy('nom')->orderBy('prenom')->get();
 
         // Get evaluations
@@ -70,6 +75,7 @@ class PalmaresController extends Controller
 
         $coursMeta = $cours->map(function ($matiere) {
             $code = self::palmaresCoursCode($matiere);
+
             return [
                 'id' => $matiere->id,
                 'nom' => $matiere->nom,
@@ -150,17 +156,10 @@ class PalmaresController extends Controller
 
             $pourcentageCours = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
 
-            // Note de conduite
             $noteC = $notesConduite->where('eleve_id', $eleve->id)->first();
-            $noteConduiteValue = $noteC ? $noteC->note : 60;
-            $conduiteMax = 60;
-            $appreciationConduite = 'Très mauvais';
-            if ($noteConduiteValue >= 50) $appreciationConduite = 'Excellent';
-            elseif ($noteConduiteValue >= 40) $appreciationConduite = 'Bon';
-            elseif ($noteConduiteValue >= 30) $appreciationConduite = 'Passable';
-            elseif ($noteConduiteValue >= 20) $appreciationConduite = 'Mauvais';
+            $noteConduiteValue = $noteC ? $noteC->note : $conduiteMax;
+            $appreciationConduite = ConduiteConfigService::buildAppreciation($noteConduiteValue, $conduiteMax);
 
-            // Totaux globaux (cours + conduite) — cohérents avec le grand total du PDF du bulletin
             $globalPoints = round($totalPoints + $noteConduiteValue, 2);
             $globalMax = round($totalMax + $conduiteMax, 2);
             $pourcentage = $globalMax > 0 ? round(($globalPoints / $globalMax) * 100, 1) : 0;
@@ -168,9 +167,13 @@ class PalmaresController extends Controller
             $decision = null;
             if ($type === 'detaille') {
                 $nbEchecs = count($coursEchecs);
-                if ($pourcentage >= 50 && $nbEchecs === 0) $decision = 'Admis';
-                elseif ($pourcentage >= 50 && $nbEchecs > 0) $decision = 'Admis (avec échecs)';
-                else $decision = 'Ajourné';
+                if ($pourcentage >= 50 && $nbEchecs === 0) {
+                    $decision = 'Admis';
+                } elseif ($pourcentage >= 50 && $nbEchecs > 0) {
+                    $decision = 'Admis (avec échecs)';
+                } else {
+                    $decision = 'Ajourné';
+                }
             }
 
             $entry = [
@@ -192,8 +195,8 @@ class PalmaresController extends Controller
                 'conduite' => [
                     'note' => $noteConduiteValue,
                     'max' => $conduiteMax,
-                    'appreciation' => $appreciationConduite
-                ]
+                    'appreciation' => $appreciationConduite,
+                ],
             ];
 
             if ($type === 'detaille') {
@@ -208,7 +211,7 @@ class PalmaresController extends Controller
         }
 
         // Sort by total descending
-        usort($classement, fn($a, $b) => $b['total_points'] <=> $a['total_points']);
+        usort($classement, fn ($a, $b) => $b['total_points'] <=> $a['total_points']);
 
         // Assign ranks
         $rank = 1;
@@ -250,13 +253,13 @@ class PalmaresController extends Controller
             ? 'bulletin.palmares_detaille'
             : 'bulletin.palmares_pdf_non_detaille';
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, [
+        $pdf = Pdf::loadView($view, [
             'data' => $palmaresData,
         ]);
 
         $pdf->setPaper('A4', 'portrait');
 
-        $filename = 'palmares_' . ($palmaresData['classe']['nom'] ?? 'classe') . '.pdf';
+        $filename = 'palmares_'.($palmaresData['classe']['nom'] ?? 'classe').'.pdf';
 
         return $pdf->download($filename);
     }

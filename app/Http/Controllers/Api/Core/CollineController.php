@@ -7,9 +7,9 @@ use App\Http\Requests\StoreCollineRequest;
 use App\Http\Requests\UpdateCollineRequest;
 use App\Http\Resources\CollineResource;
 use App\Models\Colline;
+use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class CollineController extends Controller
 {
@@ -42,8 +42,6 @@ class CollineController extends Controller
 
         $collines = $query->paginate($request->input('per_page', 15));
 
-        Cache::put('collines', $collines, 24 * 60 * 60);
-
         return CollineResource::collection($collines)->response();
     }
 
@@ -55,7 +53,7 @@ class CollineController extends Controller
         $validated = $request->validated();
 
         // Auto-populate hierarchy
-        $zone = \App\Models\Zone::with('commune.province')->findOrFail($validated['zone_id']);
+        $zone = Zone::with('commune.province')->findOrFail($validated['zone_id']);
         $validated['commune_id'] = $zone->commune_id;
         $validated['province_id'] = $zone->province_id;
         $validated['ministere_id'] = $zone->ministere_id;
@@ -88,7 +86,7 @@ class CollineController extends Controller
         $validated = $request->validated();
 
         if (isset($validated['zone_id'])) {
-            $zone = \App\Models\Zone::findOrFail($validated['zone_id']);
+            $zone = Zone::findOrFail($validated['zone_id']);
             $validated['commune_id'] = $zone->commune_id;
             $validated['province_id'] = $zone->province_id;
             $validated['ministere_id'] = $zone->ministere_id;

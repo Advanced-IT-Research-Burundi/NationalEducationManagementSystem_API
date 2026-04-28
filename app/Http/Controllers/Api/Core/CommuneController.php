@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\Core;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CommuneResource;
 use App\Models\Commune;
+use App\Models\Province;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class CommuneController extends Controller
 {
@@ -32,8 +32,6 @@ class CommuneController extends Controller
 
         $communes = $query->paginate(10);
 
-        Cache::put('communes', $communes, 24 * 60 * 60);
-
         return CommuneResource::collection($communes)->response();
     }
 
@@ -49,7 +47,7 @@ class CommuneController extends Controller
         ]);
 
         // Auto-populate hierarchy
-        $province = \App\Models\Province::findOrFail($validated['province_id']);
+        $province = Province::findOrFail($validated['province_id']);
         $validated['ministere_id'] = $province->ministere_id;
         $validated['pays_id'] = $province->pays_id;
 
@@ -85,7 +83,7 @@ class CommuneController extends Controller
         ]);
 
         if (isset($validated['province_id'])) {
-            $province = \App\Models\Province::findOrFail($validated['province_id']);
+            $province = Province::findOrFail($validated['province_id']);
             $validated['ministere_id'] = $province->ministere_id;
             $validated['pays_id'] = $province->pays_id;
         }

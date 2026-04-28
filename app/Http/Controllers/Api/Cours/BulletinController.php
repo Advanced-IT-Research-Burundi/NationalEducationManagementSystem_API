@@ -5,17 +5,16 @@ namespace App\Http\Controllers\Api\Cours;
 use App\Http\Controllers\Controller;
 use App\Models\AnneeScolaire;
 use App\Models\Classe;
-use App\Models\Eleve;
 use App\Models\Evaluation;
 use App\Models\Matiere;
-use App\Models\Note;
-use App\Models\CategorieCours;
 use App\Models\NoteConduite;
+use App\Services\ConduiteConfigService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 class BulletinController extends Controller
 {
@@ -36,30 +35,55 @@ class BulletinController extends Controller
         $classeId = $request->integer('classe_id');
         $trimestre = $request->trimestre;
         $anneeScolaireId = $request->integer('annee_scolaire_id') ?: AnneeScolaire::current()?->id;
+        $requestedEleveId = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
 
-        if (!$anneeScolaireId) {
+        if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $classe = Classe::with(['school:id,name', 'niveau:id,nom', 'section:id,nom'])->findOrFail($classeId);
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
+        $ttl = 600;
 
-        // Toujours charger TOUS les élèves de la classe pour calculer correctement
-        // les rangs et l'effectif. Le filtre eleve_id sera appliqué sur la sortie finale.
+        $data = Cache::remember($cacheKey, $ttl, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+
+        if ($requestedEleveId) {
+            $data['bulletins'] = array_values(array_filter(
+                $data['bulletins'],
+                fn ($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
+            ));
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildBulletinData(int $classeId, ?string $trimestre, int $anneeScolaireId): array
+    {
+        $classe = Classe::with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])->findOrFail($classeId);
+
+        $conduiteConfig = ConduiteConfigService::resolveForClasse($classe);
+        $conduiteMax = $conduiteConfig['max_note'];
+
         $eleves = $classe->eleves()->orderBy('nom')->orderBy('prenom')->get();
-        $requestedEleveId = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
 
-        // Get all courses for this class's section/niveau
+        $hasCategorieCours = Schema::hasColumn('matieres', 'categorie_cours_id');
+        $hasNiveauId = Schema::hasColumn('matieres', 'niveau_id');
+        $hasPonderationTj = Schema::hasColumn('matieres', 'ponderation_tj');
+        $hasPonderationExam = Schema::hasColumn('matieres', 'ponderation_examen');
+
         $coursQuery = Matiere::query()->where('actif', true);
-        if (Schema::hasColumn('matieres', 'categorie_cours_id')) {
+        if ($hasCategorieCours) {
             $coursQuery->with('categorieCours');
         }
-        if (Schema::hasColumn('matieres', 'niveau_id')) {
+        if ($hasNiveauId) {
             $coursQuery->where(function ($q) use ($classe) {
                 $q->where('niveau_id', $classe->niveau_id)
                     ->orWhereNull('niveau_id');
             });
         }
-        if (Schema::hasColumn('matieres', 'categorie_cours_id')) {
+        if ($hasCategorieCours) {
             $coursQuery->orderBy('categorie_cours_id');
         }
         $cours = $coursQuery->orderBy('nom')->get();
@@ -107,17 +131,19 @@ class BulletinController extends Controller
                     $summary = $this->buildCourseSummary(
                         $coursEvals->where('trimestre', $currentTrimestre),
                         $eleve->id,
-                        $matiere
+                        $matiere,
+                        $hasPonderationTj,
+                        $hasPonderationExam
                     );
 
                     $coursTrimestres[$currentTrimestre] = $summary;
                     $trimestreSummaries[$currentTrimestre]['total_max'] += $summary['max_total'];
 
-                    if (!is_null($summary['note_total'])) {
+                    if (! is_null($summary['note_total'])) {
                         $trimestreSummaries[$currentTrimestre]['total_points'] += $summary['note_total'];
                     }
 
-                    if ($summary['has_expected_notes'] && !$summary['is_complete']) {
+                    if ($summary['has_expected_notes'] && ! $summary['is_complete']) {
                         $trimestreSummaries[$currentTrimestre]['has_incomplete'] = true;
                     }
                 }
@@ -131,15 +157,15 @@ class BulletinController extends Controller
                 $coursData[] = [
                     'cours_id' => $matiere->id,
                     'nom' => $matiere->nom,
-                    'categorie' => Schema::hasColumn('matieres', 'categorie_cours_id') ? $matiere->categorieCours?->nom : null,
-                    'categorie_ordre' => Schema::hasColumn('matieres', 'categorie_cours_id') ? ($matiere->categorieCours?->ordre ?? 99) : 99,
+                    'categorie' => $hasCategorieCours ? $matiere->categorieCours?->nom : null,
+                    'categorie_ordre' => $hasCategorieCours ? ($matiere->categorieCours?->ordre ?? 99) : 99,
                     'max_tj' => $baseSummary['max_tj'],
                     'max_examen' => $baseSummary['max_examen'],
                     'max_total' => $baseSummary['max_total'],
                     'note_tj' => $displayNotesSummary['note_tj'],
                     'note_examen' => $displayNotesSummary['note_examen'],
                     'note_total' => $displayNotesSummary['note_total'],
-                    'credit_heures' => (int)$matiere->credit_heures,
+                    'credit_heures' => (int) $matiere->credit_heures,
                     'trimestres' => $coursTrimestres,
                     'annuel' => $annualSummary,
                 ];
@@ -155,46 +181,42 @@ class BulletinController extends Controller
 
             foreach ($requestedTrimestres as $currentTrimestre) {
                 $summary = $trimestreSummaries[$currentTrimestre];
-                $isComplete = !$summary['has_incomplete'];
+                $isComplete = ! $summary['has_incomplete'];
                 $noteConduite = $notesConduiteByTrimestre->get($currentTrimestre);
-                $conduiteValue = $noteConduite ? $noteConduite->note : 60;
-                $conduiteMax = 60;
+                $conduiteValue = $noteConduite ? $noteConduite->note : $conduiteMax;
 
                 $globalPoints = $isComplete
                     ? round($summary['total_points'] + $conduiteValue, 2)
                     : null;
-                $globalMax = round($summary['total_max'] + $conduiteMax, 2);
-                $globalPourcentage = ($isComplete && $globalMax > 0)
-                    ? round(($globalPoints / $globalMax) * 100, 1)
+                $globalMaxTrimestre = round($summary['total_max'] + $conduiteMax, 2);
+                $globalPourcentage = ($isComplete && $globalMaxTrimestre > 0)
+                    ? round(($globalPoints / $globalMaxTrimestre) * 100, 1)
                     : null;
 
                 $bulletinTrimestres[$currentTrimestre] = [
-                    // Cours seuls (sans conduite) — utilisés par les vues PDF
                     'total_points' => $isComplete ? round($summary['total_points'], 2) : null,
                     'total_max' => round($summary['total_max'], 2),
                     'pourcentage' => ($isComplete && $summary['total_max'] > 0)
                         ? round(($summary['total_points'] / $summary['total_max']) * 100, 1)
                         : null,
-                    // Aliases explicites (mêmes valeurs, nommage non ambigu)
                     'total_points_cours' => $isComplete ? round($summary['total_points'], 2) : null,
                     'total_max_cours' => round($summary['total_max'], 2),
                     'pourcentage_cours' => ($isComplete && $summary['total_max'] > 0)
                         ? round(($summary['total_points'] / $summary['total_max']) * 100, 1)
                         : null,
-                    // Totaux GLOBAUX (cours + conduite) — affichés dans l'UI et le grand total PDF
                     'total_points_global' => $globalPoints,
-                    'total_max_global' => $globalMax,
+                    'total_max_global' => $globalMaxTrimestre,
                     'pourcentage_global' => $globalPourcentage,
                     'is_complete' => $isComplete,
                     'conduite' => [
                         'note' => $conduiteValue,
                         'max' => $conduiteMax,
-                        'appreciation' => $this->buildConduiteAppreciation($conduiteValue),
+                        'appreciation' => ConduiteConfigService::buildAppreciation($conduiteValue, $conduiteMax),
                     ],
                 ];
 
                 $annualTotalMax += $summary['total_max'];
-                $annualHasIncomplete = $annualHasIncomplete || !$isComplete;
+                $annualHasIncomplete = $annualHasIncomplete || ! $isComplete;
 
                 if ($isComplete) {
                     $annualTotalPoints += $summary['total_points'];
@@ -202,9 +224,9 @@ class BulletinController extends Controller
             }
 
             $annualConduiteNote = collect($requestedTrimestres)
-                ->sum(fn ($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? 60);
-            $annualConduiteMax = count($requestedTrimestres) * 60;
-            $annualIsComplete = !$annualHasIncomplete;
+                ->sum(fn ($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
+            $annualConduiteMax = count($requestedTrimestres) * $conduiteMax;
+            $annualIsComplete = ! $annualHasIncomplete;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
             $annualGlobalPoints = $annualIsComplete
                 ? round($annualTotalPoints + $annualConduiteNote, 2)
@@ -250,13 +272,14 @@ class BulletinController extends Controller
                     : $annualIsComplete,
                 'conduite' => [
                     'note' => $trimestre
-                        ? ($displayBulletin['conduite']['note'] ?? 60)
+                        ? ($displayBulletin['conduite']['note'] ?? $conduiteMax)
                         : $annualConduiteNote,
-                    'max' => $trimestre ? 60 : $annualConduiteMax,
+                    'max' => $trimestre ? $conduiteMax : $annualConduiteMax,
                     'appreciation' => $trimestre
-                        ? ($displayBulletin['conduite']['appreciation'] ?? $this->buildConduiteAppreciation(60))
-                        : $this->buildConduiteAppreciation(
-                            count($requestedTrimestres) > 0 ? ($annualConduiteNote / count($requestedTrimestres)) : 60
+                        ? ($displayBulletin['conduite']['appreciation'] ?? ConduiteConfigService::buildAppreciation($conduiteMax, $conduiteMax))
+                        : ConduiteConfigService::buildAppreciation(
+                            count($requestedTrimestres) > 0 ? ($annualConduiteNote / count($requestedTrimestres)) : $conduiteMax,
+                            $conduiteMax
                         ),
                 ],
                 'trimestres' => $bulletinTrimestres,
@@ -278,8 +301,9 @@ class BulletinController extends Controller
                     'conduite' => [
                         'note' => $annualConduiteNote,
                         'max' => $annualConduiteMax,
-                        'appreciation' => $this->buildConduiteAppreciation(
-                            count($requestedTrimestres) > 0 ? ($annualConduiteNote / count($requestedTrimestres)) : 60
+                        'appreciation' => ConduiteConfigService::buildAppreciation(
+                            count($requestedTrimestres) > 0 ? ($annualConduiteNote / count($requestedTrimestres)) : $conduiteMax,
+                            $conduiteMax
                         ),
                     ],
                 ],
@@ -314,26 +338,15 @@ class BulletinController extends Controller
         // afin de conserver l'information "rang X / N").
         $effectifClasse = count($eleves);
 
-        // Si un élève précis est demandé, on filtre la sortie APRÈS calcul des rangs
-        // pour que le rang reflète bien la position dans toute la classe.
-        if ($requestedEleveId) {
-            $bulletins = array_values(array_filter(
-                $bulletins,
-                fn ($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
-            ));
-        }
-
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
-        return response()->json([
-            'data' => [
-                'classe' => $classe,
-                'annee_scolaire' => $anneeScolaire,
-                'trimestre' => $trimestre,
-                'nombre_eleves' => $effectifClasse,
-                'bulletins' => $bulletins,
-            ],
-        ]);
+        return [
+            'classe' => $classe,
+            'annee_scolaire' => $anneeScolaire,
+            'trimestre' => $trimestre,
+            'nombre_eleves' => $effectifClasse,
+            'bulletins' => $bulletins,
+        ];
     }
 
     /**
@@ -348,37 +361,45 @@ class BulletinController extends Controller
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
 
-        // Reuse generate logic
-        // Reuse generate logic
+        $classeId = $request->integer('classe_id');
+        $trimestre = $request->trimestre;
+        $anneeScolaireId = $request->integer('annee_scolaire_id') ?: AnneeScolaire::current()?->id;
 
-        $bulletinResponse = $this->generate($request);
-        $bulletinData = json_decode($bulletinResponse->getContent(), true)['data'];
-
-        // Determine view based on school level type_id
-        $classe = Classe::with('niveau.typeScolaire')->find($request->integer('classe_id'));
-        $viewName = 'bulletin.bulletin_pdf_post_fondamental';
-        
-        if ($classe && $classe->niveau && $classe->niveau->typeScolaire) {
-            $typeScolaireNom = strtoupper($classe->niveau->typeScolaire->nom);
-            if (str_contains($typeScolaireNom, 'FONDAMENTAL') && !str_contains($typeScolaireNom, 'POST')) {
-                $viewName = 'bulletin.bulletin_pdf_fondamental';
-            }
+        if (! $anneeScolaireId) {
+            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $pdf = Pdf::loadView($viewName, [
-            'data' => $bulletinData,
-        ]);
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
+        $bulletinData = Cache::remember($cacheKey, 600, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
 
+        if ($request->filled('eleve_id')) {
+            $requestedEleveId = $request->integer('eleve_id');
+            $bulletinData['bulletins'] = array_values(array_filter(
+                $bulletinData['bulletins'],
+                fn ($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
+            ));
+        }
+
+        $classe = Classe::with('niveau')->find($classeId);
+        $viewName = ConduiteConfigService::isSecondary($classe)
+            ? 'bulletin.bulletin_pdf_post_fondamental'
+            : 'bulletin.bulletin_pdf_fondamental';
+
+        $pdf = Pdf::loadView($viewName, ['data' => $bulletinData]);
         $pdf->setPaper('A4', 'portrait');
 
-        //student name on the file name
-        $eleve = Eleve::find($request->integer('eleve_id'));
-        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . ($eleve->nom ?? 'eleve') . '_' . ($eleve->prenom ?? 'eleve') . '.pdf';
+        $eleveNom = 'eleve';
+        $elevePrenom = 'eleve';
+        if ($request->filled('eleve_id') && ! empty($bulletinData['bulletins'])) {
+            $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
+            $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
+        }
+        $filename = 'bulletin_'.($bulletinData['classe']['nom'] ?? 'classe').'_'.$eleveNom.'_'.$elevePrenom.'.pdf';
 
         return $pdf->download($filename);
     }
 
-    private function buildCourseSummary(Collection $evaluations, int $eleveId, Matiere $matiere): array
+    private function buildCourseSummary(Collection $evaluations, int $eleveId, Matiere $matiere, bool $hasPonderationTj = true, bool $hasPonderationExam = true): array
     {
         $tjEvals = $evaluations->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
         $examEvals = $evaluations->where('type_evaluation', 'Examen');
@@ -398,7 +419,7 @@ class BulletinController extends Controller
             }
         }
 
-        if (!$tjComplete) {
+        if (! $tjComplete) {
             $tjNote = null;
         }
 
@@ -417,17 +438,17 @@ class BulletinController extends Controller
             }
         }
 
-        if (!$examComplete) {
+        if (! $examComplete) {
             $examNote = null;
         }
 
-        $ponderationTj = Schema::hasColumn('matieres', 'ponderation_tj') ? (float) ($matiere->ponderation_tj ?? 0) : 0;
-        $ponderationExam = Schema::hasColumn('matieres', 'ponderation_examen') ? (float) ($matiere->ponderation_examen ?? 0) : 0;
+        $ponderationTj = $hasPonderationTj ? (float) ($matiere->ponderation_tj ?? 0) : 0;
+        $ponderationExam = $hasPonderationExam ? (float) ($matiere->ponderation_examen ?? 0) : 0;
 
-        $scaledTj = ($ponderationTj > 0 && $tjMax > 0 && !is_null($tjNote))
+        $scaledTj = ($ponderationTj > 0 && $tjMax > 0 && ! is_null($tjNote))
             ? round(($tjNote / $tjMax) * $ponderationTj, 2)
             : $tjNote;
-        $scaledExam = ($ponderationExam > 0 && $examMax > 0 && !is_null($examNote))
+        $scaledExam = ($ponderationExam > 0 && $examMax > 0 && ! is_null($examNote))
             ? round(($examNote / $examMax) * $ponderationExam, 2)
             : $examNote;
 
@@ -448,7 +469,7 @@ class BulletinController extends Controller
             'note_tj' => $scaledTj,
             'note_examen' => $scaledExam,
             'note_total' => $total,
-            'is_complete' => !($isTjExpected && is_null($scaledTj)) && !($isExamExpected && is_null($scaledExam)),
+            'is_complete' => ! ($isTjExpected && is_null($scaledTj)) && ! ($isExamExpected && is_null($scaledExam)),
             'has_expected_notes' => $isTjExpected || $isExamExpected,
         ];
     }
@@ -469,31 +490,31 @@ class BulletinController extends Controller
         foreach ($trimestreSummaries as $summary) {
             $annual['has_expected_notes'] = $annual['has_expected_notes'] || ($summary['has_expected_notes'] ?? false);
 
-            if (!is_null($summary['note_tj'])) {
+            if (! is_null($summary['note_tj'])) {
                 $annual['note_tj'] += $summary['note_tj'];
             } elseif (($summary['has_expected_notes'] ?? false) && ($summary['max_tj'] ?? 0) > 0) {
                 $annual['note_tj'] = null;
             }
 
-            if (!is_null($summary['note_examen'])) {
+            if (! is_null($summary['note_examen'])) {
                 $annual['note_examen'] += $summary['note_examen'];
             } elseif (($summary['has_expected_notes'] ?? false) && ($summary['max_examen'] ?? 0) > 0) {
                 $annual['note_examen'] = null;
             }
 
-            if (!is_null($summary['note_total'])) {
+            if (! is_null($summary['note_total'])) {
                 $annual['note_total'] += $summary['note_total'];
             } elseif ($summary['has_expected_notes'] ?? false) {
                 $annual['note_total'] = null;
                 $annual['is_complete'] = false;
             }
 
-            if (($summary['has_expected_notes'] ?? false) && !($summary['is_complete'] ?? false)) {
+            if (($summary['has_expected_notes'] ?? false) && ! ($summary['is_complete'] ?? false)) {
                 $annual['is_complete'] = false;
             }
         }
 
-        if (!$annual['has_expected_notes']) {
+        if (! $annual['has_expected_notes']) {
             $annual['note_tj'] = null;
             $annual['note_examen'] = null;
             $annual['note_total'] = null;
@@ -513,28 +534,10 @@ class BulletinController extends Controller
         return $this->emptySummary();
     }
 
-    private function buildConduiteAppreciation(float|int $noteConduiteValue): string
-    {
-        if ($noteConduiteValue >= 50) {
-            return 'Excellent';
-        }
-        if ($noteConduiteValue >= 40) {
-            return 'Bon';
-        }
-        if ($noteConduiteValue >= 30) {
-            return 'Passable';
-        }
-        if ($noteConduiteValue >= 20) {
-            return 'Mauvais';
-        }
-
-        return 'Très mauvais';
-    }
-
     private function buildRanks(array $bulletins, callable $extractor): array
     {
         $extractRankPoints = static function (?array $summary): ?float {
-            if (!$summary) {
+            if (! $summary) {
                 return null;
             }
 
@@ -548,7 +551,7 @@ class BulletinController extends Controller
 
             return $summary
                 && ($summary['is_complete'] ?? false)
-                && !is_null($extractRankPoints($summary));
+                && ! is_null($extractRankPoints($summary));
         }));
 
         usort($rankable, function ($a, $b) use ($extractor, $extractRankPoints) {

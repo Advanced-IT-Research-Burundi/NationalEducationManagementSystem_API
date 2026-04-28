@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
 use App\Models\AnneeScolaire;
+use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\NoteConduite;
 use App\Models\SanctionEleve;
+use App\Services\ConduiteConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -32,11 +34,11 @@ class ConduiteController extends Controller
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
-            'observation' => 'nullable|string'
+            'observation' => 'nullable|string',
         ]);
 
         $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
-        if (!$validated['annee_scolaire_id']) {
+        if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
@@ -45,6 +47,9 @@ class ConduiteController extends Controller
             ['trimestre' => $validated['trimestre']],
             ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
         )->validate();
+
+        $classe = Classe::with('niveau')->findOrFail($validated['classe_id']);
+        $conduiteMax = ConduiteConfigService::getMaxNote($classe);
 
         try {
             DB::beginTransaction();
@@ -68,11 +73,14 @@ class ConduiteController extends Controller
                     'annee_scolaire_id' => $validated['annee_scolaire_id'],
                     'trimestre' => $validated['trimestre'],
                 ],
-                ['note' => 60] // Initialisation à 60
+                ['note' => $conduiteMax]
             );
 
             if ($noteConduite->note - $validated['points_retires'] < 0) {
                 $noteConduite->update(['note' => 0]);
+
+                DB::commit();
+
                 return response()->json([
                     'message' => 'La note de conduite de l\'élève a atteint 0 et merite un renvoi.',
                     'note_actuelle' => 0,
@@ -86,11 +94,12 @@ class ConduiteController extends Controller
             return response()->json([
                 'message' => 'Sanction enregistrée avec succès.',
                 'note_actuelle' => $noteConduite->note,
-                'sanction' => $sanction
+                'sanction' => $sanction,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Erreur lors de l\'enregistrement: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => 'Erreur lors de l\'enregistrement: '.$e->getMessage()], 500);
         }
     }
 
@@ -105,11 +114,11 @@ class ConduiteController extends Controller
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
-            'observation' => 'nullable|string'
+            'observation' => 'nullable|string',
         ]);
 
         $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
-        if (!$validated['annee_scolaire_id']) {
+        if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
@@ -118,6 +127,9 @@ class ConduiteController extends Controller
             ['trimestre' => $validated['trimestre']],
             ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
         )->validate();
+
+        $classe = Classe::with('niveau')->findOrFail($validated['classe_id']);
+        $conduiteMax = ConduiteConfigService::getMaxNote($classe);
 
         try {
             DB::beginTransaction();
@@ -143,7 +155,7 @@ class ConduiteController extends Controller
                         'annee_scolaire_id' => $validated['annee_scolaire_id'],
                         'trimestre' => $validated['trimestre'],
                     ],
-                    ['note' => 60]
+                    ['note' => $conduiteMax]
                 );
 
                 $nouvelleNote = max(0, $noteConduite->note - $validated['points_retires']);
@@ -155,47 +167,48 @@ class ConduiteController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => count($sanctions) . ' sanctions enregistrées avec succès.',
-                'count' => count($sanctions)
+                'message' => count($sanctions).' sanctions enregistrées avec succès.',
+                'count' => count($sanctions),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Erreur lors de l\'enregistrement groupé: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => 'Erreur lors de l\'enregistrement groupé: '.$e->getMessage()], 500);
         }
     }
 
     public function getNotesByClasse(Request $request)
     {
-         $validated = $request->validate([
+        $validated = $request->validate([
             'classe_id' => 'required|exists:classes,id',
             'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
-            'trimestre' => ['required', 'string']
-         ]);
+            'trimestre' => ['required', 'string'],
+        ]);
 
-         $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
-         if (!$validated['annee_scolaire_id']) {
-             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
-         }
+        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
+        if (! $validated['annee_scolaire_id']) {
+            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
+        }
 
-         $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
+        $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
 
-         $notes = NoteConduite::with('eleve')
+        $notes = NoteConduite::with('eleve')
             ->where('classe_id', $validated['classe_id'])
             ->where('annee_scolaire_id', $validated['annee_scolaire_id'])
             ->where('trimestre', $validated['trimestre'])
             ->get();
 
-          return response()->json($notes);
+        return response()->json($notes);
     }
 
     public function historiqueSanctions(Request $request, $eleve_id)
     {
-         $sanctions = SanctionEleve::with(['reglement', 'user', 'anneeScolaire'])
+        $sanctions = SanctionEleve::with(['reglement', 'user', 'anneeScolaire'])
             ->where('eleve_id', $eleve_id)
             ->orderBy('date_sanction', 'desc')
             ->get();
 
-         return response()->json($sanctions);
+        return response()->json($sanctions);
     }
 
     public function getStats(Request $request)
@@ -269,7 +282,7 @@ class ConduiteController extends Controller
             case 'total_fautes':
                 $data = [
                     'total' => $query->count(),
-                    'points_total' => $query->sum('points_retires')
+                    'points_total' => $query->sum('points_retires'),
                 ];
                 break;
 

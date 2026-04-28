@@ -2,24 +2,26 @@
 
 namespace App\Http\Controllers\Api\Academic;
 
+use App\Exports\EleveTemplateExport;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreEleveRequest;
 use App\Http\Requests\InscriptionStoreRequest;
+use App\Http\Requests\StoreEleveRequest;
 use App\Http\Requests\UpdateEleveRequest;
 use App\Http\Resources\EleveResource;
+use App\Imports\EleveImport;
+use App\Models\AffectationClasse;
 use App\Models\Classe;
 use App\Models\Eleve;
 use App\Models\Inscription;
+use App\Models\Niveau;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\AffectationClasse;
-use App\Imports\EleveImport;
-use App\Exports\EleveTemplateExport;
-use Illuminate\Support\Facades\Cache;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EleveController extends Controller
 {
@@ -32,12 +34,10 @@ class EleveController extends Controller
 
         $query = Eleve::with(['ecole', 'creator', 'provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau']);
 
-
-
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('nom', 'like', '%' . $request->search . '%')
-                    ->orWhere('prenom', 'like', '%' . $request->search . '%');
+                $q->where('nom', 'like', '%'.$request->search.'%')
+                    ->orWhere('prenom', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -76,8 +76,6 @@ class EleveController extends Controller
         }
 
         $eleves = $query->latest()->paginate($request->get('per_page', 15));
-
-        Cache::put('eleves', $eleves, 24 * 60 * 60);
 
         return EleveResource::collection($eleves)->response();
     }
@@ -151,28 +149,27 @@ class EleveController extends Controller
     /**
      * Display the specified eleve.
      */
+    public function show($id): JsonResponse
+    {
+        // $this->authorize('view', $eleve);
 
-public function show($id): JsonResponse
-{
-   // $this->authorize('view', $eleve);
+        $eleve = Eleve::findOrFail($id);
 
-    $eleve = Eleve::findOrFail($id);
+        $eleve->load([
+            'ecole',
+            'ecoleOrigine',
+            'provinceOrigine',
+            'communeOrigine',
+            'zoneOrigine',
+            'collineOrigine',
+            'niveau',
+            'creator',
+            'classes',
+            'inscriptions.classe.niveau',
+        ]);
 
-    $eleve->load([
-        'ecole',
-        'ecoleOrigine',
-        'provinceOrigine',
-        'communeOrigine',
-        'zoneOrigine',
-        'collineOrigine',
-        'niveau',
-        'creator',
-        'classes',
-        'inscriptions.classe.niveau'
-    ]);
-
-    return (new EleveResource($eleve))->response();
-}
+        return (new EleveResource($eleve))->response();
+    }
 
     /**
      * Update the specified eleve.
@@ -211,8 +208,9 @@ public function show($id): JsonResponse
                 ->update(['deleted_at' => now(), 'updated_at' => now()]);
         } catch (\Exception $e) {
             Log::error('Delete eleve failed', ['id' => $id, 'error' => $e->getMessage()]);
+
             return response()->json([
-                'message' => 'Erreur: ' . $e->getMessage(),
+                'message' => 'Erreur: '.$e->getMessage(),
             ], 500);
         }
 
@@ -292,11 +290,11 @@ public function show($id): JsonResponse
 
         $data['created_by'] = Auth::id();
         $inscription = Inscription::create([
-             'eleve_id' => $data['eleve_id'],
-             'annee_scolaire' => $data['annee_scolaire'],
-             'date_inscription' => $data['date_inscription'] ?? now(),
-             'statut' => 'ACTIVE',
-             'created_by' => Auth::id(),
+            'eleve_id' => $data['eleve_id'],
+            'annee_scolaire' => $data['annee_scolaire'],
+            'date_inscription' => $data['date_inscription'] ?? now(),
+            'statut' => 'ACTIVE',
+            'created_by' => Auth::id(),
         ]);
 
         AffectationClasse::create([
@@ -312,8 +310,8 @@ public function show($id): JsonResponse
             $eleve->id => [
                 'annee_scolaire' => $data['annee_scolaire'],
                 'date_inscription' => now(),
-                'statut' => 'ACTIVE'
-            ]
+                'statut' => 'ACTIVE',
+            ],
         ]);
 
         // Update eleve status if needed
@@ -415,106 +413,106 @@ public function show($id): JsonResponse
      * Update the niveau (grade level) of an eleve: promotion or redoublement.
      */
     public function updateNiveau(Request $request, Eleve $eleve): JsonResponse
-{
-    $this->authorize('update', $eleve);
+    {
+        $this->authorize('update', $eleve);
 
-    $request->validate([
-        'niveau_id' => ['required_without:redoublant', 'nullable', 'exists:niveaux_scolaires,id'],
-        'annee_scolaire' => ['required', 'string'],
-        'redoublant' => ['sometimes', 'boolean'],
-    ]);
+        $request->validate([
+            'niveau_id' => ['required_without:redoublant', 'nullable', 'exists:niveaux_scolaires,id'],
+            'annee_scolaire' => ['required', 'string'],
+            'redoublant' => ['sometimes', 'boolean'],
+        ]);
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
-        $isRedoublant = $request->boolean('redoublant', false);
+        try {
+            $isRedoublant = $request->boolean('redoublant', false);
 
-        // Récupérer les classes actives AVANT de les désactiver
-        $classesActives = DB::table('eleve_class')
-            ->where('eleve_id', $eleve->id)
-            ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
-            ->pluck('classe_id');
+            // Récupérer les classes actives AVANT de les désactiver
+            $classesActives = DB::table('eleve_class')
+                ->where('eleve_id', $eleve->id)
+                ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
+                ->pluck('classe_id');
 
-        if (isset($request->niveau_id) && ! $isRedoublant) {
-            // Validation de la progression (Interdire le retour en arrière ou le maintien du même niveau)
-            $newNiveau = \App\Models\Niveau::find($request->niveau_id);
-            $currentNiveau = $eleve->niveau; // Relation BelongsTo Niveau
+            if (isset($request->niveau_id) && ! $isRedoublant) {
+                // Validation de la progression (Interdire le retour en arrière ou le maintien du même niveau)
+                $newNiveau = Niveau::find($request->niveau_id);
+                $currentNiveau = $eleve->niveau; // Relation BelongsTo Niveau
 
-            if ($currentNiveau && $newNiveau) {
-                $currentOrdre = (int)($currentNiveau->ordre ?? 0);
-                $targetOrdre = (int)($newNiveau->ordre ?? 0);
+                if ($currentNiveau && $newNiveau) {
+                    $currentOrdre = (int) ($currentNiveau->ordre ?? 0);
+                    $targetOrdre = (int) ($newNiveau->ordre ?? 0);
 
-                if ($currentOrdre > 0 && $targetOrdre <= $currentOrdre) {
-                     return response()->json([
-                        'message' => 'L\'élève ne peut pas être promu vers un niveau inférieur ou identique au niveau actuel.',
-                        'current_ordre' => $currentOrdre,
-                        'target_ordre' => $targetOrdre
-                    ], 422);
+                    if ($currentOrdre > 0 && $targetOrdre <= $currentOrdre) {
+                        return response()->json([
+                            'message' => 'L\'élève ne peut pas être promu vers un niveau inférieur ou identique au niveau actuel.',
+                            'current_ordre' => $currentOrdre,
+                            'target_ordre' => $targetOrdre,
+                        ], 422);
+                    }
+                }
+
+                $eleve->niveau_id = $request->niveau_id;
+            }
+            if ($isRedoublant) {
+                $eleve->est_redoublant = true;
+            }
+            $eleve->save();
+
+            $currentInscription = $eleve->inscriptions()->latest()->first();
+
+            if ($currentInscription) {
+                AffectationClasse::where('inscription_id', $currentInscription->id)
+                    ->where('est_active', true)
+                    ->update([
+                        'est_active' => false,
+                        'date_fin' => now(),
+                        'motif_changement' => $isRedoublant ? 'Redoublement' : 'Promotion de niveau',
+                    ]);
+
+                if ($isRedoublant) {
+                    $currentInscription->update(['est_redoublant' => true]);
+                } else {
+                    $currentInscription->update(['niveau_demande_id' => $request->niveau_id]);
                 }
             }
 
-            $eleve->niveau_id = $request->niveau_id;
-        }
-        if ($isRedoublant) {
-            $eleve->est_redoublant = true;
-        }
-        $eleve->save();
-
-        $currentInscription = $eleve->inscriptions()->latest()->first();
-
-        if ($currentInscription) {
-            AffectationClasse::where('inscription_id', $currentInscription->id)
-                ->where('est_active', true)
+            // Désactiver dans le pivot
+            DB::table('eleve_class')
+                ->where('eleve_id', $eleve->id)
+                ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
                 ->update([
-                    'est_active' => false,
-                    'date_fin' => now(),
-                    'motif_changement' => $isRedoublant ? 'Redoublement' : 'Promotion de niveau',
+                    'statut' => 'INACTIVE',
+                    'updated_at' => now(),
                 ]);
 
-            if ($isRedoublant) {
-                $currentInscription->update(['est_redoublant' => true]);
-            } else {
-                $currentInscription->update(['niveau_demande_id' => $request->niveau_id]);
+            foreach ($classesActives as $classeId) {
+                $newEffectif = DB::table('eleve_class')
+                    ->where('classe_id', $classeId)
+                    ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
+                    ->count();
+
+                DB::table('classes')
+                    ->where('id', $classeId)
+                    ->update(['effectif' => $newEffectif, 'updated_at' => now()]);
             }
+
+            DB::commit();
+
+            $message = $isRedoublant
+                ? 'Élève marqué comme redoublant avec succès'
+                : 'Élève promu au niveau supérieur avec succès';
+
+            $eleve->load(['niveau', 'ecole', 'inscriptions.classe.niveau']);
+
+            return (new EleveResource($eleve))
+                ->additional(['message' => $message])
+                ->response();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
-
-        // Désactiver dans le pivot
-        DB::table('eleve_class')
-            ->where('eleve_id', $eleve->id)
-            ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
-            ->update([
-                'statut' => 'INACTIVE',
-                'updated_at' => now(),
-            ]);
-
-        foreach ($classesActives as $classeId) {
-            $newEffectif = DB::table('eleve_class')
-                ->where('classe_id', $classeId)
-                ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
-                ->count();
-
-            DB::table('classes')
-                ->where('id', $classeId)
-                ->update(['effectif' => $newEffectif, 'updated_at' => now()]);
-        }
-
-        DB::commit();
-
-        $message = $isRedoublant
-            ? 'Élève marqué comme redoublant avec succès'
-            : 'Élève promu au niveau supérieur avec succès';
-
-        $eleve->load(['niveau', 'ecole', 'inscriptions.classe.niveau']);
-
-        return (new EleveResource($eleve))
-            ->additional(['message' => $message])
-            ->response();
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        throw $e;
     }
-}
 
     /**
      * Transfer the student to another school.
@@ -550,7 +548,7 @@ public function show($id): JsonResponse
                     ->update([
                         'est_active' => false,
                         'date_fin' => now(),
-                        'motif_changement' => 'Transfert établissement'
+                        'motif_changement' => 'Transfert établissement',
                     ]);
             }
 
@@ -560,7 +558,7 @@ public function show($id): JsonResponse
                 ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
                 ->update([
                     'statut' => 'INACTIVE',
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
 
             foreach ($classesActives as $classeId) {
@@ -603,19 +601,20 @@ public function show($id): JsonResponse
             return response()->json([
                 'message' => 'Importation réussie',
             ]);
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-             $failures = $e->failures();
-             $errors = [];
-             foreach ($failures as $failure) {
-                 $errors[] = "Ligne " . $failure->row() . ": " . implode(', ', $failure->errors());
-             }
-             return response()->json([
-                 'message' => 'Erreur de validation lors de l\'importation',
-                 'errors' => $errors
-             ], 422);
+        } catch (ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                $errors[] = 'Ligne '.$failure->row().': '.implode(', ', $failure->errors());
+            }
+
+            return response()->json([
+                'message' => 'Erreur de validation lors de l\'importation',
+                'errors' => $errors,
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erreur lors de l\'importation: ' . $e->getMessage(),
+                'message' => 'Erreur lors de l\'importation: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -628,20 +627,21 @@ public function show($id): JsonResponse
         if (ob_get_level()) {
             ob_end_clean();
         }
+
         return Excel::download(new EleveTemplateExport, 'template_import_eleves.xlsx');
     }
 
-    public function export(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function export(Request $request): BinaryFileResponse
     {
         $this->authorize('viewAny', Eleve::class);
 
         return Excel::download(
             new EleveExport(
                 schoolId: $request->school_id,
-                statut:   $request->statut,
+                statut: $request->statut,
                 niveauId: $request->niveau_id,
             ),
-            'eleves_' . now()->format('Y-m-d') . '.xlsx'
+            'eleves_'.now()->format('Y-m-d').'.xlsx'
         );
     }
 }

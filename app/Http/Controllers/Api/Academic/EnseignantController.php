@@ -12,7 +12,6 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -37,8 +36,6 @@ class EnseignantController extends Controller
             $query->bySchool($request->school_id);
         }
 
-
-
         // Qualification filter
         if ($request->filled('qualification')) {
             $query->byQualification($request->qualification);
@@ -50,9 +47,6 @@ class EnseignantController extends Controller
         }
 
         $enseignants = $query->latest()->paginate($request->get('per_page', 15));
-
-        //cache them for 24 hours
-        Cache::put('enseignants', $enseignants, 24 * 60 * 60);
 
         return response()->json($enseignants);
     }
@@ -73,7 +67,7 @@ class EnseignantController extends Controller
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'admin_level' => 'ECOLE',
-                'admin_entity_id' => !empty($data['ecoles']) ? $data['ecoles'][0] : null,
+                'admin_entity_id' => ! empty($data['ecoles']) ? $data['ecoles'][0] : null,
                 'created_by' => Auth::id(),
             ]);
 
@@ -83,7 +77,7 @@ class EnseignantController extends Controller
             // Create enseignant profile
             $enseignant = Enseignant::create([
                 'user_id' => $user->id,
-                'school_id' => !empty($data['ecoles']) ? $data['ecoles'][0] : null,
+                'school_id' => ! empty($data['ecoles']) ? $data['ecoles'][0] : null,
                 'matricule' => $data['matricule'],
                 'qualification' => $data['qualification'] ?? null,
                 'qualification_precision' => $data['qualification_precision'] ?? null,
@@ -95,7 +89,7 @@ class EnseignantController extends Controller
             ]);
 
             // Attach schools (N:N relationship)
-            if (!empty($data['ecoles'])) {
+            if (! empty($data['ecoles'])) {
                 $enseignant->ecoles()->attach($data['ecoles']);
             }
 
@@ -143,7 +137,7 @@ class EnseignantController extends Controller
 
             // Update enseignant profile
             $enseignant->update([
-                'school_id' => !empty($data['ecoles']) ? $data['ecoles'][0] : $enseignant->school_id,
+                'school_id' => ! empty($data['ecoles']) ? $data['ecoles'][0] : $enseignant->school_id,
                 'matricule' => $data['matricule'] ?? $enseignant->matricule,
                 'qualification' => $data['qualification'] ?? $enseignant->qualification,
                 'qualification_precision' => $data['qualification_precision'] ?? $enseignant->qualification_precision,
@@ -194,10 +188,10 @@ class EnseignantController extends Controller
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
         $query = Enseignant::bySchool($schoolId)->with([
-            'user', 
-            'classes' => function($q) use ($schoolId) {
+            'user',
+            'classes' => function ($q) use ($schoolId) {
                 $q->where('classes.school_id', $schoolId);
-            }
+            },
         ]);
 
         if ($request->filled('statut')) {
@@ -235,7 +229,7 @@ class EnseignantController extends Controller
         $enseignant = Enseignant::findOrFail($data['enseignant_id']);
         if (! $enseignant->canBeAssigned()) {
             return response()->json([
-                'message' => 'Cet enseignant ne peut pas être affecté (statut: ' . $enseignant->statut . ').',
+                'message' => 'Cet enseignant ne peut pas être affecté (statut: '.$enseignant->statut.').',
             ], 422);
         }
 

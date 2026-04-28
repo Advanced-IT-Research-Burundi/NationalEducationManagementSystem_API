@@ -2,20 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\School;
+use App\Models\AnneeScolaire;
+use App\Models\Batiment;
 use App\Models\Eleve;
 use App\Models\Enseignant;
-use App\Models\InscriptionEleve;
-use App\Models\AnneeScolaire;
-use App\Models\Resultat;
-use App\Models\InscriptionExamen;
-use App\Models\Province;
-use App\Models\Commune;
-use App\Models\Batiment;
-use App\Models\Salle;
-use App\Models\Equipement;
 use App\Models\Financement;
-use App\Models\ProjetPartenariat;
+use App\Models\InscriptionEleve;
+use App\Models\Province;
+use App\Models\Salle;
+use App\Models\School;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -32,6 +27,7 @@ class StatisticsService
     protected function cacheKey(string $method, array $filters = []): string
     {
         $filterHash = md5(json_encode($filters));
+
         return "stats:{$method}:{$filterHash}";
     }
 
@@ -40,9 +36,10 @@ class StatisticsService
      */
     protected function resolveAnneeScolaire(array $filters): ?AnneeScolaire
     {
-        if (!empty($filters['annee_scolaire_id'])) {
+        if (! empty($filters['annee_scolaire_id'])) {
             return AnneeScolaire::find($filters['annee_scolaire_id']);
         }
+
         return AnneeScolaire::current();
     }
 
@@ -53,16 +50,16 @@ class StatisticsService
     {
         $prefix = $tableAlias ? "{$tableAlias}." : '';
 
-        if (!empty($filters['province_id'])) {
+        if (! empty($filters['province_id'])) {
             $query->where("{$prefix}province_id", $filters['province_id']);
         }
-        if (!empty($filters['commune_id'])) {
+        if (! empty($filters['commune_id'])) {
             $query->where("{$prefix}commune_id", $filters['commune_id']);
         }
-        if (!empty($filters['school_id'])) {
+        if (! empty($filters['school_id'])) {
             $query->where("{$prefix}id", $filters['school_id']);
         }
-        if (!empty($filters['niveau'])) {
+        if (! empty($filters['niveau'])) {
             $query->where("{$prefix}niveau", $filters['niveau']);
         }
 
@@ -100,7 +97,7 @@ class StatisticsService
 
             // Total students (active)
             $elevesQuery = Eleve::query()->where('statut_global', 'actif');
-            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id']) || !empty($filters['niveau'])) {
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id']) || ! empty($filters['niveau'])) {
                 $elevesQuery->whereHas('school', function ($q) use ($filters) {
                     $q->where('statut', 'ACTIVE');
                     $this->applyGeoFilters($q, $filters);
@@ -110,7 +107,7 @@ class StatisticsService
 
             // Total teachers (active)
             $enseignantsQuery = Enseignant::query()->where('statut', 'ACTIF');
-            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
                 $enseignantsQuery->whereHas('school', function ($q) use ($filters) {
                     $q->where('statut', 'ACTIVE');
                     $this->applyGeoFilters($q, $filters);
@@ -139,7 +136,7 @@ class StatisticsService
 
             // Gender breakdown
             $genderQuery = Eleve::query()->where('statut_global', 'actif');
-            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id']) || !empty($filters['niveau'])) {
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id']) || ! empty($filters['niveau'])) {
                 $genderQuery->whereHas('school', function ($q) use ($filters) {
                     $q->where('statut', 'ACTIVE');
                     $this->applyGeoFilters($q, $filters);
@@ -162,7 +159,7 @@ class StatisticsService
             $inscriptionsByType = [];
             if ($anneeId) {
                 $inscQuery = InscriptionEleve::query()->where('annee_scolaire_id', $anneeId);
-                if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+                if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
                     $inscQuery->whereHas('ecole', function ($q) use ($filters) {
                         $this->applyGeoFilters($q, $filters);
                     });
@@ -172,7 +169,7 @@ class StatisticsService
                 $inscByTypeQuery = InscriptionEleve::query()
                     ->where('annee_scolaire_id', $anneeId)
                     ->where('statut', 'valide');
-                if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+                if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
                     $inscByTypeQuery->whereHas('ecole', function ($q) use ($filters) {
                         $this->applyGeoFilters($q, $filters);
                     });
@@ -201,11 +198,14 @@ class StatisticsService
                 ->map(function ($group) {
                     $result = ['province' => $group->first()->province, 'garcons' => 0, 'filles' => 0];
                     foreach ($group as $row) {
-                        if ($row->sexe === 'M')
+                        if ($row->sexe === 'M') {
                             $result['garcons'] = $row->total;
-                        if ($row->sexe === 'F')
+                        }
+                        if ($row->sexe === 'F') {
                             $result['filles'] = $row->total;
+                        }
                     }
+
                     return $result;
                 })
                 ->values()
@@ -238,23 +238,23 @@ class StatisticsService
                 ->join('sessions_examen', 'inscriptions_examen.session_id', '=', 'sessions_examen.id')
                 ->join('examens', 'sessions_examen.examen_id', '=', 'examens.id');
 
-            if (!empty($filters['annee_scolaire_id'])) {
+            if (! empty($filters['annee_scolaire_id'])) {
                 $resultatsQuery->where('examens.annee_scolaire_id', $filters['annee_scolaire_id']);
             }
 
             // Apply geo filters via eleves -> schools
-            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
                 $resultatsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
                     ->join('schools', 'eleves.school_id', '=', 'schools.id');
 
-                if (!empty($filters['province_id'])) {
+                if (! empty($filters['province_id'])) {
                     $resultatsQuery->where('schools.province_id', $filters['province_id']);
                 }
-                if (!empty($filters['commune_id'])) {
+                if (! empty($filters['commune_id'])) {
                     $resultatsQuery->where('schools.commune_id', $filters['commune_id']);
                 }
-                if (!empty($filters['school_id'])) {
+                if (! empty($filters['school_id'])) {
                     $resultatsQuery->where('schools.id', $filters['school_id']);
                 }
             }
@@ -276,21 +276,21 @@ class StatisticsService
                 ->join('sessions_examen', 'inscriptions_examen.session_id', '=', 'sessions_examen.id')
                 ->join('examens', 'sessions_examen.examen_id', '=', 'examens.id');
 
-            if (!empty($filters['annee_scolaire_id'])) {
+            if (! empty($filters['annee_scolaire_id'])) {
                 $studentsResultsQuery->where('examens.annee_scolaire_id', $filters['annee_scolaire_id']);
             }
 
-            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
                 $studentsResultsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
                     ->join('schools', 'eleves.school_id', '=', 'schools.id');
-                if (!empty($filters['province_id'])) {
+                if (! empty($filters['province_id'])) {
                     $studentsResultsQuery->where('schools.province_id', $filters['province_id']);
                 }
-                if (!empty($filters['commune_id'])) {
+                if (! empty($filters['commune_id'])) {
                     $studentsResultsQuery->where('schools.commune_id', $filters['commune_id']);
                 }
-                if (!empty($filters['school_id'])) {
+                if (! empty($filters['school_id'])) {
                     $studentsResultsQuery->where('schools.id', $filters['school_id']);
                 }
             }
@@ -314,7 +314,7 @@ class StatisticsService
                 ->groupBy('matiere')
                 ->orderByDesc('moyenne')
                 ->get()
-                ->map(fn($r) => [
+                ->map(fn ($r) => [
                     'matiere' => $r->matiere,
                     'moyenne' => round($r->moyenne, 2),
                     'total_candidats' => $r->total_candidats,
@@ -372,48 +372,41 @@ class StatisticsService
     {
         return Cache::remember($this->cacheKey('evolution', $filters), self::CACHE_TTL, function () use ($filters) {
             $annees = AnneeScolaire::orderBy('date_debut', 'asc')->get();
-            $evolution = [];
 
-            foreach ($annees as $annee) {
-                // Count validated inscriptions for this year
-                $inscQuery = InscriptionEleve::query()
-                    ->where('annee_scolaire_id', $annee->id)
-                    ->where('statut', 'valide');
+            $inscQuery = DB::table('inscriptions_eleves')
+                ->where('statut', 'valide')
+                ->select('annee_scolaire_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('annee_scolaire_id');
 
-                if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
-                    $inscQuery->whereHas('ecole', function ($q) use ($filters) {
-                        $this->applyGeoFilters($q, $filters);
-                    });
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+                $inscQuery->join('schools', 'inscriptions_eleves.ecole_id', '=', 'schools.id');
+                if (! empty($filters['province_id'])) {
+                    $inscQuery->where('schools.province_id', $filters['province_id']);
                 }
-
-                $totalInscrits = $inscQuery->count();
-
-                // Count active teachers for that period (approximate: teachers active at that time)
-                $ensQuery = Enseignant::query()->where('statut', 'ACTIF');
-                if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
-                    $ensQuery->whereHas('school', function ($q) use ($filters) {
-                        $this->applyGeoFilters($q, $filters);
-                    });
+                if (! empty($filters['commune_id'])) {
+                    $inscQuery->where('schools.commune_id', $filters['commune_id']);
                 }
-                // Approximate: teachers hired before end of this school year
-                if ($annee->date_fin) {
-                    $ensQuery->where(function ($q) use ($annee) {
-                        $q->whereNull('date_embauche')
-                            ->orWhere('date_embauche', '<=', $annee->date_fin);
-                    });
+                if (! empty($filters['school_id'])) {
+                    $inscQuery->where('schools.id', $filters['school_id']);
                 }
-
-                $totalEnseignants = $ensQuery->count();
-
-                $evolution[] = [
-                    'annee' => $annee->libelle ?? $annee->code,
-                    'annee_id' => $annee->id,
-                    'total_eleves' => $totalInscrits,
-                    'total_enseignants' => $totalEnseignants,
-                ];
             }
 
-            return $evolution;
+            $inscriptionsByYear = $inscQuery->pluck('total', 'annee_scolaire_id');
+
+            $enseignantTotal = Enseignant::query()->where('statut', 'ACTIF');
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+                $enseignantTotal->whereHas('school', function ($q) use ($filters) {
+                    $this->applyGeoFilters($q, $filters);
+                });
+            }
+            $totalEnseignants = $enseignantTotal->count();
+
+            return $annees->map(fn (AnneeScolaire $annee) => [
+                'annee' => $annee->libelle ?? $annee->code,
+                'annee_id' => $annee->id,
+                'total_eleves' => $inscriptionsByYear->get($annee->id, 0),
+                'total_enseignants' => $totalEnseignants,
+            ])->toArray();
         });
     }
 
@@ -422,58 +415,47 @@ class StatisticsService
      */
     public function getRepartitionGeographique(array $filters = []): array
     {
-        return Cache::remember($this->cacheKey('geo', $filters), self::CACHE_TTL, function () use ($filters) {
-            // By province
+        return Cache::remember($this->cacheKey('geo', $filters), self::CACHE_TTL, function () {
+            $schoolCounts = DB::table('schools')
+                ->where('statut', 'ACTIVE')
+                ->select('province_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('province_id')
+                ->pluck('total', 'province_id');
+
+            $eleveCounts = DB::table('eleves')
+                ->join('schools', 'eleves.school_id', '=', 'schools.id')
+                ->where('eleves.statut_global', 'actif')
+                ->where('schools.statut', 'ACTIVE')
+                ->select('schools.province_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('schools.province_id')
+                ->pluck('total', 'province_id');
+
+            $enseignantCounts = DB::table('enseignants')
+                ->join('schools', 'enseignants.school_id', '=', 'schools.id')
+                ->where('enseignants.statut', 'ACTIF')
+                ->where('schools.statut', 'ACTIVE')
+                ->select('schools.province_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('schools.province_id')
+                ->pluck('total', 'province_id');
+
             $provinces = DB::table('provinces')
-                ->select('provinces.id', 'provinces.name')
+                ->select('id', 'name')
                 ->get();
 
-            $repartition = [];
+            $repartition = $provinces->map(function ($province) use ($schoolCounts, $eleveCounts, $enseignantCounts) {
+                $schools = $schoolCounts->get($province->id, 0);
+                $eleves = $eleveCounts->get($province->id, 0);
+                $enseignants = $enseignantCounts->get($province->id, 0);
 
-            foreach ($provinces as $province) {
-                $localFilters = array_merge($filters, ['province_id' => $province->id]);
-
-                $schools = School::query()->where('statut', 'ACTIVE')->where('province_id', $province->id)->count();
-
-                $eleves = DB::table('eleves')
-                    ->join('schools', 'eleves.school_id', '=', 'schools.id')
-                    ->where('eleves.statut_global', 'actif')
-                    ->where('schools.statut', 'ACTIVE')
-                    ->where('schools.province_id', $province->id)
-                    ->count();
-
-                $enseignants = DB::table('enseignants')
-                    ->join('schools', 'enseignants.school_id', '=', 'schools.id')
-                    ->where('enseignants.statut', 'ACTIF')
-                    ->where('schools.statut', 'ACTIVE')
-                    ->where('schools.province_id', $province->id)
-                    ->count();
-
-                // Enseignant duplicate check
-                $duplicates = DB::table('enseignants as e1')
-                    ->join('enseignants as e2', function ($join) {
-                        $join->on('e1.matricule', '=', 'e2.matricule')
-                            ->on('e1.id', '<', 'e2.id'); // Keep the one with higher ID? Logic to detect
-                    })
-                    ->where('e1.statut', 'ACTIF')
-                    ->where('e2.statut', 'ACTIF')
-                    ->where('e1.school_id', '<>', 'e2.school_id')
-                    ->count();
-
-                $ratio = $enseignants > 0 ? round($eleves / $enseignants, 1) : null;
-
-                $repartition[] = [
+                return [
                     'province_id' => $province->id,
                     'province' => $province->name,
                     'total_schools' => $schools,
                     'total_eleves' => $eleves,
                     'total_enseignants' => $enseignants,
-                    'ratio_eleve_enseignant' => $ratio,
+                    'ratio_eleve_enseignant' => $enseignants > 0 ? round($eleves / $enseignants, 1) : null,
                 ];
-            }
-
-            // Sort by total students descending
-            usort($repartition, fn($a, $b) => $b['total_eleves'] - $a['total_eleves']);
+            })->sortByDesc('total_eleves')->values()->toArray();
 
             return $repartition;
         });
@@ -503,7 +485,7 @@ class StatisticsService
     {
         return Cache::remember($this->cacheKey('infrastructure', $filters), self::CACHE_TTL, function () use ($filters) {
             $batimentsQuery = Batiment::query();
-            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
                 $batimentsQuery->whereHas('ecole', function ($q) use ($filters) {
                     $this->applyGeoFilters($q, $filters);
                 });
@@ -517,7 +499,7 @@ class StatisticsService
                 ->toArray();
 
             $sallesQuery = Salle::query();
-            if (!empty($filters['province_id']) || !empty($filters['commune_id']) || !empty($filters['school_id'])) {
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
                 $sallesQuery->whereHas('batiment.ecole', function ($q) use ($filters) {
                     $this->applyGeoFilters($q, $filters);
                 });
@@ -548,7 +530,7 @@ class StatisticsService
      */
     public function getBudgetStats(array $filters = []): array
     {
-        return Cache::remember($this->cacheKey('budget', $filters), self::CACHE_TTL, function () use ($filters) {
+        return Cache::remember($this->cacheKey('budget', $filters), self::CACHE_TTL, function () {
             $financementsQuery = Financement::query()
                 ->join('projets_partenariat', 'financements.projet_partenariat_id', '=', 'projets_partenariat.id');
 
@@ -558,9 +540,9 @@ class StatisticsService
                 ->select('projets_partenariat.nom as projet', DB::raw('SUM(montant) as total'))
                 ->groupBy('projets_partenariat.id', 'projets_partenariat.nom')
                 ->get()
-                ->map(fn($f) => [
+                ->map(fn ($f) => [
                     'label' => $f->projet,
-                    'value' => (float)$f->total,
+                    'value' => (float) $f->total,
                 ])
                 ->toArray();
 
@@ -570,14 +552,14 @@ class StatisticsService
                 ->select('partenaires.nom as partenaire', DB::raw('SUM(financements.montant) as total'))
                 ->groupBy('partenaires.id', 'partenaires.nom')
                 ->get()
-                ->map(fn($f) => [
+                ->map(fn ($f) => [
                     'label' => $f->partenaire,
-                    'value' => (float)$f->total,
+                    'value' => (float) $f->total,
                 ])
                 ->toArray();
 
             return [
-                'total_financement' => (float)$totalFinancement,
+                'total_financement' => (float) $totalFinancement,
                 'repartition_projet' => $repartitionParProjet,
                 'repartition_source' => $repartitionParSource,
             ];
@@ -585,17 +567,22 @@ class StatisticsService
     }
 
     /**
-     * Clear all statistics cache
+     * Clear all statistics cache using targeted key deletion instead of flush.
      */
-    public function clearCache(): void
+    public function clearCache(array $filters = []): void
     {
-        // Clear all stats keys by flushing tagged or prefixed cache
-        // Since we use simple keys, we'll clear the specific patterns
-        $methods = ['global', 'inscription', 'performance', 'kpis', 'evolution', 'geo'];
+        $methods = ['global', 'inscription', 'performance', 'kpis', 'evolution', 'geo', 'infrastructure', 'budget'];
+
+        if (! empty($filters)) {
+            foreach ($methods as $method) {
+                Cache::forget($this->cacheKey($method, $filters));
+            }
+
+            return;
+        }
+
         foreach ($methods as $method) {
-            // We can't easily clear all variations, so we use a broader approach
-            Cache::flush();
-            break;
+            Cache::forget($this->cacheKey($method, []));
         }
     }
 }

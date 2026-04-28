@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Api\Academic;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClasseRequest;
 use App\Http\Requests\UpdateClasseRequest;
+use App\Models\AffectationClasse;
 use App\Models\Classe;
 use App\Models\Eleve;
-use App\Models\AffectationClasse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ClasseController extends Controller
 {
@@ -51,9 +51,6 @@ class ClasseController extends Controller
         }
 
         $classes = $query->latest()->paginate($request->get('per_page', 15));
-
-        //cache them for 24 hours
-        Cache::put('classes', $classes, 24 * 60 * 60);
 
         return response()->json($classes);
     }
@@ -123,10 +120,10 @@ class ClasseController extends Controller
      */
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
-        \Illuminate\Support\Facades\Log::info('Fetching classes for school', [
+        Log::info('Fetching classes for school', [
             'school_id' => $schoolId,
             'annee_scolaire_id' => $request->input('annee_scolaire_id'),
-            'user_id' => auth()->id()
+            'user_id' => auth()->id(),
         ]);
         $query = Classe::bySchool($schoolId)->with(['niveau', 'section']);
 
@@ -179,82 +176,82 @@ class ClasseController extends Controller
      * Add an eleve to a classe using pivot table inscriptions_eleves
      */
     public function addEleve(Request $request, Classe $classe): JsonResponse
-{
-    $this->authorize('update', $classe);
+    {
+        $this->authorize('update', $classe);
 
-    $request->validate([
-        'eleve_id' => 'required|exists:eleves,id',
-        'annee_scolaire' => 'required|string',
-    ]);
-
-    $eleve = Eleve::findOrFail($request->eleve_id);
-
-    // ✅ Fix: bloquer uniquement les statuts vraiment bloquants
-    $blockedStatuts = ['DIPLOME', 'TRANSFERE', 'EXCLU', 'SUSPENDU'];
-    if (in_array($eleve->statut, $blockedStatuts)) {
-        return response()->json([
-            'message' => 'Cet élève ne peut pas être inscrit (statut: '.$eleve->statut.').',
-        ], 422);
-    }
-
-    if ($eleve->isEnrolledInClass($classe->id)) {
-        return response()->json([
-            'message' => 'Cet élève est déjà inscrit dans cette classe.',
-        ], 422);
-    }
-
-    if (! $classe->hasCapacity()) {
-        return response()->json([
-            'message' => 'La classe est pleine. Capacité maximale atteinte.',
-        ], 422);
-    }
-
-    if ($eleve->school_id !== $classe->school_id) {
-        return response()->json([
-            'message' => 'L\'élève et la classe doivent appartenir à la même école.',
-        ], 422);
-    }
-
-    DB::transaction(function () use ($eleve, $classe, $request) {
-        $classe->eleves()->syncWithoutDetaching([
-            $eleve->id => [
-                'annee_scolaire' => $request->annee_scolaire,
-                'date_inscription' => now(),
-                'statut' => 'ACTIVE',
-            ]
+        $request->validate([
+            'eleve_id' => 'required|exists:eleves,id',
+            'annee_scolaire' => 'required|string',
         ]);
 
-        $inscription = $eleve->activeInscription;
-        if ($inscription) {
-            AffectationClasse::firstOrCreate([
-                'inscription_id' => $inscription->id,
-                'classe_id' => $classe->id,
-                'est_active' => true,
-            ], [
-                'date_affectation' => now(),
-                'affecte_par' => Auth::id(),
+        $eleve = Eleve::findOrFail($request->eleve_id);
+
+        // ✅ Fix: bloquer uniquement les statuts vraiment bloquants
+        $blockedStatuts = ['DIPLOME', 'TRANSFERE', 'EXCLU', 'SUSPENDU'];
+        if (in_array($eleve->statut, $blockedStatuts)) {
+            return response()->json([
+                'message' => 'Cet élève ne peut pas être inscrit (statut: '.$eleve->statut.').',
+            ], 422);
+        }
+
+        if ($eleve->isEnrolledInClass($classe->id)) {
+            return response()->json([
+                'message' => 'Cet élève est déjà inscrit dans cette classe.',
+            ], 422);
+        }
+
+        if (! $classe->hasCapacity()) {
+            return response()->json([
+                'message' => 'La classe est pleine. Capacité maximale atteinte.',
+            ], 422);
+        }
+
+        if ($eleve->school_id !== $classe->school_id) {
+            return response()->json([
+                'message' => 'L\'élève et la classe doivent appartenir à la même école.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($eleve, $classe, $request) {
+            $classe->eleves()->syncWithoutDetaching([
+                $eleve->id => [
+                    'annee_scolaire' => $request->annee_scolaire,
+                    'date_inscription' => now(),
+                    'statut' => 'ACTIVE',
+                ],
             ]);
-        }
 
-        // Mettre à jour le statut élève si nécessaire
-        if (empty($eleve->statut) || in_array($eleve->statut, ['INSCRIT', 'ARCHIVE'])) {
-            $eleve->update(['statut' => 'ACTIF']);
-        }
+            $inscription = $eleve->activeInscription;
+            if ($inscription) {
+                AffectationClasse::firstOrCreate([
+                    'inscription_id' => $inscription->id,
+                    'classe_id' => $classe->id,
+                    'est_active' => true,
+                ], [
+                    'date_affectation' => now(),
+                    'affecte_par' => Auth::id(),
+                ]);
+            }
 
-        // ✅ Recalculer l'effectif après ajout
-        $newEffectif = DB::table('eleve_class')
-            ->where('classe_id', $classe->id)
-            ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
-            ->count();
+            // Mettre à jour le statut élève si nécessaire
+            if (empty($eleve->statut) || in_array($eleve->statut, ['INSCRIT', 'ARCHIVE'])) {
+                $eleve->update(['statut' => 'ACTIF']);
+            }
 
-        $classe->update(['effectif' => $newEffectif]);
-    });
+            // ✅ Recalculer l'effectif après ajout
+            $newEffectif = DB::table('eleve_class')
+                ->where('classe_id', $classe->id)
+                ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
+                ->count();
 
-    return response()->json([
-        'message' => 'Élève inscrit avec succès dans la classe',
-        'classe' => $classe->fresh()->load('eleves'),
-    ], 201);
-}
+            $classe->update(['effectif' => $newEffectif]);
+        });
+
+        return response()->json([
+            'message' => 'Élève inscrit avec succès dans la classe',
+            'classe' => $classe->fresh()->load('eleves'),
+        ], 201);
+    }
 
     /**
      * Get classe statistics.
@@ -292,39 +289,36 @@ class ClasseController extends Controller
     }
 
     /**
- * Remove an eleve from a classe and update effectif.
- */
-public function removeEleve(Request $request, Classe $classe): JsonResponse
-{
-    $this->authorize('update', $classe);
+     * Remove an eleve from a classe and update effectif.
+     */
+    public function removeEleve(Request $request, Classe $classe): JsonResponse
+    {
+        $this->authorize('update', $classe);
 
-    $request->validate([
-        'eleve_id' => 'required|exists:eleves,id',
-    ]);
-
-    DB::transaction(function () use ($request, $classe) {
-        // Désactiver dans le pivot
-        $classe->eleves()->updateExistingPivot($request->eleve_id, [
-            'statut' => 'INACTIVE',
+        $request->validate([
+            'eleve_id' => 'required|exists:eleves,id',
         ]);
 
-        // Désactiver les AffectationClasse liées
-        AffectationClasse::where('classe_id', $classe->id)
-            ->whereHas('inscription', fn($q) => $q->where('eleve_id', $request->eleve_id))
-            ->update(['est_active' => false]);
+        DB::transaction(function () use ($request, $classe) {
+            // Désactiver dans le pivot
+            $classe->eleves()->updateExistingPivot($request->eleve_id, [
+                'statut' => 'INACTIVE',
+            ]);
 
-        // Recalculer l'effectif
-        $classe->update([
-            'effectif' => $classe->eleves()->wherePivot('statut', 'ACTIVE')->count(),
+            // Désactiver les AffectationClasse liées
+            AffectationClasse::where('classe_id', $classe->id)
+                ->whereHas('inscription', fn ($q) => $q->where('eleve_id', $request->eleve_id))
+                ->update(['est_active' => false]);
+
+            // Recalculer l'effectif
+            $classe->update([
+                'effectif' => $classe->eleves()->wherePivot('statut', 'ACTIVE')->count(),
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Élève retiré de la classe',
+            'effectif' => $classe->fresh()->effectif,
         ]);
-    });
-
-    return response()->json([
-        'message' => 'Élève retiré de la classe',
-        'effectif' => $classe->fresh()->effectif,
-    ]);
+    }
 }
-}
-
-
-

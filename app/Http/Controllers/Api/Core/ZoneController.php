@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api\Core;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ZoneResource;
+use App\Models\Commune;
 use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class ZoneController extends Controller
 {
@@ -36,8 +36,6 @@ class ZoneController extends Controller
 
         $zones = $query->paginate($request->input('per_page', 15));
 
-        Cache::put('zones', $zones, 24 * 60 * 60);
-
         return ZoneResource::collection($zones)->response();
     }
 
@@ -53,7 +51,7 @@ class ZoneController extends Controller
         ]);
 
         // Auto-populate hierarchy
-        $commune = \App\Models\Commune::with('province')->findOrFail($validated['commune_id']);
+        $commune = Commune::with('province')->findOrFail($validated['commune_id']);
         $validated['province_id'] = $commune->province_id;
         $validated['ministere_id'] = $commune->ministere_id;
         $validated['pays_id'] = $commune->pays_id;
@@ -90,7 +88,7 @@ class ZoneController extends Controller
         ]);
 
         if (isset($validated['commune_id'])) {
-            $commune = \App\Models\Commune::findOrFail($validated['commune_id']);
+            $commune = Commune::findOrFail($validated['commune_id']);
             $validated['province_id'] = $commune->province_id;
             $validated['ministere_id'] = $commune->ministere_id;
             $validated['pays_id'] = $commune->pays_id;
