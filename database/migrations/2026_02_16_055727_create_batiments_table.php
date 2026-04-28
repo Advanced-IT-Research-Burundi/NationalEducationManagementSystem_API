@@ -21,6 +21,8 @@ return new class extends Migration
             $table->integer('nombre_etages')->default(1);
             $table->enum('etat', ['BON', 'MOYEN', 'MAUVAIS', 'DANGEREUX'])->default('BON');
             $table->text('description')->nullable();
+            $table->decimal('budget', 15, 2)->nullable()->comment('Budget alloué au bâtiment');
+            $table->string('localisation')->nullable()->comment('Localisation précise du bâtiment');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -31,6 +33,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::disableForeignKeyConstraints();
         Schema::dropIfExists('batiments');
+        Schema::enableForeignKeyConstraints();
     }
 };

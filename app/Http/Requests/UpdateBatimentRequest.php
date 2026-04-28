@@ -31,6 +31,8 @@ class UpdateBatimentRequest extends FormRequest
             'nombre_etages' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'etat' => ['sometimes', Rule::in(['BON', 'MOYEN', 'MAUVAIS', 'DANGEREUX'])],
             'description' => ['nullable', 'string', 'max:1000'],
+            'budget' => ['nullable', 'numeric', 'min:0'],
+            'localisation' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -47,6 +49,8 @@ class UpdateBatimentRequest extends FormRequest
             'superficie.min' => 'La superficie doit être positive.',
             'nombre_etages.min' => 'Le nombre d\'étages doit être au moins 1.',
             'etat.in' => 'L\'état doit être BON, MOYEN, MAUVAIS ou DANGEREUX.',
+            'budget.numeric' => 'Le budget doit être un nombre.',
+            'budget.min' => 'Le budget doit être positif.',
         ];
     }
 }

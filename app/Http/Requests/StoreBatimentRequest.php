@@ -52,6 +52,8 @@ class StoreBatimentRequest extends FormRequest
             'nombre_etages' => ['required', 'integer', 'min:1', 'max:50'],
             'etat' => ['required', Rule::in(['BON', 'MOYEN', 'MAUVAIS', 'DANGEREUX'])],
             'description' => ['nullable', 'string', 'max:1000'],
+            'budget' => ['nullable', 'numeric', 'min:0'],
+            'localisation' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -73,6 +75,8 @@ class StoreBatimentRequest extends FormRequest
             'nombre_etages.min' => 'Le nombre d\'étages doit être au moins 1.',
             'etat.required' => 'L\'état du bâtiment est requis.',
             'etat.in' => 'L\'état doit être BON, MOYEN, MAUVAIS ou DANGEREUX.',
+            'budget.numeric' => 'Le budget doit être un nombre.',
+            'budget.min' => 'Le budget doit être positif.',
         ];
     }
 }
