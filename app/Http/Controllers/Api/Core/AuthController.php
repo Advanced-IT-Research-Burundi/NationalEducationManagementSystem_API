@@ -12,19 +12,45 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Build a frontend-friendly authenticated user payload.
+     * Build a lean, frontend-friendly authenticated user payload.
      */
     protected function serializeAuthenticatedUser(User $user): array
     {
-        $user->loadAuthorizationRelations();
+        $user->loadMissing(['roles.permissions', 'permissions', 'school', 'enseignant.school']);
 
-        return array_merge($user->toArray(), 
-        [
-            'role' => $user->getPrimaryRole()?->toArray(),
-            'primary_role' => $user->getPrimaryRole()?->toArray(),
+        $primaryRole = $user->getPrimaryRole();
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'statut' => $user->statut,
+            'is_super_admin' => $user->is_super_admin,
+            'admin_level' => $user->admin_level,
+            'admin_entity_id' => $user->admin_entity_id,
+            'school_id' => $user->school_id,
+            'school' => $user->school ? [
+                'id' => $user->school->id,
+                'name' => $user->school->name,
+            ] : null,
+            'enseignant' => $user->enseignant ? [
+                'id' => $user->enseignant->id,
+                'nom_complet' => $user->enseignant->nom_complet ?? $user->enseignant->nom ?? null,
+                'school' => $user->enseignant->school ? [
+                    'id' => $user->enseignant->school->id,
+                    'name' => $user->enseignant->school->name,
+                ] : null,
+            ] : null,
+            'role' => $primaryRole ? [
+                'id' => $primaryRole->id,
+                'name' => $primaryRole->name,
+            ] : null,
+            'primary_role' => $primaryRole ? [
+                'id' => $primaryRole->id,
+                'name' => $primaryRole->name,
+            ] : null,
             'authorization' => $user->getAuthorizationSnapshot(),
-        ]
-    );
+        ];
     }
 
     /**
@@ -69,10 +95,10 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            "success" => true,
+            'success' => true,
             'message' => 'Déconnexion réussie',
-            "data" => null,
-            "errors" => null,
+            'data' => null,
+            'errors' => null,
         ]);
     }
 
