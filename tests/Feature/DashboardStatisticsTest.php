@@ -77,8 +77,23 @@ it('returns national dashboard data without SQL errors', function () {
     $response->assertSuccessful()
         ->assertJsonStructure([
             'niveau',
-            'data' => ['global', 'kpis'],
+            'data' => [
+                'global' => [
+                    'total_schools',
+                    'repartition_etablissements',
+                    'repartition_par_niveau',
+                ],
+                'kpis',
+                'performance' => [
+                    'taux_reussite_par_niveau',
+                ],
+            ],
         ]);
+
+    $repartition = $response->json('data.global.repartition_etablissements');
+    expect($repartition)->toBeArray();
+    expect($repartition)->not->toBeEmpty();
+    expect($repartition[0])->toHaveKeys(['label', 'value']);
 });
 
 // ─── Evolution effectifs uses correct table name ────────────────────────────

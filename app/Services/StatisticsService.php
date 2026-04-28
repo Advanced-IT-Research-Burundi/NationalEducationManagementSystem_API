@@ -115,12 +115,44 @@ class StatisticsService
             }
             $totalEnseignants = $enseignantsQuery->count();
 
+            $typeLabels = [
+                'PUBLIQUE' => 'Public',
+                'PRIVEE' => 'Privé',
+                'ECC' => 'Confessionnel',
+                'AUTRE' => 'Autre',
+            ];
+
+            $niveauLabels = [
+                'FONDAMENTAL' => 'Fondamental',
+                'POST_FONDAMENTAL' => 'Post-fondamental',
+                'SECONDAIRE' => 'Secondaire',
+                'SUPERIEUR' => 'Supérieur',
+            ];
+
+            $repartitionEtablissements = collect($schoolsParType)
+                ->map(fn (int $total, string $type) => [
+                    'label' => $typeLabels[$type] ?? $type,
+                    'value' => $total,
+                ])
+                ->values()
+                ->toArray();
+
+            $repartitionParNiveau = collect($schoolsParNiveau)
+                ->map(fn (int $total, string $niveau) => [
+                    'label' => $niveauLabels[$niveau] ?? $niveau,
+                    'value' => $total,
+                ])
+                ->values()
+                ->toArray();
+
             return [
                 'total_schools' => $totalEcoles,
                 'total_eleves' => $totalEleves,
                 'total_enseignants' => $totalEnseignants,
                 'schools_par_type' => $schoolsParType,
                 'schools_par_niveau' => $schoolsParNiveau,
+                'repartition_etablissements' => $repartitionEtablissements,
+                'repartition_par_niveau' => $repartitionParNiveau,
             ];
         });
     }
@@ -321,6 +353,59 @@ class StatisticsService
                 ])
                 ->toArray();
 
+            $tauxParNiveauQuery = DB::table('resultats')
+                ->join('inscriptions_examen', 'resultats.inscription_examen_id', '=', 'inscriptions_examen.id')
+                ->join('sessions_examen', 'inscriptions_examen.session_id', '=', 'sessions_examen.id')
+                ->join('examens', 'sessions_examen.examen_id', '=', 'examens.id')
+                ->join('niveaux_scolaires', 'examens.niveau_id', '=', 'niveaux_scolaires.id');
+
+            if (! empty($filters['annee_scolaire_id'])) {
+                $tauxParNiveauQuery->where('examens.annee_scolaire_id', $filters['annee_scolaire_id']);
+            }
+
+            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+                $tauxParNiveauQuery
+                    ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
+                    ->join('schools', 'eleves.school_id', '=', 'schools.id');
+                if (! empty($filters['province_id'])) {
+                    $tauxParNiveauQuery->where('schools.province_id', $filters['province_id']);
+                }
+                if (! empty($filters['commune_id'])) {
+                    $tauxParNiveauQuery->where('schools.commune_id', $filters['commune_id']);
+                }
+                if (! empty($filters['school_id'])) {
+                    $tauxParNiveauQuery->where('schools.id', $filters['school_id']);
+                }
+            }
+
+            $resultatsParNiveau = $tauxParNiveauQuery
+                ->select(
+                    'niveaux_scolaires.nom as niveau',
+                    'niveaux_scolaires.ordre',
+                    'inscriptions_examen.eleve_id',
+                    DB::raw('AVG(resultats.note) as moyenne')
+                )
+                ->groupBy('niveaux_scolaires.nom', 'niveaux_scolaires.ordre', 'inscriptions_examen.eleve_id')
+                ->get();
+
+            $tauxReussiteParNiveau = $resultatsParNiveau
+                ->groupBy('niveau')
+                ->map(function ($group, $niveau) {
+                    $total = $group->count();
+                    $reussis = $group->where('moyenne', '>=', 50)->count();
+
+                    return [
+                        'niveau' => $niveau,
+                        'ordre' => $group->first()->ordre ?? 0,
+                        'taux' => $total > 0 ? round(($reussis / $total) * 100, 1) : 0,
+                        'total_candidats' => $total,
+                        'candidats_reussis' => $reussis,
+                    ];
+                })
+                ->sortBy('ordre')
+                ->values()
+                ->toArray();
+
             return [
                 'taux_reussite' => $tauxReussite,
                 'moyenne_generale' => $moyenneGenerale,
@@ -329,6 +414,7 @@ class StatisticsService
                 'note_max' => $statsResultats->note_max ?? null,
                 'note_min' => $statsResultats->note_min ?? null,
                 'moyenne_par_matiere' => $moyenneParMatiere,
+                'taux_reussite_par_niveau' => $tauxReussiteParNiveau,
             ];
         });
     }
