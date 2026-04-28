@@ -23,13 +23,13 @@ use App\Http\Controllers\Api\Infrastructure\RoomController;
 Route::middleware(['auth:sanctum'])->prefix('infrastructure')->name('infrastructure.')->group(function () {
 
     // Buildings
-    Route::apiResource('buildings', BuildingController::class);
+    Route::get('buildings/statistics', [BuildingController::class, 'statistics'])
+        ->name('buildings.statistics');
     Route::get('buildings/by-school/{school}', [BuildingController::class, 'bySchool'])
         ->name('buildings.by-school');
     Route::get('buildings/by-condition/{condition}', [BuildingController::class, 'byCondition'])
         ->name('buildings.by-condition');
-    Route::get('buildings/statistics', [BuildingController::class, 'statistics'])
-        ->name('buildings.statistics');
+    Route::apiResource('buildings', BuildingController::class);
 
     // Rooms (Salles)
     Route::get('rooms/statistics', [RoomController::class, 'statistics'])
@@ -44,13 +44,13 @@ Route::middleware(['auth:sanctum'])->prefix('infrastructure')->name('infrastruct
         ->name('assessments.submit');
 
     // Equipment
-    Route::apiResource('equipment', EquipmentController::class);
     Route::get('equipment/inventory', [EquipmentController::class, 'inventory'])
         ->name('equipment.inventory');
     Route::get('equipment/by-school/{school}', [EquipmentController::class, 'bySchool'])
         ->name('equipment.by-school');
     Route::get('equipment/by-category/{category}', [EquipmentController::class, 'byCategory'])
         ->name('equipment.by-category');
+    Route::apiResource('equipment', EquipmentController::class);
     Route::post('equipment/{equipment}/transfer', [EquipmentController::class, 'transfer'])
         ->name('equipment.transfer');
 
@@ -71,9 +71,9 @@ Route::middleware(['auth:sanctum'])->prefix('infrastructure')->name('infrastruct
         ->name('maintenance-requests.pending');
 
     // Maintenance Reports
-    Route::apiResource('maintenance-reports', MaintenanceReportController::class);
     Route::get('maintenance-reports/by-school/{school}', [MaintenanceReportController::class, 'bySchool'])
         ->name('maintenance-reports.by-school');
     Route::get('maintenance-reports/summary', [MaintenanceReportController::class, 'summary'])
         ->name('maintenance-reports.summary');
+    Route::apiResource('maintenance-reports', MaintenanceReportController::class);
 });
