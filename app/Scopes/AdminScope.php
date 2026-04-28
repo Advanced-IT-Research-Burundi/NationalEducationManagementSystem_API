@@ -30,23 +30,48 @@ class AdminScope implements Scope
         // We assume the model has columns matching the hierarchy: 
         // pays_id, ministere_id, province_id, commune_id, zone_id, school_id (or id for School)
         
+        // Enseignant multi-école: include all assigned schools
+        if ($user->hasRole(\App\Models\Role::ENSEIGNANT)) {
+            $schoolIds = $this->resolveTeacherSchoolIds($user);
+
+            if ($schoolIds->isNotEmpty()) {
+                if ($model instanceof \App\Models\School) {
+                    $builder->whereIn($qualify('id'), $schoolIds);
+                } elseif ($this->hasColumn($model, 'school_id')) {
+                    $builder->whereIn($qualify('school_id'), $schoolIds);
+                }
+
+                return;
+            }
+            // Sinon: ce compte peut aussi être défini comme staff d'école / directeur sans affectations encore
+        }
+
+        $schoolScopeId = $this->resolveSchoolScopedSchoolId($user);
+
+        if ($schoolScopeId !== null) {
+            if ($model instanceof \App\Models\School) {
+                $builder->where($qualify('id'), $schoolScopeId);
+            } elseif ($this->hasColumn($model, 'school_id')) {
+                $builder->where($qualify('school_id'), $schoolScopeId);
+            }
+
+            return;
+        }
+
         $level = $user->admin_level;
         $entityId = $user->admin_entity_id;
 
-        if (!$level || !$entityId) {
-            // If user has no administrative assignment, maybe they shouldn't see anything?
-            // Or maybe fallback to strict policy. For now, let's limit everything.
-            $builder->whereRaw('1 = 0'); 
+        if (! $level || ! $entityId) {
+            $builder->whereRaw('1 = 0');
+
             return;
         }
 
         switch ($level) {
             case 'MINISTERE':
-                 // Usually sees everything within their ministry, or all schools if ministry is national.
-                 // If the model has ministere_id, usage it.
-                 if ($this->hasColumn($model, 'ministere_id')) {
-                     $builder->where($qualify('ministere_id'), $entityId);
-                 }
+                if ($this->hasColumn($model, 'ministere_id')) {
+                    $builder->where($qualify('ministere_id'), $entityId);
+                }
                 break;
 
             case 'PROVINCE':
@@ -68,16 +93,40 @@ class AdminScope implements Scope
                 break;
 
             case 'ECOLE':
-                // If the model IS School, then filter by ID
+                // Déjà traité via resolveSchoolScopedSchoolId lorsque les FK sont cohérentes
                 if ($model instanceof \App\Models\School) {
                     $builder->where($qualify('id'), $entityId);
-                } 
-                // If it's related to school (e.g. Student, Teacher), filter by school_id
-                elseif ($this->hasColumn($model, 'school_id')) {
+                } elseif ($this->hasColumn($model, 'school_id')) {
                     $builder->where($qualify('school_id'), $entityId);
                 }
                 break;
         }
+    }
+
+    /**
+     * Identifiant d'établissement pour utilisateurs cantonnés à une école (directeur, staff, élève suivant cours, etc.).
+     */
+    protected function resolveSchoolScopedSchoolId(\App\Models\User $user): ?int
+    {
+        if ($user->admin_level === 'ECOLE') {
+            $id = $user->admin_entity_id ?? $user->school_id;
+
+            return $id ? (int) $id : null;
+        }
+
+        if ($user->school_id) {
+            return (int) $user->school_id;
+        }
+
+        if ($user->hasRole(\App\Models\Role::DIRECTEUR_ECOLE)) {
+            $id = \App\Models\School::withoutGlobalScopes()
+                ->where('directeur_id', $user->id)
+                ->value('id');
+
+            return $id ? (int) $id : null;
+        }
+
+        return null;
     }
 
     /**
@@ -90,9 +139,27 @@ class AdminScope implements Scope
      */
     protected function hasColumn(Model $model, string $column): bool
     {
-        // One way is checking fillable, but better is checking schema or assuming standard NEMS structure.
-        // For performance, we can rely on the fact that we will only apply this trait to models having these FKs.
-        // But for safety, checking Schema is good.
         return \Illuminate\Support\Facades\Schema::hasColumn($model->getTable(), $column);
+    }
+
+    /**
+     * Collect all school IDs a teacher has access to (direct + pivot).
+     */
+    protected function resolveTeacherSchoolIds(\App\Models\User $user): \Illuminate\Support\Collection
+    {
+        $user->loadMissing('enseignant');
+
+        $enseignant = $user->enseignant;
+
+        if (! $enseignant) {
+            return collect($user->school_id ? [$user->school_id] : []);
+        }
+
+        return $enseignant->ecoles()->pluck('schools.id')
+            ->push($enseignant->school_id)
+            ->push($user->school_id)
+            ->filter()
+            ->unique()
+            ->values();
     }
 }

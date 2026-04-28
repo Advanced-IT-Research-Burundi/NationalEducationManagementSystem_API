@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateSchoolRequest;
 use App\Http\Resources\SchoolResource;
 use App\Models\Colline;
 use App\Models\Enseignant;
+use App\Models\Role;
 use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -220,6 +221,16 @@ class SchoolController extends Controller
             'directeur_id' => $user->id,
             'directeur_name' => $user->name,
         ]);
+
+        $user->forceFill([
+            'school_id' => $school->id,
+            'admin_level' => 'ECOLE',
+            'admin_entity_id' => $school->id,
+        ])->save();
+
+        if (! $user->hasRole(Role::DIRECTEUR_ECOLE)) {
+            $user->assignRole(Role::DIRECTEUR_ECOLE);
+        }
 
         return (new SchoolResource($school->load(['directeur', 'enseignants.user', 'niveauxScolaires'])))
             ->additional(['message' => 'Directeur assigné avec succès'])

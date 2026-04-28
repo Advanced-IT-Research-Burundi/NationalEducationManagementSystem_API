@@ -111,12 +111,20 @@ class User extends Authenticatable
 
     public function school()
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class)->withoutGlobalScopes();
     }
 
     public function ecole()
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class)->withoutGlobalScopes();
+    }
+
+    /**
+     * Établissement où l'utilisateur est référencé comme directeur (table schools.directeur_id).
+     */
+    public function directedSchool(): HasOne
+    {
+        return $this->hasOne(School::class, 'directeur_id')->withoutGlobalScopes();
     }
 
     public function enseignant(): HasOne
@@ -183,33 +191,57 @@ class User extends Authenticatable
         return $this->role;
     }
 
+    /**
+     * Aligne school_id / admin_level quand l'utilisateur est directeur (schools.directeur_id) mais le profil utilisateur est incomplet.
+     */
+    public function synchronizeDirectorSchoolScope(): void
+    {
+        $this->loadMissing('roles');
+
+        if (! $this->hasRole(Role::DIRECTEUR_ECOLE)) {
+            return;
+        }
+
+        $schoolId = School::withoutGlobalScopes()
+            ->where('directeur_id', $this->id)
+            ->value('id');
+
+        if (! $schoolId) {
+            return;
+        }
+
+        if (
+            (int) ($this->school_id ?? 0) === (int) $schoolId
+            && $this->admin_level === 'ECOLE'
+            && (int) ($this->admin_entity_id ?? 0) === (int) $schoolId
+        ) {
+            return;
+        }
+
+        $this->forceFill([
+            'school_id' => $schoolId,
+            'admin_level' => 'ECOLE',
+            'admin_entity_id' => $schoolId,
+        ])->save();
+
+        $this->unsetRelation('school');
+        $this->unsetRelation('directedSchool');
+    }
+
     public function loadAuthorizationRelations(): self
     {
-        return tap($this)->loadMissing([
-            // 'roles.permissions',
-            // 'permissions',
-            // 'pays',
-            // 'ministere',
-            // 'province',
-            // 'commune',
-            // 'zone',
-            // 'colline',
-            // 'school',
-            // 'school.colline',
-            // 'school.zone',
-            // 'school.commune',
-            // 'school.province',
-            // 'enseignant.school',
-            // 'enseignant.school.colline',
-            // 'enseignant.school.zone',
-            // 'enseignant.school.commune',
-            // 'enseignant.school.province',
-            // 'enseignant.ecoles',
-            // 'enseignant.ecoles.colline',
-            // 'enseignant.ecoles.zone',
-            // 'enseignant.ecoles.commune',
-            // 'enseignant.ecoles.province',
-        ]);
+        return tap($this, function (User $user) {
+            $user->loadMissing([
+                'roles.permissions',
+                'permissions',
+                'school',
+                'directedSchool',
+            ]);
+
+            if (! $user->school && $user->directedSchool) {
+                $user->setRelation('school', $user->directedSchool);
+            }
+        });
     }
 
     public function getAuthorizationSnapshot(): array
@@ -233,19 +265,19 @@ class User extends Authenticatable
             'primary_role' => $this->role ? [
                 'id' => $this->role->id,
                 'name' => $this->role->name,
-                // 'slug' => $this->role->slug,
-                // 'description' => $this->role->description,
-                // 'is_system' => $this->role->is_system,
+                'slug' => $this->role->slug,
+                'description' => $this->role->description,
+                'is_system' => $this->role->is_system,
             ] : null,
-            // 'role_names' => $roles->pluck('name')->values()->all(),
+            'role_names' => $roles->pluck('name')->values()->all(),
             'roles' => $roles->map(fn (Role $role) => [
                 'id' => $role->id,
                 'name' => $role->name,
-                // 'slug' => $role->slug,
-                // 'description' => $role->description,
-                // 'is_system' => $role->is_system,
+                'slug' => $role->slug,
+                'description' => $role->description,
+                'is_system' => $role->is_system,
             ])->all(),
-            // 'permission_names' => $allPermissions->pluck('name')->values()->all(),
+            'permission_names' => $allPermissions->pluck('name')->values()->all(),
             'permissions' => $allPermissions->map(function (Permission $permission) use ($roles, $directPermissions) {
                 $viaRoles = $roles
                     ->filter(fn (Role $role) => $role->permissions->contains('id', $permission->id))
@@ -256,13 +288,13 @@ class User extends Authenticatable
                 return [
                     'id' => $permission->id,
                     'name' => $permission->name,
-                    //'label' => $permission->label,
-                    //'description' => $permission->description,
-                    //'group_name' => $permission->group_name,
-                    //'group_label' => $permission->group_label,
-                    //'is_system' => $permission->is_system,
-                    //'source' => $directPermissions->has($permission->id) ? 'direct' : 'role',
-                    //'via_roles' => $viaRoles,
+                    'label' => $permission->label,
+                    'description' => $permission->description,
+                    'group_name' => $permission->group_name,
+                    'group_label' => $permission->group_label,
+                    'is_system' => $permission->is_system,
+                    'source' => $directPermissions->has($permission->id) ? 'direct' : 'role',
+                    'via_roles' => $viaRoles,
                 ];
             })->all(),
         ];
@@ -313,11 +345,17 @@ class User extends Authenticatable
             return true;
         }
 
-        if ($this->admin_level === 'ECOLE') {
-            return $this->admin_entity_id === $schoolId || $this->school_id === $schoolId;
+        if ($this->admin_entity_id === $schoolId || $this->school_id === $schoolId) {
+            return true;
         }
 
-        // Higher level users may have access to multiple schools
+        if (\App\Models\School::withoutGlobalScopes()
+            ->whereKey($schoolId)
+            ->where('directeur_id', $this->id)
+            ->exists()) {
+            return true;
+        }
+
         return false;
     }
 
@@ -335,14 +373,21 @@ class User extends Authenticatable
             return $this->admin_level === 'PAYS';
         }
 
+        if ((int) $this->school_id === (int) $school->id) {
+            return true;
+        }
+        if ($this->admin_level === 'ECOLE' && $this->admin_entity_id && (int) $school->id === (int) $this->admin_entity_id) {
+            return true;
+        }
+
         return match ($this->admin_level) {
             'PAYS' => true,
             'MINISTERE' => $school->ministere_id === $this->admin_entity_id,
             'PROVINCE' => $school->province_id === $this->admin_entity_id,
             'COMMUNE' => $school->commune_id === $this->admin_entity_id,
             'ZONE' => $school->zone_id === $this->admin_entity_id,
-            'ECOLE' => $school->id === $this->admin_entity_id,
-            default => false,
+            'ECOLE' => (int) $school->id === (int) ($this->admin_entity_id ?: $this->school_id ?: 0),
+            default => (int) $school->directeur_id === (int) $this->id,
         };
     }
 

@@ -38,6 +38,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
+        Route::get('/me/permissions', [AuthController::class, 'myPermissions'])->name('auth.me.permissions');
+        Route::get('/me/roles', [AuthController::class, 'myRoles'])->name('auth.me.roles');
         Route::post('/refresh', [AuthController::class, 'refresh'])->name('auth.refresh');
     });
 
@@ -46,6 +48,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('users', UserController::class);
     Route::post('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
     Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+    Route::post('users/{user}/sync-permissions', [UserController::class, 'syncPermissions'])->name('users.sync-permissions');
+    Route::post('users/{user}/sync-roles', [UserController::class, 'syncRoles'])->name('users.sync-roles');
 
     // Roles & Permissions
     Route::apiResource('roles', RoleController::class);

@@ -153,4 +153,28 @@ class UserPolicy
 
         return $user->hasPermission('manage_users') || $user->hasPermission('delete_user');
     }
+
+    /**
+     * Determine whether the user can change another user's roles.
+     */
+    public function syncRoles(User $user, User $model): bool
+    {
+        if ($user->id === $model->id) {
+            return false;
+        }
+
+        return $user->hasPermission('manage_users') || $user->hasPermission('manage_roles');
+    }
+
+    /**
+     * Determine whether the user can change another user's direct permissions.
+     */
+    public function syncPermissions(User $user, User $model): bool
+    {
+        if ($user->id === $model->id) {
+            return false;
+        }
+
+        return $user->hasPermission('manage_users') || $user->hasPermission('manage_permissions');
+    }
 }
