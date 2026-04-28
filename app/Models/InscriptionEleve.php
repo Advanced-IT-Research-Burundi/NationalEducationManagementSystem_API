@@ -252,7 +252,7 @@ class InscriptionEleve extends Model
 
     public function ecole(): BelongsTo
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     public function anneeScolaire(): BelongsTo

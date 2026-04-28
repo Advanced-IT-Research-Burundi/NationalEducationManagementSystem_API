@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\EquipementFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Equipement extends Model
 {
-    /** @use HasFactory<\Database\Factories\EquipementFactory> */
+    /** @use HasFactory<EquipementFactory> */
     use HasFactory, SoftDeletes;
 
     protected $guarded = [];
@@ -35,7 +36,7 @@ class Equipement extends Model
      */
     public function ecole(): BelongsTo
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     /**

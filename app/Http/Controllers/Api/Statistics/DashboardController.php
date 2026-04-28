@@ -21,13 +21,12 @@ class DashboardController extends Controller
     }
 
     /**
-     * Extract common filters from request
+     * Extract common filters from request, scoped by the authenticated user's administrative level.
      */
     protected function extractFilters(Request $request): array
     {
         $filters = [];
 
-        // Fallback automatique sur l'année scolaire active si non fournie.
         $anneeScolaireId = $request->filled('annee_scolaire_id')
             ? $request->input('annee_scolaire_id')
             : AnneeScolaire::current()?->id;
@@ -36,6 +35,22 @@ class DashboardController extends Controller
         }
         if ($request->filled('niveau')) {
             $filters['niveau'] = $request->input('niveau');
+        }
+
+        $user = $request->user();
+
+        if ($user && ! $user->isSuperAdmin()) {
+            $level = $user->admin_level;
+            $entityId = $user->admin_entity_id;
+
+            if ($level && $entityId) {
+                match ($level) {
+                    'PROVINCE' => $filters['province_id'] = $entityId,
+                    'COMMUNE', 'ZONE' => $filters['commune_id'] = $entityId,
+                    'ECOLE' => $filters['school_id'] = $entityId,
+                    default => null,
+                };
+            }
         }
 
         return $filters;
@@ -97,6 +112,7 @@ class DashboardController extends Controller
 
         try {
             $data = $this->statisticsService->getDashboardData($filters);
+
             return response()->json(['data' => $data]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Erreur lors du calcul des statistiques', 'error' => $e->getMessage()], 500);
@@ -120,6 +136,7 @@ class DashboardController extends Controller
 
         try {
             $data = $this->statisticsService->getDashboardData($filters);
+
             return response()->json([
                 'niveau' => 'national',
                 'data' => $data,
@@ -143,6 +160,7 @@ class DashboardController extends Controller
 
         try {
             $data = $this->statisticsService->getDashboardData($filters);
+
             return response()->json([
                 'niveau' => 'provincial',
                 'province_id' => $province,
@@ -167,6 +185,7 @@ class DashboardController extends Controller
 
         try {
             $data = $this->statisticsService->getDashboardData($filters);
+
             return response()->json([
                 'niveau' => 'communal',
                 'commune_id' => $commune,
@@ -191,6 +210,7 @@ class DashboardController extends Controller
 
         try {
             $data = $this->statisticsService->getDashboardData($filters);
+
             return response()->json([
                 'niveau' => 'ecole',
                 'school_id' => $ecole,
@@ -211,6 +231,7 @@ class DashboardController extends Controller
     {
         try {
             $this->statisticsService->clearCache();
+
             return response()->json(['message' => 'Cache des statistiques vidé avec succès']);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Erreur lors du vidage du cache', 'error' => $e->getMessage()], 500);

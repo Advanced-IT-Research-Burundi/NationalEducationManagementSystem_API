@@ -373,13 +373,13 @@ class StatisticsService
         return Cache::remember($this->cacheKey('evolution', $filters), self::CACHE_TTL, function () use ($filters) {
             $annees = AnneeScolaire::orderBy('date_debut', 'asc')->get();
 
-            $inscQuery = DB::table('inscriptions_eleves')
-                ->where('statut', 'valide')
+            $inscQuery = DB::table('inscriptions')
+                ->where('inscriptions.statut', 'valide')
                 ->select('annee_scolaire_id', DB::raw('COUNT(*) as total'))
                 ->groupBy('annee_scolaire_id');
 
             if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
-                $inscQuery->join('schools', 'inscriptions_eleves.ecole_id', '=', 'schools.id');
+                $inscQuery->join('schools', 'inscriptions.school_id', '=', 'schools.id');
                 if (! empty($filters['province_id'])) {
                     $inscQuery->where('schools.province_id', $filters['province_id']);
                 }

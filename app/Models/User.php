@@ -3,10 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -14,7 +16,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, LogsActivity, Notifiable;
 
     /**
@@ -116,7 +118,7 @@ class User extends Authenticatable
 
     public function ecole()
     {
-        return $this->belongsTo(School::class)->withoutGlobalScopes();
+        return $this->belongsTo(School::class, 'school_id')->withoutGlobalScopes();
     }
 
     /**
@@ -248,7 +250,7 @@ class User extends Authenticatable
     {
         $this->loadAuthorizationRelations();
 
-        /** @var \Illuminate\Support\Collection<int, Role> $roles */
+        /** @var Collection<int, Role> $roles */
         $roles = $this->roles->sortByDesc('sort_order')->values();
         $directPermissions = $this->permissions->keyBy('id');
         $allPermissions = $this->getAllPermissions()
@@ -349,7 +351,7 @@ class User extends Authenticatable
             return true;
         }
 
-        if (\App\Models\School::withoutGlobalScopes()
+        if (School::withoutGlobalScopes()
             ->whereKey($schoolId)
             ->where('directeur_id', $this->id)
             ->exists()) {

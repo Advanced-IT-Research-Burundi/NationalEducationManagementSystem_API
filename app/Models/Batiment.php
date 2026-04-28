@@ -2,18 +2,19 @@
 
 namespace App\Models;
 
+use App\Traits\HasMatricule;
+use Database\Factories\BatimentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Batiment extends Model
 {
-    /** @use HasFactory<\Database\Factories\BatimentFactory> */
-    use HasFactory, SoftDeletes, HasMatricule;
+    /** @use HasFactory<BatimentFactory> */
+    use HasFactory, HasMatricule, SoftDeletes;
 
     protected $guarded = [];
 
@@ -22,7 +23,7 @@ class Batiment extends Model
      */
     public function ecole(): BelongsTo
     {
-        return $this->belongsTo(School::class);
+        return $this->belongsTo(School::class, 'school_id');
     }
 
     /**
