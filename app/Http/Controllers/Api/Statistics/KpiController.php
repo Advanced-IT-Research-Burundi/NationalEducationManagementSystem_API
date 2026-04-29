@@ -234,13 +234,12 @@ class KpiController extends Controller
     }
 
     /**
-     * Extract filters from request
+     * Extract filters from request, scoped by the authenticated user's administrative level.
      */
     protected function extractFilters(Request $request): array
     {
         $filters = [];
 
-        // Fallback automatique sur l'année scolaire active si non fournie.
         $filters['annee_scolaire_id'] = $request->filled('annee_scolaire_id')
             ? $request->input('annee_scolaire_id')
             : AnneeScolaire::current()?->id;
@@ -258,6 +257,40 @@ class KpiController extends Controller
         }
         if ($request->filled('niveau')) {
             $filters['niveau'] = $request->input('niveau');
+        }
+
+        $user = $request->user();
+
+        if ($user && ! $user->isSuperAdmin() && ! $user->hasRole(\App\Models\Role::ADMIN_NATIONAL)) {
+            $level = $user->admin_level;
+            $entityId = $user->admin_entity_id;
+
+            if ($level && $entityId) {
+                match ($level) {
+                    'MINISTERE' => $filters['ministere_id'] = $entityId,
+                    'PROVINCE' => $filters['province_id'] = $entityId,
+                    'COMMUNE' => $filters['commune_id'] = $entityId,
+                    'ZONE' => $filters['zone_id'] = $entityId,
+                    'ECOLE' => $filters['school_id'] = $entityId,
+                    default => null,
+                };
+            }
+
+            if (! isset($filters['school_id']) && ! isset($filters['zone_id'])
+                && ! isset($filters['commune_id']) && ! isset($filters['province_id'])
+                && ! isset($filters['ministere_id'])) {
+                $schoolId = $user->school_id;
+
+                if (! $schoolId && $user->hasRole(\App\Models\Role::DIRECTEUR_ECOLE)) {
+                    $schoolId = \App\Models\School::withoutGlobalScopes()
+                        ->where('directeur_id', $user->id)
+                        ->value('id');
+                }
+
+                if ($schoolId) {
+                    $filters['school_id'] = $schoolId;
+                }
+            }
         }
 
         return $filters;

@@ -6,6 +6,7 @@ use App\Models\AnneeScolaire;
 use App\Models\Batiment;
 use App\Models\Eleve;
 use App\Models\Enseignant;
+use App\Models\Classe;
 use App\Models\Financement;
 use App\Models\InscriptionEleve;
 use App\Models\Province;
@@ -20,6 +21,19 @@ class StatisticsService
      * Cache TTL in seconds (30 minutes)
      */
     const CACHE_TTL = 1800;
+
+    /**
+     * Check if the filters array contains any geographic constraint.
+     */
+    protected function hasGeoFilters(array $filters): bool
+    {
+        return ! empty($filters['ministere_id'])
+            || ! empty($filters['province_id'])
+            || ! empty($filters['commune_id'])
+            || ! empty($filters['zone_id'])
+            || ! empty($filters['school_id'])
+            || ! empty($filters['niveau']);
+    }
 
     /**
      * Build a cache key from method name and filters
@@ -44,17 +58,40 @@ class StatisticsService
     }
 
     /**
+     * Apply geographic filters to an Enseignant query, checking both the
+     * primary school (school_id) and the N:N pivot (enseignant_school).
+     */
+    protected function applyEnseignantGeoFilters($query, array $filters): void
+    {
+        $query->where(function ($q) use ($filters) {
+            $q->whereHas('school', function ($sq) use ($filters) {
+                $sq->where('schools.statut', 'ACTIVE');
+                $this->applyGeoFilters($sq, $filters, 'schools');
+            })->orWhereHas('ecoles', function ($sq) use ($filters) {
+                $sq->where('schools.statut', 'ACTIVE');
+                $this->applyGeoFilters($sq, $filters, 'schools');
+            });
+        });
+    }
+
+    /**
      * Apply geographic filters to a query on the 'schools' table
      */
     protected function applyGeoFilters($query, array $filters, string $tableAlias = '')
     {
         $prefix = $tableAlias ? "{$tableAlias}." : '';
 
+        if (! empty($filters['ministere_id'])) {
+            $query->where("{$prefix}ministere_id", $filters['ministere_id']);
+        }
         if (! empty($filters['province_id'])) {
             $query->where("{$prefix}province_id", $filters['province_id']);
         }
         if (! empty($filters['commune_id'])) {
             $query->where("{$prefix}commune_id", $filters['commune_id']);
+        }
+        if (! empty($filters['zone_id'])) {
+            $query->where("{$prefix}zone_id", $filters['zone_id']);
         }
         if (! empty($filters['school_id'])) {
             $query->where("{$prefix}id", $filters['school_id']);
@@ -97,23 +134,30 @@ class StatisticsService
 
             // Total students (active)
             $elevesQuery = Eleve::query()->where('statut_global', 'actif');
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id']) || ! empty($filters['niveau'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $elevesQuery->whereHas('school', function ($q) use ($filters) {
-                    $q->where('statut', 'ACTIVE');
-                    $this->applyGeoFilters($q, $filters);
+                    $q->where('schools.statut', 'ACTIVE');
+                    $this->applyGeoFilters($q, $filters, 'schools');
                 });
             }
             $totalEleves = $elevesQuery->count();
 
-            // Total teachers (active)
+            // Total teachers (active) — includes teachers assigned via pivot
             $enseignantsQuery = Enseignant::query()->where('statut', 'ACTIF');
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
-                $enseignantsQuery->whereHas('school', function ($q) use ($filters) {
-                    $q->where('statut', 'ACTIVE');
-                    $this->applyGeoFilters($q, $filters);
-                });
+            if ($this->hasGeoFilters($filters)) {
+                $this->applyEnseignantGeoFilters($enseignantsQuery, $filters);
             }
             $totalEnseignants = $enseignantsQuery->count();
+
+            // Total classes (active)
+            $classesQuery = Classe::query()->where('classes.statut', 'ACTIVE');
+            if ($this->hasGeoFilters($filters)) {
+                $classesQuery->whereHas('school', function ($q) use ($filters) {
+                    $q->where('schools.statut', 'ACTIVE');
+                    $this->applyGeoFilters($q, $filters, 'schools');
+                });
+            }
+            $totalClasses = $classesQuery->count();
 
             $typeLabels = [
                 'PUBLIQUE' => 'Public',
@@ -149,6 +193,7 @@ class StatisticsService
                 'total_schools' => $totalEcoles,
                 'total_eleves' => $totalEleves,
                 'total_enseignants' => $totalEnseignants,
+                'total_classes' => $totalClasses,
                 'schools_par_type' => $schoolsParType,
                 'schools_par_niveau' => $schoolsParNiveau,
                 'repartition_etablissements' => $repartitionEtablissements,
@@ -168,10 +213,10 @@ class StatisticsService
 
             // Gender breakdown
             $genderQuery = Eleve::query()->where('statut_global', 'actif');
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id']) || ! empty($filters['niveau'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $genderQuery->whereHas('school', function ($q) use ($filters) {
-                    $q->where('statut', 'ACTIVE');
-                    $this->applyGeoFilters($q, $filters);
+                    $q->where('schools.statut', 'ACTIVE');
+                    $this->applyGeoFilters($q, $filters, 'schools');
                 });
             }
             $genderBreakdown = $genderQuery
@@ -191,9 +236,9 @@ class StatisticsService
             $inscriptionsByType = [];
             if ($anneeId) {
                 $inscQuery = InscriptionEleve::query()->where('annee_scolaire_id', $anneeId);
-                if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+                if ($this->hasGeoFilters($filters)) {
                     $inscQuery->whereHas('ecole', function ($q) use ($filters) {
-                        $this->applyGeoFilters($q, $filters);
+                        $this->applyGeoFilters($q, $filters, 'schools');
                     });
                 }
                 $inscriptionsCount = $inscQuery->where('statut', 'valide')->count();
@@ -201,9 +246,9 @@ class StatisticsService
                 $inscByTypeQuery = InscriptionEleve::query()
                     ->where('annee_scolaire_id', $anneeId)
                     ->where('statut', 'valide');
-                if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+                if ($this->hasGeoFilters($filters)) {
                     $inscByTypeQuery->whereHas('ecole', function ($q) use ($filters) {
-                        $this->applyGeoFilters($q, $filters);
+                        $this->applyGeoFilters($q, $filters, 'schools');
                     });
                 }
                 $inscriptionsByType = $inscByTypeQuery
@@ -274,21 +319,11 @@ class StatisticsService
                 $resultatsQuery->where('examens.annee_scolaire_id', $filters['annee_scolaire_id']);
             }
 
-            // Apply geo filters via eleves -> schools
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $resultatsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
                     ->join('schools', 'eleves.school_id', '=', 'schools.id');
-
-                if (! empty($filters['province_id'])) {
-                    $resultatsQuery->where('schools.province_id', $filters['province_id']);
-                }
-                if (! empty($filters['commune_id'])) {
-                    $resultatsQuery->where('schools.commune_id', $filters['commune_id']);
-                }
-                if (! empty($filters['school_id'])) {
-                    $resultatsQuery->where('schools.id', $filters['school_id']);
-                }
+                $this->applyGeoFilters($resultatsQuery, $filters, 'schools');
             }
 
             $statsResultats = $resultatsQuery->select(
@@ -312,19 +347,11 @@ class StatisticsService
                 $studentsResultsQuery->where('examens.annee_scolaire_id', $filters['annee_scolaire_id']);
             }
 
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $studentsResultsQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
                     ->join('schools', 'eleves.school_id', '=', 'schools.id');
-                if (! empty($filters['province_id'])) {
-                    $studentsResultsQuery->where('schools.province_id', $filters['province_id']);
-                }
-                if (! empty($filters['commune_id'])) {
-                    $studentsResultsQuery->where('schools.commune_id', $filters['commune_id']);
-                }
-                if (! empty($filters['school_id'])) {
-                    $studentsResultsQuery->where('schools.id', $filters['school_id']);
-                }
+                $this->applyGeoFilters($studentsResultsQuery, $filters, 'schools');
             }
 
             $studentAverages = $studentsResultsQuery
@@ -363,19 +390,11 @@ class StatisticsService
                 $tauxParNiveauQuery->where('examens.annee_scolaire_id', $filters['annee_scolaire_id']);
             }
 
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $tauxParNiveauQuery
                     ->join('eleves', 'inscriptions_examen.eleve_id', '=', 'eleves.id')
                     ->join('schools', 'eleves.school_id', '=', 'schools.id');
-                if (! empty($filters['province_id'])) {
-                    $tauxParNiveauQuery->where('schools.province_id', $filters['province_id']);
-                }
-                if (! empty($filters['commune_id'])) {
-                    $tauxParNiveauQuery->where('schools.commune_id', $filters['commune_id']);
-                }
-                if (! empty($filters['school_id'])) {
-                    $tauxParNiveauQuery->where('schools.id', $filters['school_id']);
-                }
+                $this->applyGeoFilters($tauxParNiveauQuery, $filters, 'schools');
             }
 
             $resultatsParNiveau = $tauxParNiveauQuery
@@ -464,26 +483,16 @@ class StatisticsService
                 ->select('annee_scolaire_id', DB::raw('COUNT(*) as total'))
                 ->groupBy('annee_scolaire_id');
 
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $inscQuery->join('schools', 'inscriptions.school_id', '=', 'schools.id');
-                if (! empty($filters['province_id'])) {
-                    $inscQuery->where('schools.province_id', $filters['province_id']);
-                }
-                if (! empty($filters['commune_id'])) {
-                    $inscQuery->where('schools.commune_id', $filters['commune_id']);
-                }
-                if (! empty($filters['school_id'])) {
-                    $inscQuery->where('schools.id', $filters['school_id']);
-                }
+                $this->applyGeoFilters($inscQuery, $filters, 'schools');
             }
 
             $inscriptionsByYear = $inscQuery->pluck('total', 'annee_scolaire_id');
 
             $enseignantTotal = Enseignant::query()->where('statut', 'ACTIF');
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
-                $enseignantTotal->whereHas('school', function ($q) use ($filters) {
-                    $this->applyGeoFilters($q, $filters);
-                });
+            if ($this->hasGeoFilters($filters)) {
+                $this->applyEnseignantGeoFilters($enseignantTotal, $filters);
             }
             $totalEnseignants = $enseignantTotal->count();
 
@@ -516,12 +525,20 @@ class StatisticsService
                 ->groupBy('schools.province_id')
                 ->pluck('total', 'province_id');
 
-            $enseignantCounts = DB::table('enseignants')
-                ->join('schools', 'enseignants.school_id', '=', 'schools.id')
-                ->where('enseignants.statut', 'ACTIF')
-                ->where('schools.statut', 'ACTIVE')
-                ->select('schools.province_id', DB::raw('COUNT(*) as total'))
-                ->groupBy('schools.province_id')
+            $enseignantCounts = DB::table(DB::raw('(
+                    SELECT DISTINCT e.id, s.province_id
+                    FROM enseignants e
+                    INNER JOIN schools s ON s.id = e.school_id AND s.statut = \'ACTIVE\' AND s.deleted_at IS NULL
+                    WHERE e.statut = \'ACTIF\' AND e.deleted_at IS NULL
+                    UNION
+                    SELECT DISTINCT e.id, s.province_id
+                    FROM enseignants e
+                    INNER JOIN enseignant_school es ON es.enseignant_id = e.id
+                    INNER JOIN schools s ON s.id = es.school_id AND s.statut = \'ACTIVE\' AND s.deleted_at IS NULL
+                    WHERE e.statut = \'ACTIF\' AND e.deleted_at IS NULL
+                ) AS ens_provinces'))
+                ->select('province_id', DB::raw('COUNT(DISTINCT id) as total'))
+                ->groupBy('province_id')
                 ->pluck('total', 'province_id');
 
             $provinces = DB::table('provinces')
@@ -571,9 +588,9 @@ class StatisticsService
     {
         return Cache::remember($this->cacheKey('infrastructure', $filters), self::CACHE_TTL, function () use ($filters) {
             $batimentsQuery = Batiment::query();
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $batimentsQuery->whereHas('ecole', function ($q) use ($filters) {
-                    $this->applyGeoFilters($q, $filters);
+                    $this->applyGeoFilters($q, $filters, 'schools');
                 });
             }
 
@@ -585,9 +602,9 @@ class StatisticsService
                 ->toArray();
 
             $sallesQuery = Salle::query();
-            if (! empty($filters['province_id']) || ! empty($filters['commune_id']) || ! empty($filters['school_id'])) {
+            if ($this->hasGeoFilters($filters)) {
                 $sallesQuery->whereHas('batiment.ecole', function ($q) use ($filters) {
-                    $this->applyGeoFilters($q, $filters);
+                    $this->applyGeoFilters($q, $filters, 'schools');
                 });
             }
 

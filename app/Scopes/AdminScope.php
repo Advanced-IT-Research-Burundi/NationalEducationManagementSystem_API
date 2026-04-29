@@ -38,12 +38,13 @@ class AdminScope implements Scope
                 if ($model instanceof \App\Models\School) {
                     $builder->whereIn($qualify('id'), $schoolIds);
                 } elseif ($this->hasColumn($model, 'school_id')) {
-                    $builder->whereIn($qualify('school_id'), $schoolIds);
+                    $this->filterBySchools($builder, $model, $qualify, $schoolIds);
+                } else {
+                    $this->applySchoolIdsFilter($builder, $model, $qualify, $schoolIds);
                 }
 
                 return;
             }
-            // Sinon: ce compte peut aussi être défini comme staff d'école / directeur sans affectations encore
         }
 
         $schoolScopeId = $this->resolveSchoolScopedSchoolId($user);
@@ -52,7 +53,9 @@ class AdminScope implements Scope
             if ($model instanceof \App\Models\School) {
                 $builder->where($qualify('id'), $schoolScopeId);
             } elseif ($this->hasColumn($model, 'school_id')) {
-                $builder->where($qualify('school_id'), $schoolScopeId);
+                $this->filterBySchools($builder, $model, $qualify, collect([$schoolScopeId]));
+            } else {
+                $this->applySchoolIdsFilter($builder, $model, $qualify, collect([$schoolScopeId]));
             }
 
             return;
@@ -69,38 +72,128 @@ class AdminScope implements Scope
 
         switch ($level) {
             case 'MINISTERE':
-                if ($this->hasColumn($model, 'ministere_id')) {
-                    $builder->where($qualify('ministere_id'), $entityId);
-                }
+                $this->applyHierarchyFilter($builder, $model, $qualify, 'ministere_id', $entityId);
                 break;
 
             case 'PROVINCE':
-                if ($this->hasColumn($model, 'province_id')) {
-                    $builder->where($qualify('province_id'), $entityId);
-                }
+                $this->applyHierarchyFilter($builder, $model, $qualify, 'province_id', $entityId);
                 break;
 
             case 'COMMUNE':
-                if ($this->hasColumn($model, 'commune_id')) {
-                    $builder->where($qualify('commune_id'), $entityId);
-                }
+                $this->applyHierarchyFilter($builder, $model, $qualify, 'commune_id', $entityId);
                 break;
 
             case 'ZONE':
-                if ($this->hasColumn($model, 'zone_id')) {
-                    $builder->where($qualify('zone_id'), $entityId);
-                }
+                $this->applyHierarchyFilter($builder, $model, $qualify, 'zone_id', $entityId);
                 break;
 
             case 'ECOLE':
-                // Déjà traité via resolveSchoolScopedSchoolId lorsque les FK sont cohérentes
                 if ($model instanceof \App\Models\School) {
                     $builder->where($qualify('id'), $entityId);
                 } elseif ($this->hasColumn($model, 'school_id')) {
-                    $builder->where($qualify('school_id'), $entityId);
+                    $this->filterBySchools($builder, $model, $qualify, collect([$entityId]));
+                } else {
+                    $this->applySchoolIdsFilter($builder, $model, $qualify, collect([$entityId]));
                 }
                 break;
         }
+    }
+
+    /**
+     * Apply a hierarchy-level filter, falling back to a schools subquery
+     * when the model lacks the direct geographic column but has school_id.
+     * Also handles models with ecole_origine_id / ecole_destination_id.
+     */
+    protected function applyHierarchyFilter(Builder $builder, Model $model, callable $qualify, string $column, $entityId): void
+    {
+        if ($model instanceof \App\Models\School) {
+            $builder->where($qualify($column), $entityId);
+
+            return;
+        }
+
+        if ($this->hasColumn($model, $column)) {
+            $builder->where($qualify($column), $entityId);
+
+            return;
+        }
+
+        $schoolSubquery = function ($q) use ($column, $entityId) {
+            $q->select('id')
+                ->from('schools')
+                ->where($column, $entityId)
+                ->whereNull('deleted_at');
+        };
+
+        if ($this->hasColumn($model, 'school_id')) {
+            $this->filterBySchools($builder, $model, $qualify, $schoolSubquery);
+
+            return;
+        }
+
+        $hasOrigine = $this->hasColumn($model, 'ecole_origine_id');
+        $hasDestination = $this->hasColumn($model, 'ecole_destination_id');
+
+        if ($hasOrigine || $hasDestination) {
+            $builder->where(function ($q) use ($qualify, $schoolSubquery, $hasOrigine, $hasDestination) {
+                if ($hasOrigine) {
+                    $q->whereIn($qualify('ecole_origine_id'), $schoolSubquery);
+                }
+                if ($hasDestination) {
+                    $q->orWhereIn($qualify('ecole_destination_id'), $schoolSubquery);
+                }
+            });
+
+            return;
+        }
+
+        $builder->whereRaw('1 = 0');
+    }
+
+    /**
+     * Filter by school(s) on a model that has school_id.
+     * For Enseignant, also includes matches from the enseignant_school pivot table.
+     *
+     * @param  \Closure|\Illuminate\Support\Collection  $schoolConstraint  Closure (subquery) or Collection of IDs
+     */
+    protected function filterBySchools(Builder $builder, Model $model, callable $qualify, $schoolConstraint): void
+    {
+        if ($model instanceof \App\Models\Enseignant) {
+            $builder->where(function ($q) use ($qualify, $schoolConstraint) {
+                $q->whereIn($qualify('school_id'), $schoolConstraint)
+                    ->orWhereIn($qualify('id'), function ($sub) use ($schoolConstraint) {
+                        $sub->select('enseignant_id')
+                            ->from('enseignant_school')
+                            ->whereIn('school_id', $schoolConstraint);
+                    });
+            });
+        } else {
+            $builder->whereIn($qualify('school_id'), $schoolConstraint);
+        }
+    }
+
+    /**
+     * Filter models that use ecole_origine_id / ecole_destination_id by a set of school IDs.
+     */
+    protected function applySchoolIdsFilter(Builder $builder, Model $model, callable $qualify, \Illuminate\Support\Collection $schoolIds): void
+    {
+        $hasOrigine = $this->hasColumn($model, 'ecole_origine_id');
+        $hasDestination = $this->hasColumn($model, 'ecole_destination_id');
+
+        if ($hasOrigine || $hasDestination) {
+            $builder->where(function ($q) use ($qualify, $schoolIds, $hasOrigine, $hasDestination) {
+                if ($hasOrigine) {
+                    $q->whereIn($qualify('ecole_origine_id'), $schoolIds);
+                }
+                if ($hasDestination) {
+                    $q->orWhereIn($qualify('ecole_destination_id'), $schoolIds);
+                }
+            });
+
+            return;
+        }
+
+        $builder->whereRaw('1 = 0');
     }
 
     /**

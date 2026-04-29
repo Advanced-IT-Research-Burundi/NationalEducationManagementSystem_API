@@ -178,7 +178,10 @@ class MouvementEleve extends Model
                 $q->whereHas('ecoleOrigine', fn ($sub) => $sub->where('province_id', $entityId))
                     ->orWhereHas('ecoleDestination', fn ($sub) => $sub->where('province_id', $entityId));
             }),
-            'MINISTERE' => $query,
+            'MINISTERE' => $query->where(function ($q) use ($entityId) {
+                $q->whereHas('ecoleOrigine', fn ($sub) => $sub->where('ministere_id', $entityId))
+                    ->orWhereHas('ecoleDestination', fn ($sub) => $sub->where('ministere_id', $entityId));
+            }),
             default => $query->whereRaw('1 = 0'),
         };
     }

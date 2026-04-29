@@ -205,7 +205,7 @@ class InscriptionEleve extends Model
             'ZONE' => $query->whereHas('ecole', fn ($q) => $q->where('zone_id', $entityId)),
             'COMMUNE' => $query->whereHas('ecole', fn ($q) => $q->where('commune_id', $entityId)),
             'PROVINCE' => $query->whereHas('ecole', fn ($q) => $q->where('province_id', $entityId)),
-            'MINISTERE' => $query,
+            'MINISTERE' => $query->whereHas('ecole', fn ($q) => $q->where('ministere_id', $entityId)),
             default => $query->whereRaw('1 = 0'),
         };
     }

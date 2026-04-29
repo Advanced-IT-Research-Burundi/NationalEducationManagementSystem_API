@@ -39,17 +39,35 @@ class DashboardController extends Controller
 
         $user = $request->user();
 
-        if ($user && ! $user->isSuperAdmin()) {
+        if ($user && ! $user->isSuperAdmin() && ! $user->hasRole(\App\Models\Role::ADMIN_NATIONAL)) {
             $level = $user->admin_level;
             $entityId = $user->admin_entity_id;
 
             if ($level && $entityId) {
                 match ($level) {
+                    'MINISTERE' => $filters['ministere_id'] = $entityId,
                     'PROVINCE' => $filters['province_id'] = $entityId,
-                    'COMMUNE', 'ZONE' => $filters['commune_id'] = $entityId,
+                    'COMMUNE' => $filters['commune_id'] = $entityId,
+                    'ZONE' => $filters['zone_id'] = $entityId,
                     'ECOLE' => $filters['school_id'] = $entityId,
                     default => null,
                 };
+            }
+
+            if (! isset($filters['school_id']) && ! isset($filters['zone_id'])
+                && ! isset($filters['commune_id']) && ! isset($filters['province_id'])
+                && ! isset($filters['ministere_id'])) {
+                $schoolId = $user->school_id;
+
+                if (! $schoolId && $user->hasRole(\App\Models\Role::DIRECTEUR_ECOLE)) {
+                    $schoolId = \App\Models\School::withoutGlobalScopes()
+                        ->where('directeur_id', $user->id)
+                        ->value('id');
+                }
+
+                if ($schoolId) {
+                    $filters['school_id'] = $schoolId;
+                }
             }
         }
 

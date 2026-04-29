@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 
 trait HasDataScope
 {
@@ -17,6 +18,7 @@ trait HasDataScope
     public function scopeForUser(Builder $query, User $user)
     {
         $qualify = fn (string $column) => $query->getModel()->qualifyColumn($column);
+        $table = $query->getModel()->getTable();
 
         if ($user->isSuperAdmin() || $user->hasRole(\App\Models\Role::ADMIN_NATIONAL)) {
             return $query;
@@ -31,7 +33,11 @@ trait HasDataScope
                     return $query->whereIn($qualify('id'), $schoolIds);
                 }
 
-                return $query->whereIn($qualify('school_id'), $schoolIds);
+                if (Schema::hasColumn($table, 'school_id')) {
+                    return $this->filterBySchoolScope($query, $table, $qualify, $schoolIds);
+                }
+
+                return $this->applySchoolColumnsFilter($query, $table, $qualify, $schoolIds);
             }
         }
 
@@ -42,31 +48,63 @@ trait HasDataScope
                 return $query->where($qualify('id'), $schoolScopeId);
             }
 
-            return $query->where($qualify('school_id'), $schoolScopeId);
+            if (Schema::hasColumn($table, 'school_id')) {
+                return $this->filterBySchoolScope($query, $table, $qualify, collect([$schoolScopeId]));
+            }
+
+            return $this->applySchoolColumnsFilter($query, $table, $qualify, collect([$schoolScopeId]));
         }
 
-        if ($user->colline_id) {
-            return $query->where($qualify('colline_id'), $user->colline_id);
-        }
+        $hierarchyChecks = [
+            'colline_id',
+            'zone_id',
+            'commune_id',
+            'province_id',
+            'ministere_id',
+            'pays_id',
+        ];
 
-        if ($user->zone_id) {
-            return $query->where($qualify('zone_id'), $user->zone_id);
-        }
+        foreach ($hierarchyChecks as $column) {
+            $value = $user->{$column};
 
-        if ($user->commune_id) {
-            return $query->where($qualify('commune_id'), $user->commune_id);
-        }
+            if (! $value) {
+                continue;
+            }
 
-        if ($user->province_id) {
-            return $query->where($qualify('province_id'), $user->province_id);
-        }
+            if ($this->isSchoolModel()) {
+                return $query->where($qualify($column), $value);
+            }
 
-        if ($user->ministere_id) {
-            return $query->where($qualify('ministere_id'), $user->ministere_id);
-        }
+            if (Schema::hasColumn($table, $column)) {
+                return $query->where($qualify($column), $value);
+            }
 
-        if ($user->pays_id) {
-            return $query->where($qualify('pays_id'), $user->pays_id);
+            $schoolSubquery = function ($q) use ($column, $value) {
+                $q->select('id')
+                    ->from('schools')
+                    ->where($column, $value)
+                    ->whereNull('deleted_at');
+            };
+
+            if (Schema::hasColumn($table, 'school_id')) {
+                return $this->filterBySchoolScope($query, $table, $qualify, $schoolSubquery);
+            }
+
+            $hasOrigine = Schema::hasColumn($table, 'ecole_origine_id');
+            $hasDestination = Schema::hasColumn($table, 'ecole_destination_id');
+
+            if ($hasOrigine || $hasDestination) {
+                return $query->where(function ($q) use ($qualify, $schoolSubquery, $hasOrigine, $hasDestination) {
+                    if ($hasOrigine) {
+                        $q->whereIn($qualify('ecole_origine_id'), $schoolSubquery);
+                    }
+                    if ($hasDestination) {
+                        $q->orWhereIn($qualify('ecole_destination_id'), $schoolSubquery);
+                    }
+                });
+            }
+
+            return $query->whereRaw('0 = 1');
         }
 
         return $query->whereRaw('0 = 1');
@@ -117,6 +155,50 @@ trait HasDataScope
             ->filter()
             ->unique()
             ->values();
+    }
+
+    /**
+     * Filter by school(s) on a model with school_id.
+     * For Enseignant, also includes matches from enseignant_school pivot.
+     *
+     * @param  \Closure|\Illuminate\Support\Collection  $schoolConstraint
+     */
+    protected function filterBySchoolScope(Builder $query, string $table, callable $qualify, $schoolConstraint): Builder
+    {
+        if ($table === 'enseignants') {
+            return $query->where(function ($q) use ($qualify, $schoolConstraint) {
+                $q->whereIn($qualify('school_id'), $schoolConstraint)
+                    ->orWhereIn($qualify('id'), function ($sub) use ($schoolConstraint) {
+                        $sub->select('enseignant_id')
+                            ->from('enseignant_school')
+                            ->whereIn('school_id', $schoolConstraint);
+                    });
+            });
+        }
+
+        return $query->whereIn($qualify('school_id'), $schoolConstraint);
+    }
+
+    /**
+     * Filter by school IDs using ecole_origine_id / ecole_destination_id when school_id is absent.
+     */
+    protected function applySchoolColumnsFilter(Builder $query, string $table, callable $qualify, \Illuminate\Support\Collection $schoolIds): Builder
+    {
+        $hasOrigine = Schema::hasColumn($table, 'ecole_origine_id');
+        $hasDestination = Schema::hasColumn($table, 'ecole_destination_id');
+
+        if ($hasOrigine || $hasDestination) {
+            return $query->where(function ($q) use ($qualify, $schoolIds, $hasOrigine, $hasDestination) {
+                if ($hasOrigine) {
+                    $q->whereIn($qualify('ecole_origine_id'), $schoolIds);
+                }
+                if ($hasDestination) {
+                    $q->orWhereIn($qualify('ecole_destination_id'), $schoolIds);
+                }
+            });
+        }
+
+        return $query->whereRaw('0 = 1');
     }
 
     public static function bootHasDataScope()

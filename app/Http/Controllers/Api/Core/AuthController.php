@@ -19,7 +19,15 @@ class AuthController extends Controller
     protected function serializeAuthenticatedUser(User $user): array
     {
         $user->synchronizeDirectorSchoolScope();
-        $user->loadMissing(['roles.permissions', 'permissions', 'school', 'enseignant.school']);
+        $user->loadMissing([
+            'roles.permissions',
+            'permissions',
+            'school.colline',
+            'school.zone',
+            'school.commune',
+            'school.province',
+            'enseignant.school',
+        ]);
 
         $primaryRole = $user->getPrimaryRole();
 
@@ -35,6 +43,29 @@ class AuthController extends Controller
             'school' => $user->school ? [
                 'id' => $user->school->id,
                 'name' => $user->school->name,
+                'code_ecole' => $user->school->code_ecole,
+                'type_ecole' => $user->school->type_ecole,
+                'niveau' => $user->school->niveau,
+                'statut' => $user->school->statut,
+                'telephone' => $user->school->telephone,
+                'email' => $user->school->email,
+                'validated_at' => $user->school->validated_at,
+                'colline' => $user->school->colline ? [
+                    'id' => $user->school->colline->id,
+                    'name' => $user->school->colline->name,
+                ] : null,
+                'zone' => $user->school->zone ? [
+                    'id' => $user->school->zone->id,
+                    'name' => $user->school->zone->name,
+                ] : null,
+                'commune' => $user->school->commune ? [
+                    'id' => $user->school->commune->id,
+                    'name' => $user->school->commune->name,
+                ] : null,
+                'province' => $user->school->province ? [
+                    'id' => $user->school->province->id,
+                    'name' => $user->school->province->name,
+                ] : null,
             ] : null,
             'enseignant' => $user->enseignant ? [
                 'id' => $user->enseignant->id,
