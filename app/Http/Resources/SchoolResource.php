@@ -23,6 +23,10 @@ class SchoolResource extends JsonResource
             'adresse_physique' => $this->adresse_physique,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
+            'geo_image_path' => $this->geo_image_path,
+            'geo_image_url' => $this->geo_image_path
+                ? asset('storage/'.$this->geo_image_path)
+                : null,
             'capacite_accueil' => $this->capacite_accueil,
             'annee_creation' => $this->annee_creation,
             'directeur_name' => $this->directeur_name,

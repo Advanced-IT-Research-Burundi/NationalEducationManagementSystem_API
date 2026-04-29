@@ -4,9 +4,9 @@ namespace App\Http\Requests;
 
 use App\Models\Colline;
 use App\Models\School;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Auth;
 
 class StoreSchoolRequest extends FormRequest
 {
@@ -15,13 +15,13 @@ class StoreSchoolRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('create', Schoo::class);
+        return $this->user()?->can('create', School::class) ?? false;
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
@@ -32,6 +32,7 @@ class StoreSchoolRequest extends FormRequest
             'niveau' => ['required', Rule::in(['FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'geo_image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:5120'],
             'directeur_name' => ['nullable', 'string', 'max:255'],
             'capacite_accueil' => ['nullable', 'integer', 'min:0'],
             'adresse_physique' => ['nullable', 'string', 'max:255'],

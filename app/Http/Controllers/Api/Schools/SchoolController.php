@@ -13,15 +13,17 @@ use App\Models\School;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SchoolController extends Controller
 {
     /**
      * Display a listing of schools.
      */
-   public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', School::class);
 
@@ -42,32 +44,25 @@ class SchoolController extends Controller
             ]);
 
         // Filters propres
-        $query->when($request->filled('search'), fn ($q) =>
-            $q->search($request->search)
+        $query->when($request->filled('search'), fn ($q) => $q->search($request->search)
         );
 
-        $query->when($request->filled('statut'), fn ($q) =>
-            $q->where('statut', $request->statut)
+        $query->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->statut)
         );
 
-        $query->when($request->filled('type_ecole'), fn ($q) =>
-            $q->byType($request->type_ecole)
+        $query->when($request->filled('type_ecole'), fn ($q) => $q->byType($request->type_ecole)
         );
 
-        $query->when($request->filled('province_id'), fn ($q) =>
-            $q->where('province_id', $request->province_id)
+        $query->when($request->filled('province_id'), fn ($q) => $q->where('province_id', $request->province_id)
         );
 
-        $query->when($request->filled('commune_id'), fn ($q) =>
-            $q->where('commune_id', $request->commune_id)
+        $query->when($request->filled('commune_id'), fn ($q) => $q->where('commune_id', $request->commune_id)
         );
 
-        $query->when($request->filled('zone_id'), fn ($q) =>
-            $q->where('zone_id', $request->zone_id)
+        $query->when($request->filled('zone_id'), fn ($q) => $q->where('zone_id', $request->zone_id)
         );
 
-        $query->when($request->filled('colline_id'), fn ($q) =>
-            $q->where('colline_id', $request->colline_id)
+        $query->when($request->filled('colline_id'), fn ($q) => $q->where('colline_id', $request->colline_id)
         );
 
         $schools = $query
@@ -95,6 +90,12 @@ class SchoolController extends Controller
 
         $data['created_by'] = Auth::id();
         $data['statut'] = School::STATUS_BROUILLON;
+
+        if ($request->hasFile('geo_image')) {
+            $data['geo_image_path'] = $this->storeCompressedGeoImage(
+                $request->file('geo_image'),
+            );
+        }
 
         $school = School::create($data);
 
@@ -137,6 +138,12 @@ class SchoolController extends Controller
             $data['zone_id'] = $colline->zone_id;
             $data['commune_id'] = $colline->zone->commune_id;
             $data['province_id'] = $colline->zone->commune->province_id;
+        }
+
+        if ($request->hasFile('geo_image')) {
+            $data['geo_image_path'] = $this->storeCompressedGeoImage(
+                $request->file('geo_image'),
+            );
         }
 
         $school->update($data);
@@ -269,7 +276,7 @@ class SchoolController extends Controller
         } else {
             // If they are not an enseignant yet, we need a matricule to create the profile.
             // If none provided, we gracefully tell the user.
-            if (!$request->filled('matricule')) {
+            if (! $request->filled('matricule')) {
                 return response()->json([
                     'message' => "Cet utilisateur n'a pas encore de profil enseignant. Veuillez d'abord le créer dans la gestion des enseignants ou fournir un matricule.",
                 ], 422);
@@ -306,7 +313,7 @@ class SchoolController extends Controller
         $isDirectlyLinked = $enseignant->school_id === $school->id;
         $isPivotLinked = $enseignant->ecoles()->where('schools.id', $school->id)->exists();
 
-        if (!$isDirectlyLinked && !$isPivotLinked) {
+        if (! $isDirectlyLinked && ! $isPivotLinked) {
             return response()->json([
                 'message' => "Cet enseignant n'appartient pas à cet établissement.",
             ], 422);
@@ -400,5 +407,71 @@ class SchoolController extends Controller
     public function niveaux(School $school): JsonResponse
     {
         return response()->json($school->niveauxScolaires);
+    }
+
+    private function storeCompressedGeoImage(UploadedFile $file): string
+    {
+        $disk = Storage::disk('public');
+        $directory = 'schools/geo-images';
+        $baseName = (string) Str::uuid();
+
+        $webpRelativePath = $directory.'/'.$baseName.'.webp';
+        $jpegRelativePath = $directory.'/'.$baseName.'.jpg';
+
+        $disk->makeDirectory($directory);
+
+        $mime = $file->getClientMimeType() ?: $file->getMimeType();
+
+        $image = $this->createImageResource($file, $mime);
+
+        // Always try WEBP first (as requested), then fallback to JPEG.
+        if ($image && function_exists('imagewebp')) {
+            $success = @imagewebp($image, $disk->path($webpRelativePath), 75);
+            imagedestroy($image);
+
+            if ($success) {
+                return $webpRelativePath;
+            }
+        }
+
+        if ($image) {
+            @imagejpeg($image, $disk->path($jpegRelativePath), 80);
+            imagedestroy($image);
+
+            return $jpegRelativePath;
+        }
+
+        // Last resort: store the original bytes (still in the public disk).
+        $originalExtension = strtolower($file->getClientOriginalExtension() ?: 'img');
+        $originalRelativePath = $directory.'/'.$baseName.'.'.$originalExtension;
+        $disk->putFileAs($directory, $file, basename($originalRelativePath));
+
+        return $originalRelativePath;
+    }
+
+    private function createImageResource(UploadedFile $file, ?string $mime): mixed
+    {
+        $realPath = $file->getRealPath();
+        if (! $realPath) {
+            return null;
+        }
+
+        if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
+            return @imagecreatefromwebp($realPath);
+        }
+
+        if ($mime === 'image/png' && function_exists('imagecreatefrompng')) {
+            return @imagecreatefrompng($realPath);
+        }
+
+        if ($mime === 'image/jpeg' && function_exists('imagecreatefromjpeg')) {
+            return @imagecreatefromjpeg($realPath);
+        }
+
+        if (function_exists('imagecreatefromstring')) {
+            return @imagecreatefromstring(file_get_contents($realPath));
+        }
+
+        return null;
     }
 }

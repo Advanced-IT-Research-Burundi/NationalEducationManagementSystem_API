@@ -12,7 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class School extends Model
 {
-    use HasDataScope, HasFactory, SoftDeletes, LogsActivity, HasMatricule;
+    use HasDataScope, HasFactory, HasMatricule, LogsActivity, SoftDeletes;
 
     protected $table = 'schools';
 
@@ -51,6 +51,7 @@ class School extends Model
         'statut',
         'latitude',
         'longitude',
+        'geo_image_path',
         'directeur_name',
         'directeur_id',
         'capacite_accueil',
@@ -249,7 +250,6 @@ class School extends Model
     public function niveauxScolaires()
     {
         return $this->belongsToMany(Niveau::class, 'niveau_school', 'school_id', 'niveau_scolaire_id')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
-
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,13 +14,14 @@ class UpdateSchoolRequest extends FormRequest
     public function authorize(): bool
     {
         $school = $this->route('school');
+
         return $this->user()->can('update', $school);
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
@@ -32,6 +34,7 @@ class UpdateSchoolRequest extends FormRequest
             'niveau' => ['sometimes', Rule::in(['FONDAMENTAL', 'POST_FONDAMENTAL', 'SECONDAIRE', 'SUPERIEUR'])],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'geo_image' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,webp', 'max:5120'],
             'directeur_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'capacite_accueil' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'adresse_physique' => ['sometimes', 'nullable', 'string', 'max:255'],
