@@ -8,6 +8,7 @@ use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\NoteConduite;
 use App\Models\SanctionEleve;
+use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,14 +16,7 @@ use Illuminate\Validation\Rule;
 
 class ConduiteController extends Controller
 {
-    /**
-     * Résout l'année scolaire à utiliser. Si non fournie, retombe sur l'année active.
-     * Renvoie null si aucune année active n'est définie.
-     */
-    private function resolveAnneeScolaireId(?int $providedId): ?int
-    {
-        return $providedId ?: AnneeScolaire::current()?->id;
-    }
+    use \App\Traits\ResolvesAnneeScolaire;
 
     public function modifierConduite(Request $request)
     {
@@ -37,7 +31,7 @@ class ConduiteController extends Controller
             'observation' => 'nullable|string',
         ]);
 
-        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
+        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($request);
         if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
@@ -48,7 +42,7 @@ class ConduiteController extends Controller
             ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
         )->validate();
 
-        $classe = Classe::with('niveau')->findOrFail($validated['classe_id']);
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->with('niveau')->findOrFail($validated['classe_id']);
         $conduiteMax = ConduiteConfigService::getMaxNote($classe);
 
         try {
@@ -117,7 +111,7 @@ class ConduiteController extends Controller
             'observation' => 'nullable|string',
         ]);
 
-        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
+        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($request);
         if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
@@ -128,7 +122,7 @@ class ConduiteController extends Controller
             ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
         )->validate();
 
-        $classe = Classe::with('niveau')->findOrFail($validated['classe_id']);
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->with('niveau')->findOrFail($validated['classe_id']);
         $conduiteMax = ConduiteConfigService::getMaxNote($classe);
 
         try {
@@ -185,7 +179,7 @@ class ConduiteController extends Controller
             'trimestre' => ['required', 'string'],
         ]);
 
-        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($validated['annee_scolaire_id'] ?? null);
+        $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($request);
         if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
@@ -203,12 +197,19 @@ class ConduiteController extends Controller
 
     public function historiqueSanctions(Request $request, $eleve_id)
     {
-        $sanctions = SanctionEleve::with(['reglement', 'user', 'anneeScolaire'])
-            ->where('eleve_id', $eleve_id)
-            ->orderBy('date_sanction', 'desc')
-            ->get();
+        $query = SanctionEleve::with(['reglement', 'user', 'anneeScolaire'])
+            ->where('eleve_id', $eleve_id);
 
-        return response()->json($sanctions);
+        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
+        if ($anneeScolaireId) {
+            $query->where('annee_scolaire_id', $anneeScolaireId);
+        }
+
+        if ($request->filled('trimestre')) {
+            $query->where('trimestre', $this->normalizeTrimestre($request->trimestre));
+        }
+
+        return response()->json($query->orderBy('date_sanction', 'desc')->get());
     }
 
     public function getStats(Request $request)
@@ -235,10 +236,7 @@ class ConduiteController extends Controller
         if ($request->filled('eleve_id')) {
             $query->where('sanction_eleves.eleve_id', $request->eleve_id);
         }
-        // Si aucune année n'est passée, on retombe sur l'année scolaire active.
-        $statsAnneeId = $request->filled('annee_scolaire_id')
-            ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+        $statsAnneeId = $this->resolveAnneeScolaireId($request);
         if ($statsAnneeId) {
             $query->where('sanction_eleves.annee_scolaire_id', $statsAnneeId);
         }

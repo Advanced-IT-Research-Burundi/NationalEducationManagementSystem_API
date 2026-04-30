@@ -19,9 +19,14 @@ class ClasseController extends Controller
     /**
      * Display a listing of classes.
      */
+    use \App\Traits\ResolvesAnneeScolaire;
+
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Classe::class);
+
+        // Sync Context with the explicit param so AcademicYearScope aligns.
+        $this->resolveAnneeScolaireId($request);
 
         $query = Classe::with(['niveau', 'school', 'creator', 'section']);
 
@@ -38,11 +43,6 @@ class ClasseController extends Controller
         // Niveau filter
         if ($request->filled('niveau_id') && $request->niveau_id !== '_all') {
             $query->byNiveau((int) $request->niveau_id);
-        }
-
-        // Année scolaire filter
-        if ($request->filled('annee_scolaire')) {
-            $query->byAnneeScolaire($request->annee_scolaire);
         }
 
         // Status filter

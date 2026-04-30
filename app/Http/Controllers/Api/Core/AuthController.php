@@ -26,7 +26,14 @@ class AuthController extends Controller
             'school.zone',
             'school.commune',
             'school.province',
-            'enseignant.school',
+            'enseignant.school.province',
+            'enseignant.school.commune',
+            'enseignant.school.zone',
+            'enseignant.school.colline',
+            'enseignant.ecoles.province',
+            'enseignant.ecoles.commune',
+            'enseignant.ecoles.zone',
+            'enseignant.ecoles.colline',
         ]);
 
         $primaryRole = $user->getPrimaryRole();
@@ -40,40 +47,21 @@ class AuthController extends Controller
             'admin_level' => $user->admin_level,
             'admin_entity_id' => $user->admin_entity_id,
             'school_id' => $user->school_id,
-            'school' => $user->school ? [
-                'id' => $user->school->id,
-                'name' => $user->school->name,
-                'code_ecole' => $user->school->code_ecole,
-                'type_ecole' => $user->school->type_ecole,
-                'niveau' => $user->school->niveau,
-                'statut' => $user->school->statut,
-                'telephone' => $user->school->telephone,
-                'email' => $user->school->email,
-                'validated_at' => $user->school->validated_at,
-                'colline' => $user->school->colline ? [
-                    'id' => $user->school->colline->id,
-                    'name' => $user->school->colline->name,
-                ] : null,
-                'zone' => $user->school->zone ? [
-                    'id' => $user->school->zone->id,
-                    'name' => $user->school->zone->name,
-                ] : null,
-                'commune' => $user->school->commune ? [
-                    'id' => $user->school->commune->id,
-                    'name' => $user->school->commune->name,
-                ] : null,
-                'province' => $user->school->province ? [
-                    'id' => $user->school->province->id,
-                    'name' => $user->school->province->name,
-                ] : null,
-            ] : null,
+            'school' => $user->school ? array_merge(
+                $this->serializeSchoolCompact($user->school),
+                ['validated_at' => $user->school->validated_at],
+            ) : null,
             'enseignant' => $user->enseignant ? [
                 'id' => $user->enseignant->id,
+                'matricule' => $user->enseignant->matricule,
                 'nom_complet' => $user->enseignant->nom_complet ?? $user->enseignant->nom ?? null,
-                'school' => $user->enseignant->school ? [
-                    'id' => $user->enseignant->school->id,
-                    'name' => $user->enseignant->school->name,
-                ] : null,
+                'statut' => $user->enseignant->statut,
+                'statut_label' => $user->enseignant->statut_label,
+                'qualification' => $user->enseignant->qualification,
+                'qualification_label' => $user->enseignant->qualification_label,
+                'telephone' => $user->enseignant->telephone,
+                'school' => $user->enseignant->school ? $this->serializeSchoolCompact($user->enseignant->school) : null,
+                'ecoles' => $user->enseignant->ecoles->map(fn ($s) => $this->serializeSchoolCompact($s))->values()->all(),
             ] : null,
             'role' => $primaryRole ? [
                 'id' => $primaryRole->id,
@@ -84,6 +72,29 @@ class AuthController extends Controller
                 'name' => $primaryRole->name,
             ] : null,
             'authorization' => $user->getAuthorizationSnapshot(),
+        ];
+    }
+
+    protected function serializeSchoolCompact($school): array
+    {
+        return [
+            'id' => $school->id,
+            'name' => $school->name,
+            'code_ecole' => $school->code_ecole,
+            'type_ecole' => $school->type_ecole,
+            'niveau' => $school->niveau,
+            'statut' => $school->statut,
+            'statut_label' => $school->statut_label,
+            'telephone' => $school->telephone,
+            'email' => $school->email,
+            'province_id' => $school->province_id,
+            'commune_id' => $school->commune_id,
+            'zone_id' => $school->zone_id,
+            'colline_id' => $school->colline_id,
+            'province' => $school->province ? ['id' => $school->province->id, 'name' => $school->province->name] : null,
+            'commune' => $school->commune ? ['id' => $school->commune->id, 'name' => $school->commune->name] : null,
+            'zone' => $school->zone ? ['id' => $school->zone->id, 'name' => $school->zone->name] : null,
+            'colline' => $school->colline ? ['id' => $school->colline->id, 'name' => $school->colline->name] : null,
         ];
     }
 

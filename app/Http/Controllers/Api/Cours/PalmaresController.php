@@ -8,6 +8,7 @@ use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\Matiere;
 use App\Models\NoteConduite;
+use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
 
 class PalmaresController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
     private static function palmaresCoursCode(Matiere $matiere): string
     {
         $raw = (string) ($matiere->code ?: $matiere->nom ?: '');
@@ -43,14 +45,16 @@ class PalmaresController extends Controller
 
         $classeId = $request->integer('classe_id');
         $trimestre = $request->trimestre;
-        $anneeScolaireId = $request->integer('annee_scolaire_id') ?: AnneeScolaire::current()?->id;
+        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         $type = $request->string('type')->toString() ?: 'simple';
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $classe = Classe::with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])->findOrFail($classeId);
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)
+            ->with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])
+            ->findOrFail($classeId);
         $conduiteConfig = ConduiteConfigService::resolveForClasse($classe);
         $conduiteMax = $conduiteConfig['max_note'];
         $eleves = $classe->eleves()->orderBy('nom')->orderBy('prenom')->get();

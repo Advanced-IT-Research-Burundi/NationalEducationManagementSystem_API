@@ -8,6 +8,7 @@ use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\Matiere;
 use App\Models\NoteConduite;
+use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Schema;
 
 class BulletinController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
+
     private const TRIMESTRES = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
 
     /**
@@ -34,7 +37,7 @@ class BulletinController extends Controller
 
         $classeId = $request->integer('classe_id');
         $trimestre = $request->trimestre;
-        $anneeScolaireId = $request->integer('annee_scolaire_id') ?: AnneeScolaire::current()?->id;
+        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         $requestedEleveId = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
 
         if (! $anneeScolaireId) {
@@ -61,7 +64,9 @@ class BulletinController extends Controller
      */
     private function buildBulletinData(int $classeId, ?string $trimestre, int $anneeScolaireId): array
     {
-        $classe = Classe::with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])->findOrFail($classeId);
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)
+            ->with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])
+            ->findOrFail($classeId);
 
         $conduiteConfig = ConduiteConfigService::resolveForClasse($classe);
         $conduiteMax = $conduiteConfig['max_note'];
@@ -363,7 +368,7 @@ class BulletinController extends Controller
 
         $classeId = $request->integer('classe_id');
         $trimestre = $request->trimestre;
-        $anneeScolaireId = $request->integer('annee_scolaire_id') ?: AnneeScolaire::current()?->id;
+        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
@@ -380,7 +385,7 @@ class BulletinController extends Controller
             ));
         }
 
-        $classe = Classe::with('niveau')->find($classeId);
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->with('niveau')->find($classeId);
         $viewName = ConduiteConfigService::isSecondary($classe)
             ? 'bulletin.bulletin_pdf_post_fondamental'
             : 'bulletin.bulletin_pdf_fondamental';

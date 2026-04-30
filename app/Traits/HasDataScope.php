@@ -149,7 +149,7 @@ trait HasDataScope
             return collect($user->school_id ? [$user->school_id] : []);
         }
 
-        return $enseignant->ecoles()->pluck('schools.id')
+        return $enseignant->ecoles()->withoutGlobalScopes()->pluck('schools.id')
             ->push($enseignant->school_id)
             ->push($user->school_id)
             ->filter()

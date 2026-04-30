@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Schema;
 
 class NoteController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
     /**
      * Consultation des notes avec filtres en cascade.
      */
@@ -57,10 +58,7 @@ class NoteController extends Controller
             });
         }
 
-        // Filter by annee_scolaire — fallback automatique sur l'année active si non fournie.
-        $anneeScolaireId = $request->filled('annee_scolaire_id')
-            ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         if ($anneeScolaireId) {
             $query->whereHas('evaluation', function ($q) use ($anneeScolaireId) {
                 $q->where('annee_scolaire_id', $anneeScolaireId);

@@ -7,6 +7,7 @@ use App\Models\AnneeScolaire;
 use App\Models\Evaluation;
 use App\Models\Note;
 use App\Models\Classe;
+use App\Scopes\AcademicYearScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,8 @@ use App\Exports\NotesTemplateExport;
 
 class EvaluationController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
+
     public function index(Request $request): JsonResponse
     {
         $query = Evaluation::with(['classe:id,nom,code', 'cours:id,nom,code', 'anneeScolaire:id,libelle,code', 'creator:id,name'])
@@ -38,11 +41,7 @@ class EvaluationController extends Controller
             $query->byType($request->type_evaluation);
         }
 
-        // Si l'année scolaire n'est pas explicitement fournie, on retombe sur l'année active
-        // afin que l'utilisateur voie par défaut les évaluations de l'année courante.
-        $anneeScolaireId = $request->filled('annee_scolaire_id')
-            ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         if ($anneeScolaireId) {
             $query->byAnneeScolaire($anneeScolaireId);
         }
@@ -69,15 +68,14 @@ class EvaluationController extends Controller
             'note_maximale' => ['required', 'numeric', 'min:0.01', 'max:999.99'],
         ]);
 
-        // Auto-detect current school year
-        $anneeScolaire = AnneeScolaire::current();
-        if (!$anneeScolaire) {
+        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
+        if (! $anneeScolaireId) {
             return response()->json([
                 'message' => "Aucune année scolaire active trouvée. Veuillez activer une année scolaire.",
             ], 422);
         }
 
-        $validated['annee_scolaire_id'] = $anneeScolaire->id;
+        $validated['annee_scolaire_id'] = $anneeScolaireId;
         $validated['created_by'] = Auth::id();
 
         $evaluation = Evaluation::create($validated);
@@ -188,7 +186,7 @@ class EvaluationController extends Controller
      */
     public function exportTemplate(Evaluation $evaluation)
     {
-        $classe = Classe::with(['eleves' => function ($q) {
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->with(['eleves' => function ($q) {
             $q->orderBy('nom')->orderBy('prenom');
         }])->findOrFail($evaluation->classe_id);
 
