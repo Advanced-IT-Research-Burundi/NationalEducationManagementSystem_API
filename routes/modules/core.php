@@ -38,6 +38,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
+        Route::put('/me', [AuthController::class, 'updateProfile'])->name('auth.me.update');
+        Route::post('/me/change-password', [AuthController::class, 'changePassword'])->name('auth.me.change-password');
         Route::get('/me/permissions', [AuthController::class, 'myPermissions'])->name('auth.me.permissions');
         Route::get('/me/roles', [AuthController::class, 'myRoles'])->name('auth.me.roles');
         Route::post('/refresh', [AuthController::class, 'refresh'])->name('auth.refresh');
