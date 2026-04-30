@@ -111,15 +111,34 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Les identifiants fournis sont incorrects.'],
-            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Les identifiants fournis sont incorrects.',
+                'data' => null,
+                'errors' => [
+                    'email' => ['Les identifiants fournis sont incorrects.'],
+                ],
+            ], 401);
+        }elseif($user->statut !== 'actif') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Votre compte est inactif. Contactez l\'administrateur.',
+                'data' => null,
+                'errors' => [
+                    'email' => ['Votre compte est inactif. Contactez l\'administrateur.'],
+                ],
+            ], 401);
         }
 
-        if ($user->statut !== 'actif') {
-            throw ValidationException::withMessages([
-                'email' => ['Votre compte est inactif. Contactez l\'administrateur.'],
-            ]);
+        if ($user->statut === 'inactif') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Votre compte est inactif. Contactez l\'administrateur.',
+                'data' => null,
+                'errors' => [
+                    'email' => ['Votre compte est inactif. Contactez l\'administrateur.'],
+                ],
+            ], 401);
         }
 
         // Create Token
