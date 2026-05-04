@@ -220,6 +220,10 @@ class ConduiteController extends Controller
             ->join('schools', 'classes.school_id', '=', 'schools.id')
             ->select('sanction_eleves.*');
 
+        if (auth()->check() && auth()->user()->isSchoolUser()) {
+            $query->where('classes.school_id', auth()->user()->admin_entity_id ?? auth()->user()->school_id);
+        }
+
         // Apply filters
         if ($request->filled('province_id')) {
             $query->where('schools.province_id', $request->province_id);

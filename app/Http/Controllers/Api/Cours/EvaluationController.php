@@ -52,6 +52,18 @@ class EvaluationController extends Controller
             $query->bySchool(auth()->user()->school_id);
         }
 
+        if (auth()->check() && auth()->user()->hasRole('Enseignant')) {
+            $enseignantId = auth()->user()->enseignant->id ?? null;
+            if ($enseignantId) {
+                $query->whereHas('classe.enseignants', function ($q) use ($enseignantId) {
+                          $q->where('enseignants.id', $enseignantId);
+                      })
+                      ->whereHas('cours.enseignants', function ($q) use ($enseignantId) {
+                          $q->where('enseignants.id', $enseignantId);
+                      });
+            }
+        }
+
         $evaluations = $query->latest()->paginate($request->get('per_page', 15));
 
         return response()->json($evaluations);
