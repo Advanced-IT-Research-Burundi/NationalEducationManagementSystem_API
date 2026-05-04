@@ -108,6 +108,15 @@ class CoursController extends Controller
             $query->forSchool(auth()->user()->school_id);
         }
 
+        if (auth()->check() && auth()->user()->hasRole('Enseignant')) {
+            $enseignantId = auth()->user()->enseignant->id ?? null;
+            if ($enseignantId) {
+                $query->whereHas('enseignants', function ($q) use ($enseignantId) {
+                    $q->where('enseignants.id', $enseignantId);
+                });
+            }
+        }
+
         $columns = ['id', 'nom', 'code'];
         foreach (['niveau_id', 'section_id', 'categorie_cours_id', 'ponderation_tj', 'ponderation_examen'] as $col) {
             if (Schema::hasColumn('matieres', $col)) {

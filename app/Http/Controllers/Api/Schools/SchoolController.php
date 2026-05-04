@@ -406,7 +406,18 @@ class SchoolController extends Controller
      */
     public function niveaux(School $school): JsonResponse
     {
-        return response()->json($school->niveauxScolaires);
+        $niveaux = $school->niveauxScolaires;
+
+        if (auth()->check() && auth()->user()->hasRole('Enseignant')) {
+            $enseignant = auth()->user()->enseignant;
+            if ($enseignant) {
+                $teacherClasses = $enseignant->classes()->wherePivot('statut', 'ACTIVE')->get();
+                $teacherNiveauIds = $teacherClasses->pluck('niveau_id')->unique()->toArray();
+                $niveaux = $niveaux->filter(fn ($n) => in_array($n->id, $teacherNiveauIds))->values();
+            }
+        }
+
+        return response()->json($niveaux);
     }
 
     private function storeCompressedGeoImage(UploadedFile $file): string

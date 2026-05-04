@@ -115,9 +115,6 @@ class ClasseController extends Controller
         return response()->json(['message' => 'Classe supprimée avec succès']);
     }
 
-    /**
-     * Get classes for a specific school.
-     */
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
         Log::info('Fetching classes for school', [
@@ -136,6 +133,15 @@ class ClasseController extends Controller
             $query->where('statut', $request->statut);
         } else {
             $query->active();
+        }
+
+        if (auth()->check() && auth()->user()->hasRole('Enseignant')) {
+            $enseignantId = auth()->user()->enseignant->id ?? null;
+            if ($enseignantId) {
+                $query->whereHas('enseignants', function ($q) use ($enseignantId) {
+                    $q->where('enseignants.id', $enseignantId);
+                });
+            }
         }
 
         $classes = $query->get();
