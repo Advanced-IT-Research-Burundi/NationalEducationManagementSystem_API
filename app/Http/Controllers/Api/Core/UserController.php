@@ -28,11 +28,33 @@ class UserController extends Controller
     /**
      * Display a listing of users.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::with(['roles', 'creator', 'enseignant'])->paginate(15);
+        $query = User::with(['roles', 'creator', 'enseignant']);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->role($request->input('role'));
+        }
+
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->input('statut'));
+        }
+
+        if ($request->filled('school_id')) {
+            $query->where('school_id', $request->input('school_id'));
+        }
+
+        $users = $query->paginate($request->get('per_page', 15));
         $users->getCollection()->transform(function (User $user) {
             return tap($user)->setAttribute('is_super_admin', $user->isSuperAdmin());
         });
