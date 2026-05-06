@@ -16,6 +16,7 @@ use Illuminate\Validation\Rule;
 
 class ConduiteController extends Controller
 {
+    use \App\Traits\EnsuresActiveAcademicYear;
     use \App\Traits\ResolvesAnneeScolaire;
 
     public function modifierConduite(Request $request)
@@ -35,6 +36,8 @@ class ConduiteController extends Controller
         if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
+
+        $this->ensureActiveYear($validated['annee_scolaire_id']);
 
         $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
         validator(

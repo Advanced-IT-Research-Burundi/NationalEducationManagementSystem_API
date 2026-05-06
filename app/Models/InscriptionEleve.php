@@ -53,7 +53,6 @@ class InscriptionEleve extends Model
         'classe_id',
         'school_id',
         'annee_scolaire_id',
-        'campagne_id',
         'niveau_demande_id',
         'date_inscription',
         'type_inscription',
@@ -172,11 +171,6 @@ class InscriptionEleve extends Model
         return $query->where('annee_scolaire_id', $anneeScolaireId);
     }
 
-    public function scopeByCampagne($query, int $campagneId): Builder
-    {
-        return $query->where('campagne_id', $campagneId);
-    }
-
     /**
      * Scope to filter inscriptions by user's administrative hierarchy.
      */
@@ -258,11 +252,6 @@ class InscriptionEleve extends Model
     public function anneeScolaire(): BelongsTo
     {
         return $this->belongsTo(AnneeScolaire::class);
-    }
-
-    public function campagne(): BelongsTo
-    {
-        return $this->belongsTo(CampagneInscription::class, 'campagne_id');
     }
 
     public function niveauDemande(): BelongsTo

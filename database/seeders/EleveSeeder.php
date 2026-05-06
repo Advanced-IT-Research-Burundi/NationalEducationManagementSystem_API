@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\AffectationClasse;
 use App\Models\AnneeScolaire;
-use App\Models\CampagneInscription;
 use App\Models\Classe;
 use App\Models\Colline;
 use App\Models\Eleve;
@@ -86,9 +85,6 @@ class EleveSeeder extends Seeder
         $elevesCount = 0;
         $inscriptionsCount = 0;
 
-        // Créer une campagne d'inscription par école si elle n'existe pas
-        $this->createCampagnes($anneeScolaire, $classes);
-
         foreach ($classes as $classe) {
             // Vérifier que la classe a une école
             if (! $classe->school_id) {
@@ -116,46 +112,6 @@ class EleveSeeder extends Seeder
 
         $this->command->info("$elevesCount élèves créés avec succès!");
         $this->command->info("$inscriptionsCount inscriptions créées avec succès!");
-    }
-
-    /**
-     * Crée les campagnes d'inscription pour chaque école.
-     */
-    private function createCampagnes(AnneeScolaire $anneeScolaire, $classes): void
-    {
-        $ecoleIds = $classes->pluck('school_id')->unique()->filter();
-
-        foreach ($ecoleIds as $ecoleId) {
-            CampagneInscription::firstOrCreate(
-                [
-                    'annee_scolaire_id' => $anneeScolaire->id,
-                    'school_id' => $ecoleId,
-                    'type' => 'nouvelle',
-                ],
-                [
-                    'date_ouverture' => $anneeScolaire->date_debut->subMonths(2),
-                    'date_cloture' => $anneeScolaire->date_debut->addMonths(1),
-                    'statut' => 'ouverte',
-                    'quota_max' => 500,
-                    'created_by' => 1,
-                ]
-            );
-
-            CampagneInscription::firstOrCreate(
-                [
-                    'annee_scolaire_id' => $anneeScolaire->id,
-                    'school_id' => $ecoleId,
-                    'type' => 'reinscription',
-                ],
-                [
-                    'date_ouverture' => $anneeScolaire->date_debut->subMonths(2),
-                    'date_cloture' => $anneeScolaire->date_debut->addMonths(1),
-                    'statut' => 'ouverte',
-                    'quota_max' => 800,
-                    'created_by' => 1,
-                ]
-            );
-        }
     }
 
     /**
@@ -196,20 +152,11 @@ class EleveSeeder extends Seeder
      */
     private function createInscription(Eleve $eleve, Classe $classe, AnneeScolaire $anneeScolaire): ?Inscription
     {
-        $campagne = CampagneInscription::where('annee_scolaire_id', $anneeScolaire->id)
-            ->where('school_id', $classe->school_id)
-            ->first();
-
-        if (! $campagne) {
-            return null;
-        }
-
         $inscription = Inscription::create([
             'numero_inscription' => $this->generateNumeroInscription(),
             'eleve_id' => $eleve->id,
             'school_id' => $classe->school_id,
             'annee_scolaire_id' => $anneeScolaire->id,
-            'campagne_id' => $campagne->id,
             'niveau_demande_id' => $classe->niveau_id,
             'date_inscription' => $anneeScolaire->date_debut->subDays(rand(30, 60)),
             'type_inscription' => rand(0, 3) === 0 ? 'nouvelle' : 'reinscription',

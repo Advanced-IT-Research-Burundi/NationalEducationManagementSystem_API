@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Academic\EleveController;
 use App\Http\Controllers\Api\Academic\EnseignantController;
 use App\Http\Controllers\Api\Academic\MouvementEleveController;
 use App\Http\Controllers\Api\Academic\NiveauController;
+use App\Http\Controllers\Api\Academic\PromotionController;
 use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\SectionController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
@@ -94,6 +95,18 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::apiResource('eleves', EleveController::class)->parameters([
         'eleves' => 'eleve',
     ]);
+
+    // Promotions & Transitions (inter-year student lifecycle)
+    Route::prefix('promotions')->name('promotions.')->group(function () {
+        Route::post('promouvoir', [PromotionController::class, 'promouvoir'])->name('promouvoir');
+        Route::post('redoubler', [PromotionController::class, 'redoubler'])->name('redoubler');
+        Route::post('collective', [PromotionController::class, 'collective'])->name('collective');
+        Route::get('preview/{classe}', [PromotionController::class, 'preview'])->name('preview');
+    });
+
+    // Année scolaire - generation & statistics
+    Route::post('annees-scolaires/generer', [AnneeScolaireController::class, 'generer'])->name('annees-scolaires.generer');
+    Route::get('annees-scolaires/{anneeScolaire}/statistiques', [AnneeScolaireController::class, 'statistiques'])->name('annees-scolaires.statistiques');
 
     // Mouvements Élèves (Student Movements: transfers, dropouts, etc.)
     Route::get('mouvements-eleve/statistics', [MouvementEleveController::class, 'statistics'])->name('mouvements-eleve.statistics');

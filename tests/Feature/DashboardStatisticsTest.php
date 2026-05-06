@@ -118,17 +118,6 @@ it('computes evolution effectifs from the inscriptions table', function () {
         'updated_at' => now(),
     ]);
 
-    $campagneId = DB::table('campagnes_inscription')->insertGetId([
-        'annee_scolaire_id' => $annee->id,
-        'school_id' => $school->id,
-        'type' => 'nouvelle',
-        'date_ouverture' => now()->subMonth(),
-        'date_cloture' => now()->addMonth(),
-        'statut' => 'ouverte',
-        'created_at' => now(),
-        'updated_at' => now(),
-    ]);
-
     $niveauId = DB::table('niveaux_scolaires')->insertGetId([
         'code' => 'CP1',
         'nom' => 'Cours Préparatoire 1',
@@ -140,7 +129,6 @@ it('computes evolution effectifs from the inscriptions table', function () {
     DB::table('inscriptions')->insert([
         'numero_inscription' => 'INSCR20260001',
         'eleve_id' => $eleveId,
-        'campagne_id' => $campagneId,
         'annee_scolaire_id' => $annee->id,
         'school_id' => $school->id,
         'niveau_demande_id' => $niveauId,

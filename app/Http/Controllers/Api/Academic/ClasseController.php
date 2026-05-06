@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreClasseRequest;
 use App\Http\Requests\UpdateClasseRequest;
 use App\Models\AffectationClasse;
+use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Eleve;
+use App\Models\Inscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -179,7 +181,7 @@ class ClasseController extends Controller
     }
 
     /**
-     * Add an eleve to a classe using pivot table inscriptions_eleves
+     * Add an eleve to a classe. Creates an Inscription + AffectationClasse automatically.
      */
     public function addEleve(Request $request, Classe $classe): JsonResponse
     {
@@ -187,16 +189,13 @@ class ClasseController extends Controller
 
         $request->validate([
             'eleve_id' => 'required|exists:eleves,id',
-            'annee_scolaire' => 'required|string',
         ]);
 
         $eleve = Eleve::findOrFail($request->eleve_id);
 
-        // ✅ Fix: bloquer uniquement les statuts vraiment bloquants
-        $blockedStatuts = ['DIPLOME', 'TRANSFERE', 'EXCLU', 'SUSPENDU'];
-        if (in_array($eleve->statut, $blockedStatuts)) {
+        if (! $eleve->canEnroll()) {
             return response()->json([
-                'message' => 'Cet élève ne peut pas être inscrit (statut: '.$eleve->statut.').',
+                'message' => 'Cet élève ne peut pas être inscrit (statut: '.($eleve->statut_global ?? 'inconnu').').',
             ], 422);
         }
 
@@ -212,45 +211,81 @@ class ClasseController extends Controller
             ], 422);
         }
 
-        if ($eleve->school_id !== $classe->school_id) {
-            return response()->json([
-                'message' => 'L\'élève et la classe doivent appartenir à la même école.',
-            ], 422);
+        $anneeScolaire = AnneeScolaire::current();
+
+        if (! $anneeScolaire) {
+            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        DB::transaction(function () use ($eleve, $classe, $request) {
+        DB::transaction(function () use ($eleve, $classe, $anneeScolaire) {
+            // Find or create inscription for this student in this year+school
+            $inscription = Inscription::withoutGlobalScopes()
+                ->where('eleve_id', $eleve->id)
+                ->where('annee_scolaire_id', $anneeScolaire->id)
+                ->where('school_id', $classe->school_id)
+                ->where('statut_academique', 'en_cours')
+                ->first();
+
+            if (! $inscription) {
+                $prefix = 'INS';
+                $year = $anneeScolaire->date_debut?->format('Y') ?? date('Y');
+                $sequence = Inscription::withoutGlobalScopes()->count() + 1;
+
+                $inscription = Inscription::withoutGlobalScopes()->create([
+                    'numero_inscription' => sprintf('%s%s%06d', $prefix, $year, $sequence),
+                    'eleve_id' => $eleve->id,
+                    'annee_scolaire_id' => $anneeScolaire->id,
+                    'school_id' => $classe->school_id,
+                    'niveau_demande_id' => $classe->niveau_id,
+                    'type_inscription' => 'nouvelle',
+                    'statut' => 'valide',
+                    'statut_academique' => 'en_cours',
+                    'date_inscription' => now()->toDateString(),
+                    'date_soumission' => now(),
+                    'date_validation' => now(),
+                    'est_redoublant' => $eleve->est_redoublant ?? false,
+                    'created_by' => Auth::id(),
+                    'valide_par' => Auth::id(),
+                ]);
+            }
+
+            // Deactivate any existing affectation for this inscription
+            AffectationClasse::where('inscription_id', $inscription->id)
+                ->where('est_active', true)
+                ->update(['est_active' => false, 'date_fin' => now()]);
+
+            AffectationClasse::create([
+                'inscription_id' => $inscription->id,
+                'classe_id' => $classe->id,
+                'date_affectation' => now(),
+                'est_active' => true,
+                'affecte_par' => Auth::id(),
+            ]);
+
+            // Keep eleve_class pivot in sync for backward compatibility
             $classe->eleves()->syncWithoutDetaching([
                 $eleve->id => [
-                    'annee_scolaire' => $request->annee_scolaire,
+                    'annee_scolaire' => $anneeScolaire->code,
                     'date_inscription' => now(),
                     'statut' => 'ACTIVE',
                 ],
             ]);
 
-            $inscription = $eleve->activeInscription;
-            if ($inscription) {
-                AffectationClasse::firstOrCreate([
-                    'inscription_id' => $inscription->id,
-                    'classe_id' => $classe->id,
-                    'est_active' => true,
-                ], [
-                    'date_affectation' => now(),
-                    'affecte_par' => Auth::id(),
-                ]);
-            }
-
-            // Mettre à jour le statut élève si nécessaire
-            if (empty($eleve->statut) || in_array($eleve->statut, ['INSCRIT', 'ARCHIVE'])) {
-                $eleve->update(['statut' => 'ACTIF']);
-            }
-
-            // ✅ Recalculer l'effectif après ajout
             $newEffectif = DB::table('eleve_class')
                 ->where('classe_id', $classe->id)
                 ->whereIn('statut', ['ACTIVE', 'active', 'ACTIF', 'actif'])
                 ->count();
-
             $classe->update(['effectif' => $newEffectif]);
+
+            if (in_array($eleve->statut_global, [null, '', 'inactif'])) {
+                $eleve->update(['statut_global' => 'actif']);
+            }
+
+            // Sync convenience columns
+            $eleve->update([
+                'school_id' => $classe->school_id,
+                'niveau_id' => $classe->niveau_id,
+            ]);
         });
 
         return response()->json([

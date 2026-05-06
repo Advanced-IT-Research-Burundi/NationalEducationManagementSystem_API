@@ -109,10 +109,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'salle',
             'equipement',
             'maintenance',
-            'inspection',
-            'formation',
-            'standard_qualite',
-            'campagne_inscription',
             'presence',
             'conge',
             'carriere',
@@ -175,12 +171,6 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'submit_school', 'description' => 'Soumettre une école pour validation.', 'group_name' => 'school_workflow'],
             ['name' => 'validate_school', 'description' => 'Valider une école.', 'group_name' => 'school_workflow'],
             ['name' => 'deactivate_school', 'description' => 'Désactiver une école.', 'group_name' => 'school_workflow'],
-            ['name' => 'campagnes.view', 'description' => 'Consulter les campagnes d’inscription.', 'group_name' => 'campagnes'],
-            ['name' => 'campagnes.create', 'description' => 'Créer des campagnes d’inscription.', 'group_name' => 'campagnes'],
-            ['name' => 'campagnes.update', 'description' => 'Modifier des campagnes d’inscription.', 'group_name' => 'campagnes'],
-            ['name' => 'campagnes.delete', 'description' => 'Supprimer des campagnes d’inscription.', 'group_name' => 'campagnes'],
-            ['name' => 'campagnes.open', 'description' => 'Ouvrir des campagnes d’inscription.', 'group_name' => 'campagnes'],
-            ['name' => 'campagnes.close', 'description' => 'Clôturer des campagnes d’inscription.', 'group_name' => 'campagnes'],
         ];
 
         foreach ($specialPermissions as $permission) {

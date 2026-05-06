@@ -7,6 +7,7 @@ use App\Traits\HasMatricule;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
@@ -175,7 +176,50 @@ class Eleve extends Model
 
     public function activeInscription()
     {
+        $activeYear = AnneeScolaire::current();
+
+        if ($activeYear) {
+            return $this->hasOne(Inscription::class)
+                ->where('annee_scolaire_id', $activeYear->id)
+                ->latestOfMany();
+        }
+
         return $this->hasOne(Inscription::class)->latestOfMany();
+    }
+
+    /**
+     * Get the inscription for a specific school year.
+     */
+    public function inscriptionForYear(int $anneeScolaireId): ?Inscription
+    {
+        return $this->inscriptions()
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Get the current inscription (active school year).
+     */
+    public function currentInscription(): ?Inscription
+    {
+        $active = AnneeScolaire::current();
+
+        if (! $active) {
+            return null;
+        }
+
+        return $this->inscriptionForYear($active->id);
+    }
+
+    /**
+     * Get all inscriptions ordered by school year (most recent first).
+     */
+    public function inscriptionHistory()
+    {
+        return $this->inscriptions()
+            ->with(['anneeScolaire', 'ecole', 'niveauDemande', 'affectation.classe'])
+            ->orderByDesc('annee_scolaire_id');
     }
 
     public function mouvements(): HasMany

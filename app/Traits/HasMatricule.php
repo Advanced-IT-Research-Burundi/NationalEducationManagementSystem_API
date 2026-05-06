@@ -46,7 +46,7 @@ trait HasMatricule
         return match ($table) {
             'eleves' => 'matricule',
             'schools' => 'code_ecole',
-            'classes', 'examens' => 'code',
+            'classes' => 'code',
             'salles' => 'numero',
             'batiments' => 'nom',
             default => null,

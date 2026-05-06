@@ -14,6 +14,7 @@ use App\Models\Salle;
 use App\Models\School;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class StatisticsService
 {
@@ -109,6 +110,9 @@ class StatisticsService
     public function getGlobalStats(array $filters = []): array
     {
         return Cache::remember($this->cacheKey('global', $filters), self::CACHE_TTL, function () use ($filters) {
+            $annee = $this->resolveAnneeScolaire($filters);
+            $anneeId = $annee?->id;
+
             // Total schools
             $schoolsQuery = School::query()->where('statut', 'ACTIVE');
             $this->applyGeoFilters($schoolsQuery, $filters);
@@ -132,13 +136,29 @@ class StatisticsService
                 ->pluck('total', 'niveau')
                 ->toArray();
 
-            // Total students (active)
-            $elevesQuery = Eleve::query()->where('statut_global', 'actif');
-            if ($this->hasGeoFilters($filters)) {
-                $elevesQuery->whereHas('school', function ($q) use ($filters) {
-                    $q->where('schools.statut', 'ACTIVE');
-                    $this->applyGeoFilters($q, $filters, 'schools');
+            // Total students: count via inscriptions for the active school year
+            $elevesQuery = Eleve::query();
+            if ($anneeId) {
+                $elevesQuery->whereHas('inscriptions', function ($q) use ($anneeId, $filters) {
+                    $q->withoutGlobalScopes()
+                        ->where('annee_scolaire_id', $anneeId)
+                        ->where('statut_academique', '!=', 'transfere');
+
+                    if ($this->hasGeoFilters($filters)) {
+                        $q->whereHas('ecole', function ($sq) use ($filters) {
+                            $sq->where('schools.statut', 'ACTIVE');
+                            $this->applyGeoFilters($sq, $filters, 'schools');
+                        });
+                    }
                 });
+            } else {
+                $elevesQuery->where('statut_global', 'actif');
+                if ($this->hasGeoFilters($filters)) {
+                    $elevesQuery->whereHas('school', function ($q) use ($filters) {
+                        $q->where('schools.statut', 'ACTIVE');
+                        $this->applyGeoFilters($q, $filters, 'schools');
+                    });
+                }
             }
             $totalEleves = $elevesQuery->count();
 
@@ -211,13 +231,29 @@ class StatisticsService
             $annee = $this->resolveAnneeScolaire($filters);
             $anneeId = $annee?->id;
 
-            // Gender breakdown
-            $genderQuery = Eleve::query()->where('statut_global', 'actif');
-            if ($this->hasGeoFilters($filters)) {
-                $genderQuery->whereHas('school', function ($q) use ($filters) {
-                    $q->where('schools.statut', 'ACTIVE');
-                    $this->applyGeoFilters($q, $filters, 'schools');
+            // Gender breakdown: scoped to students with inscription in the target year
+            $genderQuery = Eleve::query();
+            if ($anneeId) {
+                $genderQuery->whereHas('inscriptions', function ($q) use ($anneeId, $filters) {
+                    $q->withoutGlobalScopes()
+                        ->where('annee_scolaire_id', $anneeId)
+                        ->where('statut_academique', '!=', 'transfere');
+
+                    if ($this->hasGeoFilters($filters)) {
+                        $q->whereHas('ecole', function ($sq) use ($filters) {
+                            $sq->where('schools.statut', 'ACTIVE');
+                            $this->applyGeoFilters($sq, $filters, 'schools');
+                        });
+                    }
                 });
+            } else {
+                $genderQuery->where('statut_global', 'actif');
+                if ($this->hasGeoFilters($filters)) {
+                    $genderQuery->whereHas('school', function ($q) use ($filters) {
+                        $q->where('schools.statut', 'ACTIVE');
+                        $this->applyGeoFilters($q, $filters, 'schools');
+                    });
+                }
             }
             $genderBreakdown = $genderQuery
                 ->select('sexe', DB::raw('COUNT(*) as total'))
@@ -258,16 +294,24 @@ class StatisticsService
                     ->toArray();
             }
 
-            // Gender distribution by province
-            $genderByProvince = DB::table('eleves')
-                ->join('schools', 'eleves.school_id', '=', 'schools.id')
+            // Gender distribution by province: scoped to active year via inscriptions
+            $genderByProvinceQuery = DB::table('eleves')
+                ->join('inscriptions', 'eleves.id', '=', 'inscriptions.eleve_id')
+                ->join('schools', 'inscriptions.school_id', '=', 'schools.id')
                 ->join('provinces', 'schools.province_id', '=', 'provinces.id')
-                ->where('eleves.statut_global', 'actif')
                 ->where('schools.statut', 'ACTIVE')
+                ->where('inscriptions.statut_academique', '!=', 'transfere')
+                ->whereNull('eleves.deleted_at');
+
+            if ($anneeId) {
+                $genderByProvinceQuery->where('inscriptions.annee_scolaire_id', $anneeId);
+            }
+
+            $genderByProvince = $genderByProvinceQuery
                 ->select(
                     'provinces.name as province',
                     'eleves.sexe',
-                    DB::raw('COUNT(*) as total')
+                    DB::raw('COUNT(DISTINCT eleves.id) as total')
                 )
                 ->groupBy('provinces.name', 'eleves.sexe')
                 ->get()
@@ -308,6 +352,19 @@ class StatisticsService
     public function getPerformanceStats(array $filters = []): array
     {
         return Cache::remember($this->cacheKey('performance', $filters), self::CACHE_TTL, function () use ($filters) {
+            if (! Schema::hasTable('resultats')) {
+                return [
+                    'taux_reussite' => null,
+                    'moyenne_generale' => null,
+                    'total_candidats' => 0,
+                    'candidats_reussis' => 0,
+                    'note_max' => null,
+                    'note_min' => null,
+                    'moyenne_par_matiere' => [],
+                    'taux_reussite_par_niveau' => [],
+                ];
+            }
+
             // Overall success rate (average note >= 50/100 or 10/20 depending on scale)
             // Using a threshold of 50% of max note
             $resultatsQuery = DB::table('resultats')
@@ -510,18 +567,30 @@ class StatisticsService
      */
     public function getRepartitionGeographique(array $filters = []): array
     {
-        return Cache::remember($this->cacheKey('geo', $filters), self::CACHE_TTL, function () {
+        return Cache::remember($this->cacheKey('geo', $filters), self::CACHE_TTL, function () use ($filters) {
+            $annee = $this->resolveAnneeScolaire($filters);
+            $anneeId = $annee?->id;
+
             $schoolCounts = DB::table('schools')
                 ->where('statut', 'ACTIVE')
                 ->select('province_id', DB::raw('COUNT(*) as total'))
                 ->groupBy('province_id')
                 ->pluck('total', 'province_id');
 
-            $eleveCounts = DB::table('eleves')
-                ->join('schools', 'eleves.school_id', '=', 'schools.id')
-                ->where('eleves.statut_global', 'actif')
+            // Count students via inscriptions for the active year
+            $eleveCountsQuery = DB::table('eleves')
+                ->join('inscriptions', 'eleves.id', '=', 'inscriptions.eleve_id')
+                ->join('schools', 'inscriptions.school_id', '=', 'schools.id')
                 ->where('schools.statut', 'ACTIVE')
-                ->select('schools.province_id', DB::raw('COUNT(*) as total'))
+                ->where('inscriptions.statut_academique', '!=', 'transfere')
+                ->whereNull('eleves.deleted_at');
+
+            if ($anneeId) {
+                $eleveCountsQuery->where('inscriptions.annee_scolaire_id', $anneeId);
+            }
+
+            $eleveCounts = $eleveCountsQuery
+                ->select('schools.province_id', DB::raw('COUNT(DISTINCT eleves.id) as total'))
                 ->groupBy('schools.province_id')
                 ->pluck('total', 'province_id');
 
