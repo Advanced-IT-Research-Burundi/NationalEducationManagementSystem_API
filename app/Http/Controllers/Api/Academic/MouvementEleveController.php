@@ -48,7 +48,7 @@ class MouvementEleveController extends Controller
         // Filter by année scolaire — fallback automatique sur l'année active si non fournie.
         $anneeScolaireId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+            : \App\Services\AcademicYearService::currentId();
         if ($anneeScolaireId) {
             $query->byAnneeScolaire($anneeScolaireId);
         }
@@ -320,7 +320,7 @@ class MouvementEleveController extends Controller
         // Fallback sur l'année active si non précisée.
         $statsAnneeId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+            : \App\Services\AcademicYearService::currentId();
         if ($statsAnneeId) {
             $query->byAnneeScolaire($statsAnneeId);
         }

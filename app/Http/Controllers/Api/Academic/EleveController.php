@@ -40,7 +40,7 @@ class EleveController extends Controller
         // Resolve which school year to display
         $anneeScolaireId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+            : \App\Services\AcademicYearService::currentId();
 
         if ($anneeScolaireId) {
             $query->whereHas('inscriptions', function ($q) use ($anneeScolaireId, $request) {
@@ -475,7 +475,7 @@ class EleveController extends Controller
 
         $anneeScolaireId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+            : \App\Services\AcademicYearService::currentId();
 
         $query = Eleve::query();
 

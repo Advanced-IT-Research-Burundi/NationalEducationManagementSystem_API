@@ -242,7 +242,7 @@ class KpiController extends Controller
 
         $filters['annee_scolaire_id'] = $request->filled('annee_scolaire_id')
             ? $request->input('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+            : \App\Services\AcademicYearService::currentId();
         if (empty($filters['annee_scolaire_id'])) {
             unset($filters['annee_scolaire_id']);
         }
