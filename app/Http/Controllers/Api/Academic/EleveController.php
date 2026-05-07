@@ -43,14 +43,23 @@ class EleveController extends Controller
             : \App\Services\AcademicYearService::currentId();
 
         if ($anneeScolaireId) {
-            $query->whereHas('inscriptions', function ($q) use ($anneeScolaireId, $request) {
-                $q->withoutGlobalScopes()
-                    ->where('annee_scolaire_id', $anneeScolaireId)
-                    ->where('statut_academique', '!=', 'transfere');
+            $query->where(function ($q) use ($anneeScolaireId, $request) {
+                $q->whereHas('inscriptions', function ($q2) use ($anneeScolaireId, $request) {
+                    $q2->withoutGlobalScopes()
+                        ->where('annee_scolaire_id', $anneeScolaireId)
+                        ->where('statut_academique', '!=', 'transfere');
 
-                if ($request->filled('school_id')) {
-                    $q->where('school_id', $request->school_id);
-                }
+                    if ($request->filled('school_id')) {
+                        $q2->where('school_id', $request->school_id);
+                    }
+                });
+
+                $q->orWhere(function ($q3) use ($request) {
+                    $q3->doesntHave('inscriptions');
+                    if ($request->filled('school_id')) {
+                        $q3->where('school_id', $request->school_id);
+                    }
+                });
             });
 
             // Eager-load the inscription for the consulted year (with niveau, classe, school)
@@ -76,10 +85,16 @@ class EleveController extends Controller
 
         if ($request->filled('niveau_id')) {
             if ($anneeScolaireId) {
-                $query->whereHas('inscriptions', function ($q) use ($anneeScolaireId, $request) {
-                    $q->withoutGlobalScopes()
-                        ->where('annee_scolaire_id', $anneeScolaireId)
-                        ->where('niveau_demande_id', $request->niveau_id);
+                $query->where(function ($q) use ($anneeScolaireId, $request) {
+                    $q->whereHas('inscriptions', function ($q2) use ($anneeScolaireId, $request) {
+                        $q2->withoutGlobalScopes()
+                            ->where('annee_scolaire_id', $anneeScolaireId)
+                            ->where('niveau_demande_id', $request->niveau_id);
+                    })
+                    ->orWhere(function ($q3) use ($request) {
+                        $q3->doesntHave('inscriptions')
+                           ->where('niveau_id', $request->niveau_id);
+                    });
                 });
             } else {
                 $query->where('niveau_id', $request->niveau_id);

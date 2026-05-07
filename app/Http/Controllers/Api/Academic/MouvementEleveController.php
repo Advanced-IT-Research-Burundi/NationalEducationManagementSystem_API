@@ -17,11 +17,17 @@ use Illuminate\Support\Facades\DB;
 
 class MouvementEleveController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
+
     /**
      * Display a listing of mouvements.
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', MouvementEleve::class);
+
+        $this->resolveAnneeScolaireId($request);
+
         $query = MouvementEleve::with([
             'eleve:id,matricule,nom,prenom,sexe,statut_global',
             'anneeScolaire:id,code,libelle',
@@ -307,6 +313,8 @@ class MouvementEleveController extends Controller
      */
     public function statistics(Request $request): JsonResponse
     {
+        $this->resolveAnneeScolaireId($request);
+        
         $query = MouvementEleve::forCurrentUser();
 
         if ($request->filled('school_id')) {
