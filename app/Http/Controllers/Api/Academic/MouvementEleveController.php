@@ -17,11 +17,17 @@ use Illuminate\Support\Facades\DB;
 
 class MouvementEleveController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
+
     /**
      * Display a listing of mouvements.
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', MouvementEleve::class);
+
+        $this->resolveAnneeScolaireId($request);
+
         $query = MouvementEleve::with([
             'eleve:id,matricule,nom,prenom,sexe,statut_global',
             'anneeScolaire:id,code,libelle',
@@ -48,7 +54,7 @@ class MouvementEleveController extends Controller
         // Filter by année scolaire — fallback automatique sur l'année active si non fournie.
         $anneeScolaireId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+            : \App\Services\AcademicYearService::currentId();
         if ($anneeScolaireId) {
             $query->byAnneeScolaire($anneeScolaireId);
         }
@@ -307,6 +313,8 @@ class MouvementEleveController extends Controller
      */
     public function statistics(Request $request): JsonResponse
     {
+        $this->resolveAnneeScolaireId($request);
+        
         $query = MouvementEleve::forCurrentUser();
 
         if ($request->filled('school_id')) {
@@ -320,7 +328,7 @@ class MouvementEleveController extends Controller
         // Fallback sur l'année active si non précisée.
         $statsAnneeId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : AnneeScolaire::current()?->id;
+            : \App\Services\AcademicYearService::currentId();
         if ($statsAnneeId) {
             $query->byAnneeScolaire($statsAnneeId);
         }
