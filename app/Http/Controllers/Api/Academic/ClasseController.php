@@ -117,14 +117,17 @@ class ClasseController extends Controller
         return response()->json(['message' => 'Classe supprimée avec succès']);
     }
 
-    public function bySchool(Request $request, int $schoolId): JsonResponse
+    public function bySchool(Request $request, int $school): JsonResponse
     {
         Log::info('Fetching classes for school', [
-            'school_id' => $schoolId,
+            'school_id' => $school,
             'annee_scolaire_id' => $request->input('annee_scolaire_id'),
             'user_id' => auth()->id(),
         ]);
-        $query = Classe::bySchool($schoolId)->with(['niveau', 'section']);
+
+        $this->resolveAnneeScolaireId($request);
+
+        $query = Classe::bySchool($school)->with(['niveau', 'section']);
 
         $anneeId = $request->input('annee_scolaire_id') ?? $request->input('annee_scolaire');
         if ($anneeId) {
@@ -133,7 +136,7 @@ class ClasseController extends Controller
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
-        } else {
+        } elseif (! $request->boolean('pour_consultation')) {
             $query->active();
         }
 
@@ -169,15 +172,16 @@ class ClasseController extends Controller
     /**
      * Get élèves enrolled in a classe.
      */
-    public function eleves(Classe $classe): JsonResponse
+    public function eleves(Request $request, Classe $classe): JsonResponse
     {
         $this->authorize('view', $classe);
 
-        $eleves = $classe->eleves()
-            ->wherePivot('statut', 'ACTIVE')
-            ->get();
+        $query = $classe->eleves();
+        if (! $request->boolean('pour_consultation')) {
+            $query->wherePivot('statut', 'ACTIVE');
+        }
 
-        return response()->json($eleves);
+        return response()->json($query->get());
     }
 
     /**
