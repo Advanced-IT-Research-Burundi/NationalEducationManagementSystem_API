@@ -37,6 +37,12 @@ class MouvementEleve extends Model
         'ecole_origine_id',
         'ecole_destination_id',
         'classe_origine_id',
+        'inscription_origine_id',
+        'inscription_destination_id',
+        'niveau_origine_id',
+        'niveau_destination_id',
+        'classe_destination_id',
+        'annee_scolaire_destination_id',
         'motif',
         'document_reference',
         'document_path',
@@ -235,6 +241,36 @@ class MouvementEleve extends Model
     public function classeOrigine(): BelongsTo
     {
         return $this->belongsTo(Classe::class, 'classe_origine_id');
+    }
+
+    public function classeDestination(): BelongsTo
+    {
+        return $this->belongsTo(Classe::class, 'classe_destination_id');
+    }
+
+    public function inscriptionOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Inscription::class, 'inscription_origine_id');
+    }
+
+    public function inscriptionDestination(): BelongsTo
+    {
+        return $this->belongsTo(Inscription::class, 'inscription_destination_id');
+    }
+
+    public function niveauOrigine(): BelongsTo
+    {
+        return $this->belongsTo(Niveau::class, 'niveau_origine_id');
+    }
+
+    public function niveauDestination(): BelongsTo
+    {
+        return $this->belongsTo(Niveau::class, 'niveau_destination_id');
+    }
+
+    public function anneeScolaireDestination(): BelongsTo
+    {
+        return $this->belongsTo(AnneeScolaire::class, 'annee_scolaire_destination_id');
     }
 
     public function validePar(): BelongsTo

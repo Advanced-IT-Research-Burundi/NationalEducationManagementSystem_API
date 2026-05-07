@@ -181,9 +181,4 @@ class Matiere extends Model
     {
         return $this->hasMany(Evaluation::class, 'cours_id');
     }
-
-    public function resultats(): HasMany
-    {
-        return $this->hasMany(Resultat::class);
-    }
 }

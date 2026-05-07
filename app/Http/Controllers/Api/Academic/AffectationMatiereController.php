@@ -13,8 +13,12 @@ use Illuminate\Support\Facades\DB;
 
 class AffectationMatiereController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
+
     public function index(Request $request)
     {
+        $this->resolveAnneeScolaireId($request);
+
         $query = AffectationMatiere::with(['enseignant.user', 'matiere', 'school', 'anneeScolaire']);
 
         if ($request->filled('school_id')) {

@@ -24,6 +24,7 @@ class Note extends Model
     protected $fillable = [
         'evaluation_id',
         'eleve_id',
+        'inscription_id',
         'note',
     ];
 
@@ -42,5 +43,10 @@ class Note extends Model
     public function eleve(): BelongsTo
     {
         return $this->belongsTo(Eleve::class);
+    }
+
+    public function inscription(): BelongsTo
+    {
+        return $this->belongsTo(Inscription::class);
     }
 }

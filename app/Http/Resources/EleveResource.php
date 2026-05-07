@@ -9,7 +9,7 @@ class EleveResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'matricule' => $this->matricule,
             'nom' => $this->nom,
@@ -65,5 +65,50 @@ class EleveResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
+
+        // When inscriptions are loaded and a target year is set, extract the
+        // contextual inscription data so the frontend knows the student's state
+        // for the consulted school year (niveau, classe, statut_academique, etc.)
+        $inscriptionCourante = $this->getInscriptionCourante();
+        if ($inscriptionCourante) {
+            $data['inscription_courante'] = [
+                'id' => $inscriptionCourante->id,
+                'annee_scolaire_id' => $inscriptionCourante->annee_scolaire_id,
+                'school_id' => $inscriptionCourante->school_id,
+                'statut_academique' => $inscriptionCourante->statut_academique,
+                'est_redoublant' => $inscriptionCourante->est_redoublant,
+                'niveau' => $inscriptionCourante->relationLoaded('niveauDemande') && $inscriptionCourante->niveauDemande
+                    ? ['id' => $inscriptionCourante->niveauDemande->id, 'nom' => $inscriptionCourante->niveauDemande->nom]
+                    : null,
+                'ecole' => $inscriptionCourante->relationLoaded('ecole') && $inscriptionCourante->ecole
+                    ? ['id' => $inscriptionCourante->ecole->id, 'name' => $inscriptionCourante->ecole->name]
+                    : null,
+                'classe' => $inscriptionCourante->relationLoaded('affectation') && $inscriptionCourante->affectation?->classe
+                    ? ['id' => $inscriptionCourante->affectation->classe->id, 'nom' => $inscriptionCourante->affectation->classe->nom]
+                    : null,
+            ];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Extract the inscription for the consulted school year from the loaded inscriptions.
+     */
+    private function getInscriptionCourante()
+    {
+        if (! $this->relationLoaded('inscriptions') || $this->inscriptions->isEmpty()) {
+            return null;
+        }
+
+        $targetYearId = $this->getAttribute('_annee_scolaire_consultee_id');
+
+        if ($targetYearId) {
+            return $this->inscriptions
+                ->where('annee_scolaire_id', $targetYearId)
+                ->first();
+        }
+
+        return $this->inscriptions->first();
     }
 }

@@ -7,7 +7,6 @@ use App\Models\Batiment;
 use App\Models\Classe;
 use App\Models\Eleve;
 use App\Models\Enseignant;
-use App\Models\Examen;
 use App\Models\Province;
 use App\Models\Salle;
 use App\Models\School;
@@ -29,7 +28,6 @@ class MatriculeService
             Eleve::class => $this->generateEleveMatricule($model),
             Enseignant::class => $this->generateEnseignantMatricule($model),
             Classe::class => $this->generateClasseMatricule($model),
-            Examen::class => $this->generateExamenMatricule($model),
             Salle::class => $this->generateSalleMatricule($model),
             Batiment::class => $this->generateBatimentMatricule($model),
             Section::class => $this->generateSectionMatricule($model),
@@ -107,20 +105,6 @@ class MatriculeService
         $sequence = $this->extractSequence($last?->code, 3);
 
         return "CLS-{$annee}-" . strtoupper($niveau) . "-" . Str::padLeft($sequence + 1, 3, '0');
-    }
-
-    private function generateExamenMatricule(Model $examen): string
-    {
-        $annee = AnneeScolaire::current()?->code ?? date('Y');
-        
-        $last = \App\Models\Examen::withTrashed()
-            ->where('annee_scolaire_id', $examen->annee_scolaire_id)
-            ->orderBy('code', 'desc')
-            ->first();
-
-        $sequence = $this->extractSequence($last?->code, 3);
-
-        return "EXA-{$annee}-" . Str::padLeft($sequence + 1, 3, '0');
     }
 
     private function generateSalleMatricule(Model $salle): string

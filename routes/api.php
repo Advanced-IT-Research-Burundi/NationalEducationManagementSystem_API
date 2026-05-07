@@ -8,13 +8,11 @@
  * Modules:
  * 1. Core       - Authentication, Users, Roles, Permissions, Geographic Hierarchy
  * 2. Schools    - School Management, Workflow, Directory
- * 3. Pedagogy   - Inspections, Quality Standards, Training
- * 4. Exams      - Exam Planning, Centers, Results, Certification
- * 5. Statistics - Data Collection, KPIs, Dashboards, M&E
- * 6. Infrastructure - Buildings, Equipment, Maintenance
- * 7. HR         - Teachers, Assignments, Careers, Attendance
- * 8. System     - Administration, Helpdesk, Training Materials
- * 9. Partners   - PTF, NGO, Research, External Audit
+ * 4. Statistics - KPIs, Dashboards, M&E
+ * 5. Infrastructure - Buildings, Equipment, Maintenance
+ * 6. HR         - Teachers, Assignments, Careers, Attendance
+ * 7. System     - Administration, Helpdesk, Training Materials
+ * 8. Partners   - PTF, NGO, Research, External Audit
  */
 
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
@@ -24,8 +22,6 @@ use App\Http\Controllers\Api\Academic\NiveauController;
 use App\Http\Controllers\Api\Academic\SectionController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
 use App\Http\Controllers\Api\Academic\EvaluationController;
-use App\Http\Controllers\Api\Inscription\CampagneInscriptionController;
-use App\Http\Controllers\Api\Inscription\InscriptionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -43,8 +39,6 @@ Route::get('/', function () {
             'core',
             'schools',
             'academic',
-            'pedagogy',
-            'exams',
             'statistics',
             'infrastructure',
             'hr',
@@ -86,25 +80,19 @@ require __DIR__.'/modules/schools.php';
 // Module 2b: Academic (Niveaux, Classes, Enseignants, Élèves)
 require __DIR__.'/modules/academic.php';
 
-// Module 3: Pedagogy (Inspections, Quality Standards, Training)
-require __DIR__.'/modules/pedagogy.php';
-
-// Module 4: Exams (Planning, Centers, Results, Certification)
-require __DIR__.'/modules/exams.php';
-
-// Module 5: Statistics (Data Collection, KPIs, Dashboards, M&E)
+// Module 4: Statistics (KPIs, Dashboards, M&E)
 require __DIR__.'/modules/statistics.php';
 
-// Module 6: Infrastructure (Buildings, Equipment, Maintenance)
+// Module 5: Infrastructure (Buildings, Equipment, Maintenance)
 require __DIR__.'/modules/infrastructure.php';
 
-// Module 7: HR (Teachers, Assignments, Careers, Attendance)
+// Module 6: HR (Teachers, Assignments, Careers, Attendance)
 require __DIR__.'/modules/hr.php';
 
-// Module 8: System (Administration, Helpdesk, Training Materials)
+// Module 7: System (Administration, Helpdesk, Training Materials)
 require __DIR__.'/modules/system.php';
 
-// Module 9: Partners (PTF, NGO, Research, External Audit)
+// Module 8: Partners (PTF, NGO, Research, External Audit)
 require __DIR__.'/modules/partners.php';
 
 /*
@@ -118,7 +106,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->json([
             'message' => 'Welcome National Admin',
             'scope' => 'All Data',
-            'modules' => ['core', 'schools', 'pedagogy', 'exams', 'statistics', 'infrastructure', 'hr', 'system', 'partners'],
+            'modules' => ['core', 'schools', 'statistics', 'infrastructure', 'hr', 'system', 'partners'],
         ]);
     })->middleware('role:admin_national')->name('dashboard.admin');
 
@@ -127,7 +115,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return response()->json([
             'message' => 'Welcome Provincial Director',
             'scope' => 'Province Data',
-            'modules' => ['core', 'schools', 'pedagogy', 'statistics', 'infrastructure', 'hr'],
+            'modules' => ['core', 'schools', 'statistics', 'infrastructure', 'hr'],
         ]);
     })->middleware('role:directeur_provincial')->name('dashboard.province');
 
@@ -159,19 +147,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/data/export', function () {
         return response()->json(['message' => 'Data Exported Successfully']);
     })->middleware('permission:export_data')->name('data.export');
-});
-
-// Module-inscription API routes
-// Module-inscription API routes
-Route::middleware(['auth:sanctum'])->group(function () {
-    // Route::get('inscriptions/statistics', [InscriptionController::class, 'statistics']);
-    // Route::get('inscriptions/campagne-active', [InscriptionController::class, 'campagneActive']);
-
-    Route::post('inscriptions/{inscription}/soumettre', [InscriptionController::class, 'soumettre']);
-    Route::post('inscriptions/{inscription}/valider', [InscriptionController::class, 'valider']);
-    Route::post('inscriptions/{inscription}/rejeter', [InscriptionController::class, 'rejeter']);
-
-    Route::apiResource('inscriptions', InscriptionController::class);
 });
 
 /*
@@ -222,19 +197,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('evaluations/by-classe/{classe}', [EvaluationController::class, 'byClasse']);
     Route::get('evaluations/by-eleve/{eleve}', [EvaluationController::class, 'byEleve']);
     Route::apiResource('evaluations', EvaluationController::class);
-
-    // Campagnes d'Inscription
-    // Campagnes d'Inscription
-    // Route::get('campagnes-inscription/statistics', [CampagneInscriptionController::class, 'statistics']);
-    // Route::get('campagnes-inscription/by-ecole/{ecole}', [CampagneInscriptionController::class, 'byEcole']);
-
-    // Note: Parameter binding for apiResource might need adjustment if it doesn't match $campagneInscription
-    // Explicitly defining param for custom routes
-    Route::post('campagnes-inscription/{campagneInscription}/ouvrir', [CampagneInscriptionController::class, 'ouvrir']);
-    Route::post('campagnes-inscription/{campagneInscription}/cloturer', [CampagneInscriptionController::class, 'cloturer']);
-    Route::apiResource('campagnes-inscription', CampagneInscriptionController::class)->parameters([
-        'campagnes-inscription' => 'campagneInscription'
-    ]);
 
     // Route::get('eleves/export', [EleveController::class, 'export']);
 });

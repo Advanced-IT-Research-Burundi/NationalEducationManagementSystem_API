@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\StatutAcademique;
 use App\Traits\HasAcademicYearScope;
 use App\Traits\HasDataScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
@@ -17,12 +19,12 @@ class Inscription extends Model
     protected $fillable = [
         'numero_inscription',
         'eleve_id',
-        'campagne_id',
         'annee_scolaire_id',
         'school_id',
         'niveau_demande_id',
         'type_inscription',
         'statut',
+        'statut_academique',
         'date_inscription',
         'date_soumission',
         'date_validation',
@@ -41,6 +43,7 @@ class Inscription extends Model
         'date_validation' => 'datetime',
         'est_redoublant' => 'boolean',
         'pieces_fournies' => 'array',
+        'statut_academique' => StatutAcademique::class,
     ];
 
     protected static function academicYearColumn(): ?string
@@ -53,7 +56,6 @@ class Inscription extends Model
         return null;
     }
 
-    // Scopes
     protected static function getScopeColumn(): ?string
     {
         return 'school_id';
@@ -61,18 +63,53 @@ class Inscription extends Model
 
     protected static function getScopeRelation(): ?string
     {
-        return null; // Direct column on table
+        return null;
     }
 
-    // Relationships
+    /**
+     * Query Scopes
+     */
+    public function scopeEnCours($query)
+    {
+        return $query->where('statut_academique', StatutAcademique::EnCours);
+    }
+
+    public function scopeAdmis($query)
+    {
+        return $query->where('statut_academique', StatutAcademique::Admis);
+    }
+
+    public function scopeRedouble($query)
+    {
+        return $query->where('statut_academique', StatutAcademique::Redouble);
+    }
+
+    public function scopeByEleve($query, int $eleveId)
+    {
+        return $query->where('eleve_id', $eleveId);
+    }
+
+    public function scopeByAnneeScolaire($query, int $anneeScolaireId)
+    {
+        return $query->where('annee_scolaire_id', $anneeScolaireId);
+    }
+
+    /**
+     * Check if this inscription belongs to a non-active year (read-only).
+     */
+    public function isReadOnly(): bool
+    {
+        $active = AnneeScolaire::current();
+
+        return ! $active || $active->id !== $this->annee_scolaire_id;
+    }
+
+    /**
+     * Relationships
+     */
     public function eleve(): BelongsTo
     {
         return $this->belongsTo(Eleve::class);
-    }
-
-    public function campagne(): BelongsTo
-    {
-        return $this->belongsTo(CampagneInscription::class);
     }
 
     public function anneeScolaire(): BelongsTo
@@ -115,10 +152,25 @@ class Inscription extends Model
         return $this->hasOneThrough(
             Classe::class,
             AffectationClasse::class,
-            'inscription_id', // Foreign key on AffectationClasse table
-            'id',             // Foreign key on Classe table
-            'id',             // Local key on Inscription table
-            'classe_id'       // Local key on AffectationClasse table
+            'inscription_id',
+            'id',
+            'id',
+            'classe_id'
         );
+    }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class);
+    }
+
+    public function notesConduite(): HasMany
+    {
+        return $this->hasMany(NoteConduite::class);
+    }
+
+    public function sanctions(): HasMany
+    {
+        return $this->hasMany(SanctionEleve::class);
     }
 }

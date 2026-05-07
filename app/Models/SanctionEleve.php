@@ -22,6 +22,7 @@ class SanctionEleve extends Model
 
     protected $fillable = [
         'eleve_id',
+        'inscription_id',
         'classe_id',
         'reglement_id',
         'annee_scolaire_id',
@@ -59,5 +60,10 @@ class SanctionEleve extends Model
     public function anneeScolaire()
     {
         return $this->belongsTo(AnneeScolaire::class);
+    }
+
+    public function inscription()
+    {
+        return $this->belongsTo(Inscription::class);
     }
 }
