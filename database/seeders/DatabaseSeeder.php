@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             PaysSeeder::class,
             BurundiAdministrativeDivisionsSeeder::class,
             RolesAndPermissionsSeeder::class,
+            UserSeeder::class,
             BurundiSchoolsSeeder::class,
             AnneeScolaireSeeder::class,
             CycleSeeder::class,
