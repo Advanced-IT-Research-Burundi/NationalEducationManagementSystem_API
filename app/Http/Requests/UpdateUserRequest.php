@@ -34,7 +34,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($userId)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'], // Optional on update
             'role' => ['sometimes', 'string', Rule::exists('roles', 'name')->where('guard_name', 'api')],
-            'admin_level' => ['sometimes', Rule::in(['PAYS', 'MINISTERE', 'PROVINCE', 'COMMUNE', 'ZONE', 'ECOLE'])],
+            'admin_level' => ['sometimes', Rule::in(['PAYS', 'MINISTERE', 'PROVINCE', 'COMMUNE', 'ZONE', 'COLLINE', 'ECOLE'])],
             'admin_entity_id' => ['nullable', 'integer'],
 
             'pays_id' => ['nullable', 'exists:pays,id'],
