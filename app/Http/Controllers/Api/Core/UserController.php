@@ -97,6 +97,7 @@ class UserController extends Controller
             'roles',
             'permissions',
             'creator',
+            'enseignant',
             'pays',
             'ministere',
             'province',

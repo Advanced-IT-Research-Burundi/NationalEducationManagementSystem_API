@@ -29,7 +29,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'api')],
-            'admin_level' => ['required', Rule::in(['PAYS', 'MINISTERE', 'PROVINCE', 'COMMUNE', 'ZONE', 'ECOLE'])],
+            'admin_level' => ['required', Rule::in(['PAYS', 'MINISTERE', 'PROVINCE', 'COMMUNE', 'ZONE', 'COLLINE', 'ECOLE'])],
 
             // Entity IDs - validation depends on level, but we can make them nullable generally
             // and enforce specific logic in validation hooks or here.
