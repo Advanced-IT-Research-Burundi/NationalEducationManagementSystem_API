@@ -37,6 +37,8 @@ class DatabaseSeeder extends Seeder
             AnneeScolaireSeeder::class,
             CycleSeeder::class,
             NiveauSeeder::class,
+            NiveauSchoolSeeder::class,
+            EnseignementSeeder::class,
             ClasseSeeder::class,
             EleveSeeder::class,
             MouvementEleveSeeder::class,
