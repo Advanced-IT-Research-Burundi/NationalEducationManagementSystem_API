@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\NotesTemplateExport;
+use App\Models\Niveau;
 
 class EvaluationController extends Controller
 {
@@ -56,11 +57,11 @@ class EvaluationController extends Controller
             $enseignantId = auth()->user()->enseignant->id ?? null;
             if ($enseignantId) {
                 $query->whereHas('classe.enseignants', function ($q) use ($enseignantId) {
-                          $q->where('enseignants.id', $enseignantId);
-                      })
-                      ->whereHas('cours.enseignants', function ($q) use ($enseignantId) {
-                          $q->where('enseignants.id', $enseignantId);
-                      });
+                    $q->where('enseignants.id', $enseignantId);
+                })
+                    ->whereHas('cours.enseignants', function ($q) use ($enseignantId) {
+                        $q->where('enseignants.id', $enseignantId);
+                    });
             }
         }
 
@@ -71,6 +72,7 @@ class EvaluationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+
         $validated = $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'cours_id' => ['required', 'exists:matieres,id'],
@@ -80,11 +82,26 @@ class EvaluationController extends Controller
             'note_maximale' => ['required', 'numeric', 'min:0.01', 'max:999.99'],
         ]);
 
+
+
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         if (! $anneeScolaireId) {
             return response()->json([
                 'message' => "Aucune année scolaire active trouvée. Veuillez activer une année scolaire.",
             ], 422);
+        }
+
+        // Validate that 'Compétence' type is only used for post-fondamental classes
+        if ($validated['type_evaluation'] === 'Compétence') {
+            $classe = Classe::findOrFail($validated['classe_id']);
+            $niveau = $classe->niveau;
+            $cycle = $niveau->cycle;
+
+            if ($cycle->nom !== 'POST_FONDAMENTAL') {
+                return response()->json([
+                    'message' => "Le type 'Compétence' ne peut être utilisé que pour les classes post-fondamentales.",
+                ], 422);
+            }
         }
 
         $validated['annee_scolaire_id'] = $anneeScolaireId;

@@ -44,15 +44,15 @@ class BulletinController extends Controller
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
         $ttl = 600;
 
-        $data = Cache::remember($cacheKey, $ttl, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $data = Cache::remember($cacheKey, $ttl, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
 
         if ($requestedEleveId) {
             $data['bulletins'] = array_values(array_filter(
                 $data['bulletins'],
-                fn ($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
+                fn($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
 
@@ -229,7 +229,7 @@ class BulletinController extends Controller
             }
 
             $annualConduiteNote = collect($requestedTrimestres)
-                ->sum(fn ($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
+                ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
             $annualConduiteMax = count($requestedTrimestres) * $conduiteMax;
             $annualIsComplete = ! $annualHasIncomplete;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
@@ -315,12 +315,12 @@ class BulletinController extends Controller
             ];
         }
 
-        $annualRanks = $this->buildRanks($bulletins, fn ($bulletin) => $bulletin['annuel']);
+        $annualRanks = $this->buildRanks($bulletins, fn($bulletin) => $bulletin['annuel']);
         $trimestreRanks = [];
         foreach ($requestedTrimestres as $currentTrimestre) {
             $trimestreRanks[$currentTrimestre] = $this->buildRanks(
                 $bulletins,
-                fn ($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
+                fn($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
             );
         }
 
@@ -374,19 +374,23 @@ class BulletinController extends Controller
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
-        $bulletinData = Cache::remember($cacheKey, 600, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
+        $bulletinData = Cache::remember($cacheKey, 600, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
 
         if ($request->filled('eleve_id')) {
             $requestedEleveId = $request->integer('eleve_id');
             $bulletinData['bulletins'] = array_values(array_filter(
                 $bulletinData['bulletins'],
-                fn ($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
+                fn($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
 
-        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->with('niveau')->find($classeId);
-        $viewName = ConduiteConfigService::isSecondary($classe)
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)
+            ->with(['niveau.cycleScolaire'])
+            ->find($classeId);
+
+        $cycleName = optional($classe->niveau?->cycleScolaire)->nom;
+        $viewName = in_array($cycleName, ['POST_FONDAMENTAL', 'SECONDAIRE'], true)
             ? 'bulletin.bulletin_pdf_post_fondamental'
             : 'bulletin.bulletin_pdf_fondamental';
 
@@ -399,14 +403,14 @@ class BulletinController extends Controller
             $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
             $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
         }
-        $filename = 'bulletin_'.($bulletinData['classe']['nom'] ?? 'classe').'_'.$eleveNom.'_'.$elevePrenom.'.pdf';
+        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . $eleveNom . '_' . $elevePrenom . '.pdf';
 
         return $pdf->download($filename);
     }
 
     private function buildCourseSummary(Collection $evaluations, int $eleveId, Matiere $matiere, bool $hasPonderationTj = true, bool $hasPonderationExam = true): array
     {
-        $tjEvals = $evaluations->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
+        $tjEvals = $evaluations->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP', 'Compétence']);
         $examEvals = $evaluations->where('type_evaluation', 'Examen');
 
         $tjNote = 0;

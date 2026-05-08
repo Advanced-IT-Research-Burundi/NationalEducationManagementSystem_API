@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('cours_id')->constrained('matieres')->cascadeOnDelete();
             $table->foreignId('annee_scolaire_id')->constrained('annee_scolaires')->cascadeOnDelete();
             $table->enum('trimestre', ['1er Trimestre', '2e Trimestre', '3e Trimestre']);
-            $table->enum('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP', 'Examen']);
+            $table->enum('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP', 'Examen', 'Compétence']);
             $table->date('date_passation');
             $table->decimal('note_maximale', 5, 2);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();

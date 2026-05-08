@@ -51,6 +51,7 @@ class Evaluation extends Model
         'Devoir',
         'TP',
         'Examen',
+        'Compétence',
     ];
 
     /**
