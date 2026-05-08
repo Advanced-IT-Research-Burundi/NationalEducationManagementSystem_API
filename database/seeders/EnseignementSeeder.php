@@ -8,6 +8,7 @@ use App\Models\Pays;
 use App\Models\Commune;
 use App\Models\Zone;
 use App\Models\Colline;
+use App\Models\Province;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -19,6 +20,8 @@ class EnseignementSeeder extends Seeder
 
         // 1. Récupération des données géographiques (comme dans votre UserSeeder)
         $burundi = Pays::where('name', 'Burundi')->first() ?? Pays::first();
+        $ministere = $burundi->ministeres()->first() ?? null;
+        $province = Province::where('name', 'BUJUMBURA MAIRIE')->first() ?? Province::first();
         $commune = Commune::where('name', 'BUJUMBURA MAIRIE')->first() ?? Commune::first();
         $zone = Zone::where('name', 'ROHERO')->first() ?? Zone::first();
         $colline = Colline::where('name', 'MUKAZA')->first() ?? Colline::first();
@@ -42,6 +45,8 @@ class EnseignementSeeder extends Seeder
                     'statut' => 'actif',
                     'admin_level' => 'ECOLE',
                     'pays_id' => $burundi?->id,
+                    'ministere_id' => $ministere?->id,
+                    'province_id' => $province?->id,
                     'commune_id' => $commune?->id,
                     'zone_id' => $zone?->id,
                     'colline_id' => $colline?->id,

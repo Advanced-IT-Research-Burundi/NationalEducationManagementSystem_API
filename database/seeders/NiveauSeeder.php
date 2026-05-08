@@ -19,11 +19,11 @@ class NiveauSeeder extends Seeder
     public function run(): void
     {
         // Get cycle IDs
-        $cyclePrimaire = CycleScolaire::where('nom', 'PRIMAIRE')->first()?->id;
+        $premiercyclePrimaire = CycleScolaire::where('nom', 'PRIMAIRE')->first()?->id;
         $cycleFondamental = CycleScolaire::where('nom', 'FONDAMENTAL')->first()?->id;
         $cyclePostFondamental = CycleScolaire::where('nom', 'POST_FONDAMENTAL')->first()?->id;
 
-        if (!$cyclePrimaire || !$cycleFondamental || !$cyclePostFondamental) {
+        if (!$premiercyclePrimaire || !$cycleFondamental || !$cyclePostFondamental) {
             $this->command->error('Les cycles scolaires ne sont pas créés. Veuillez exécuter CycleSeeder d\'abord.');
             return;
         }

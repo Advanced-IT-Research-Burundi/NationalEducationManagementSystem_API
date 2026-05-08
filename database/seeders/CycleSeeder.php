@@ -16,13 +16,13 @@ class CycleSeeder extends Seeder
         $this->command->info('Migrating Cycle Seeder ...');
 
         CycleScolaire::create([
-            'nom' => 'PRIMAIRE',
+            'nom' => 'Premier Cycle',
             'description' => 'Enseignement Préscolaire',
             'actif' => true,
         ]);
 
         CycleScolaire::create([
-            'nom' => 'FONDAMENTAL',
+            'nom' => 'Deuxieme Cycle',
             'description' => 'Enseignement Fondamental (9 ans)',
             'actif' => true,
         ]);
