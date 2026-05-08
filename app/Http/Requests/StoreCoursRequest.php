@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Matiere;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCoursRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('create', Matiere::class);
     }
 
     public function rules(): array
@@ -38,7 +39,7 @@ class StoreCoursRequest extends FormRequest
         return [
             'nom.required' => 'Le nom du cours est obligatoire.',
             'ponderation_tj.required' => 'La pondération T.J. est obligatoire.',
-            'ponderation_examen.required' => "La pondération Examen est obligatoire.",
+            'ponderation_examen.required' => 'La pondération Examen est obligatoire.',
         ];
     }
 }

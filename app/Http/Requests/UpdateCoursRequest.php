@@ -8,7 +8,7 @@ class UpdateCoursRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('update', $this->route('cour'));
     }
 
     public function rules(): array
@@ -19,7 +19,7 @@ class UpdateCoursRequest extends FormRequest
             'est_principale' => ['sometimes', 'boolean'],
             'ponderation_tj' => ['sometimes', 'numeric', 'min:0'],
             'ponderation_examen' => ['sometimes', 'numeric', 'min:0'],
-            'credit_heures' => ['nullable', 'numeric', 'min:0'],    
+            'credit_heures' => ['nullable', 'numeric', 'min:0'],
             'section_id' => ['nullable', 'exists:sections,id'],
             'section_ids' => ['nullable', 'array'],
             'section_ids.*' => ['exists:sections,id'],

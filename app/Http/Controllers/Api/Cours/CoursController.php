@@ -57,8 +57,6 @@ class CoursController extends Controller
             }
         }
 
-        
-
         if ($request->filled('actif')) {
             $query->where('actif', $request->boolean('actif'));
         }
@@ -135,13 +133,13 @@ class CoursController extends Controller
 
         if (isset($data['niveau_ids'])) {
             $cours->niveaux()->sync($data['niveau_ids']);
-        } elseif (isset($data['niveau_id']) && $data['niveau_id'] !== "_none") {
+        } elseif (isset($data['niveau_id']) && $data['niveau_id'] !== '_none') {
             $cours->niveaux()->sync([$data['niveau_id']]);
         }
 
         if (isset($data['section_ids'])) {
             $cours->sections()->sync($data['section_ids']);
-        } elseif (isset($data['section_id']) && $data['section_id'] !== "_none") {
+        } elseif (isset($data['section_id']) && $data['section_id'] !== '_none') {
             $cours->sections()->sync([$data['section_id']]);
         }
 
@@ -170,13 +168,13 @@ class CoursController extends Controller
 
         if (isset($data['niveau_ids'])) {
             $cour->niveaux()->sync($data['niveau_ids']);
-        } elseif (isset($data['niveau_id']) && $data['niveau_id'] !== "_none") {
+        } elseif (isset($data['niveau_id']) && $data['niveau_id'] !== '_none') {
             $cour->niveaux()->sync([$data['niveau_id']]);
         }
 
         if (isset($data['section_ids'])) {
             $cour->sections()->sync($data['section_ids']);
-        } elseif (isset($data['section_id']) && $data['section_id'] !== "_none") {
+        } elseif (isset($data['section_id']) && $data['section_id'] !== '_none') {
             $cour->sections()->sync([$data['section_id']]);
         }
 
@@ -188,6 +186,8 @@ class CoursController extends Controller
 
     public function destroy(Matiere $cour): JsonResponse
     {
+        $this->authorize('delete', $cour);
+
         if ($cour->evaluations()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer ce cours car il a des évaluations associées.',

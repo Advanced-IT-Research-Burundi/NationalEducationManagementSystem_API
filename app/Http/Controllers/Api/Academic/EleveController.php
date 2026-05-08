@@ -54,8 +54,18 @@ class EleveController extends Controller
                     }
                 });
 
-                $q->orWhere(function ($q3) use ($request) {
-                    $q3->doesntHave('inscriptions');
+                // Élève sans inscription pour l'année consultée (ex.: ancienne inscription seulement,
+                // ou fiche créée avec niveau/école sur la table eleves).
+                $q->orWhere(function ($q3) use ($anneeScolaireId, $request) {
+                    $q3->whereDoesntHave('inscriptions', function ($q4) use ($anneeScolaireId, $request) {
+                        $q4->withoutGlobalScopes()
+                            ->where('annee_scolaire_id', $anneeScolaireId);
+
+                        if ($request->filled('school_id')) {
+                            $q4->where('school_id', $request->school_id);
+                        }
+                    });
+
                     if ($request->filled('school_id')) {
                         $q3->where('school_id', $request->school_id);
                     }
@@ -91,9 +101,20 @@ class EleveController extends Controller
                             ->where('annee_scolaire_id', $anneeScolaireId)
                             ->where('niveau_demande_id', $request->niveau_id);
                     })
-                    ->orWhere(function ($q3) use ($request) {
-                        $q3->doesntHave('inscriptions')
-                           ->where('niveau_id', $request->niveau_id);
+                    ->orWhere(function ($q3) use ($anneeScolaireId, $request) {
+                        $q3->whereDoesntHave('inscriptions', function ($q4) use ($anneeScolaireId, $request) {
+                            $q4->withoutGlobalScopes()
+                                ->where('annee_scolaire_id', $anneeScolaireId);
+
+                            if ($request->filled('school_id')) {
+                                $q4->where('school_id', $request->school_id);
+                            }
+                        })
+                            ->where('niveau_id', $request->niveau_id);
+
+                        if ($request->filled('school_id')) {
+                            $q3->where('school_id', $request->school_id);
+                        }
                     });
                 });
             } else {
