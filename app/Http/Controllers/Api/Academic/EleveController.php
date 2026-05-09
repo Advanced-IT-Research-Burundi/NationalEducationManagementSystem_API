@@ -54,16 +54,11 @@ class EleveController extends Controller
                     }
                 });
 
-                // Élève sans inscription pour l'année consultée (ex.: ancienne inscription seulement,
-                // ou fiche créée avec niveau/école sur la table eleves).
-                $q->orWhere(function ($q3) use ($anneeScolaireId, $request) {
-                    $q3->whereDoesntHave('inscriptions', function ($q4) use ($anneeScolaireId, $request) {
-                        $q4->withoutGlobalScopes()
-                            ->where('annee_scolaire_id', $anneeScolaireId);
-
-                        if ($request->filled('school_id')) {
-                            $q4->where('school_id', $request->school_id);
-                        }
+                // Tolérance pour les anciennes fiches élève jamais migrées en inscriptions.
+                // On ne les inclut que si elles n'ont AUCUNE inscription historique.
+                $q->orWhere(function ($q3) use ($request) {
+                    $q3->whereDoesntHave('inscriptions', function ($q4) {
+                        $q4->withoutGlobalScopes();
                     });
 
                     if ($request->filled('school_id')) {
@@ -101,14 +96,9 @@ class EleveController extends Controller
                             ->where('annee_scolaire_id', $anneeScolaireId)
                             ->where('niveau_demande_id', $request->niveau_id);
                     })
-                    ->orWhere(function ($q3) use ($anneeScolaireId, $request) {
-                        $q3->whereDoesntHave('inscriptions', function ($q4) use ($anneeScolaireId, $request) {
-                            $q4->withoutGlobalScopes()
-                                ->where('annee_scolaire_id', $anneeScolaireId);
-
-                            if ($request->filled('school_id')) {
-                                $q4->where('school_id', $request->school_id);
-                            }
+                    ->orWhere(function ($q3) use ($request) {
+                        $q3->whereDoesntHave('inscriptions', function ($q4) {
+                            $q4->withoutGlobalScopes();
                         })
                             ->where('niveau_id', $request->niveau_id);
 
@@ -329,7 +319,36 @@ class EleveController extends Controller
      */
     public function bySchool(Request $request, int $schoolId): JsonResponse
     {
-        $query = Eleve::with(['provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau'])->bySchool($schoolId);
+        $anneeScolaireId = $request->filled('annee_scolaire_id')
+            ? $request->integer('annee_scolaire_id')
+            : \App\Services\AcademicYearService::currentId();
+
+        $query = Eleve::with(['provinceOrigine', 'communeOrigine', 'zoneOrigine', 'collineOrigine', 'niveau']);
+
+        if ($anneeScolaireId) {
+            $query->where(function ($q) use ($anneeScolaireId, $schoolId) {
+                $q->whereHas('inscriptions', function ($q2) use ($anneeScolaireId, $schoolId) {
+                    $q2->withoutGlobalScopes()
+                        ->where('annee_scolaire_id', $anneeScolaireId)
+                        ->where('school_id', $schoolId)
+                        ->where('statut_academique', '!=', 'transfere');
+                })->orWhere(function ($q2) use ($schoolId) {
+                    $q2->whereDoesntHave('inscriptions', function ($q3) {
+                        $q3->withoutGlobalScopes();
+                    })->where('school_id', $schoolId);
+                });
+            });
+
+            $query->with(['inscriptions' => function ($q) use ($anneeScolaireId, $schoolId) {
+                $q->withoutGlobalScopes()
+                    ->where('annee_scolaire_id', $anneeScolaireId)
+                    ->where('school_id', $schoolId)
+                    ->with(['niveauDemande', 'ecole', 'affectation.classe'])
+                    ->latest();
+            }]);
+        } else {
+            $query->bySchool($schoolId);
+        }
 
         if ($request->filled('statut')) {
             $query->whereRaw('LOWER(statut_global) = ?', [strtolower($request->statut)]);
@@ -338,6 +357,10 @@ class EleveController extends Controller
         }
 
         $eleves = $query->get();
+
+        $eleves->each(function ($eleve) use ($anneeScolaireId) {
+            $eleve->setAttribute('_annee_scolaire_consultee_id', $anneeScolaireId);
+        });
 
         return EleveResource::collection($eleves)->response();
     }
@@ -515,20 +538,28 @@ class EleveController extends Controller
 
         $query = Eleve::query();
 
-        if ($request->filled('school_id')) {
-            $query->bySchool($request->school_id);
-        }
-
         // Scope to students who have an inscription in the target school year
         if ($anneeScolaireId) {
-            $query->whereHas('inscriptions', function ($q) use ($anneeScolaireId, $request) {
-                $q->withoutGlobalScopes()
-                    ->where('annee_scolaire_id', $anneeScolaireId);
+            $query->where(function ($q) use ($anneeScolaireId, $request) {
+                $q->whereHas('inscriptions', function ($q2) use ($anneeScolaireId, $request) {
+                    $q2->withoutGlobalScopes()
+                        ->where('annee_scolaire_id', $anneeScolaireId);
 
-                if ($request->filled('school_id')) {
-                    $q->where('school_id', $request->school_id);
-                }
+                    if ($request->filled('school_id')) {
+                        $q2->where('school_id', $request->school_id);
+                    }
+                })->orWhere(function ($q2) use ($request) {
+                    $q2->whereDoesntHave('inscriptions', function ($q3) {
+                        $q3->withoutGlobalScopes();
+                    });
+
+                    if ($request->filled('school_id')) {
+                        $q2->where('school_id', $request->school_id);
+                    }
+                });
             });
+        } elseif ($request->filled('school_id')) {
+            $query->bySchool($request->school_id);
         }
 
         $stats = [
