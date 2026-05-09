@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
 use App\Models\AnneeScolaire;
+use App\Models\Eleve;
 use App\Models\Evaluation;
 use App\Models\Note;
 use App\Models\Classe;
@@ -149,10 +150,23 @@ class EvaluationController extends Controller
         ]);
 
         // Validate no note exceeds note_maximale
+        $eleves = Eleve::whereIn('id', collect($validated['notes'])->pluck('eleve_id')->all())
+            ->get(['id', 'nom', 'prenom', 'matricule'])
+            ->keyBy('id');
+
         foreach ($validated['notes'] as $entry) {
             if ($entry['note'] > $evaluation->note_maximale) {
+                $eleve = $eleves->get($entry['eleve_id']);
+                $eleveLabel = $eleve
+                    ? trim(($eleve->prenom ?? '').' '.($eleve->nom ?? ''))
+                    : "élève #{$entry['eleve_id']}";
+
+                if ($eleve && ! empty($eleve->matricule)) {
+                    $eleveLabel .= " ({$eleve->matricule})";
+                }
+
                 return response()->json([
-                    'message' => "La note de l'élève #{$entry['eleve_id']} ({$entry['note']}) dépasse la note maximale ({$evaluation->note_maximale}).",
+                    'message' => "La note de {$eleveLabel} ({$entry['note']}) dépasse la note maximale ({$evaluation->note_maximale}).",
                 ], 422);
             }
         }
