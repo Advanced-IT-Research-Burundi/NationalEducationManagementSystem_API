@@ -73,9 +73,9 @@ class Enseignant extends Model
     {
         return $query->where(function ($q) use ($schoolId) {
             $q->where('school_id', $schoolId)
-              ->orWhereHas('ecoles', function ($sq) use ($schoolId) {
-                  $sq->where('schools.id', $schoolId);
-              });
+                ->orWhereHas('ecoles', function ($sq) use ($schoolId) {
+                    $sq->where('schools.id', $schoolId);
+                });
         });
     }
 
