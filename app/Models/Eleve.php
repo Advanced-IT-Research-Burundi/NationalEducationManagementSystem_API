@@ -15,7 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Eleve extends Model
 {
-    use HasDataScope, HasFactory, SoftDeletes, LogsActivity, HasMatricule;
+    use HasDataScope, HasFactory, HasMatricule, LogsActivity, SoftDeletes;
 
     // Status constants
     const STATUT_ACTIF = 'actif';
@@ -117,7 +117,7 @@ class Eleve extends Model
 
     public function getAgeAttribute(): ?int
     {
-        if (!$this->date_naissance) {
+        if (! $this->date_naissance) {
             return null;
         }
 
@@ -162,7 +162,15 @@ class Eleve extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function classes(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    /**
+     * Parents (users) linked to this student.
+     */
+    public function parents(): HasMany
+    {
+        return $this->hasMany(EleveParent::class, 'eleve_id');
+    }
+
+    public function classes(): BelongsToMany
     {
         return $this->belongsToMany(Classe::class, 'eleve_class', 'eleve_id', 'classe_id')
             ->withPivot(['annee_scolaire', 'date_inscription', 'statut', 'numero_ordre'])
@@ -246,11 +254,12 @@ class Eleve extends Model
     public function canEnroll(): bool
     {
         $status = $this->statut_global ?? $this->statut ?? 'actif';
-        return !in_array(strtolower($status), [
+
+        return ! in_array(strtolower($status), [
             self::STATUT_TRANSFERE,
             self::STATUT_DECEDE,
             self::STATUT_ABANDONNE,
-            'diplome'
+            'diplome',
         ]);
     }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -45,6 +46,7 @@ class User extends Authenticatable
         'colline_id',
         'school_id',
         'created_by',
+        'must_change_password',
     ];
 
     /**
@@ -132,6 +134,14 @@ class User extends Authenticatable
     public function enseignant(): HasOne
     {
         return $this->hasOne(Enseignant::class);
+    }
+
+    /**
+     * Children (eleves) that this parent user is linked to.
+     */
+    public function eleveParents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EleveParent::class, 'user_id');
     }
 
     // Helper to check permission (Manual implementation if needed, but Spatie provides can())
