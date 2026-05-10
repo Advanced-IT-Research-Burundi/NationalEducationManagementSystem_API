@@ -2,10 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use App\Models\User;
 use App\Models\Eleve;
+use App\Models\EleveParent;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class ParentEleveSeeder extends Seeder
 {
@@ -14,44 +15,45 @@ class ParentEleveSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get 5 parents
-        $parents = User::role('Parent')->take(5)->get();
+        $eleves = Eleve::take(10)->get();
 
-        // Get 5 students
-        $eleves = Eleve::take(5)->get();
-
-        // Check if enough data exists
-        if ($parents->count() < 5 || $eleves->count() < 5) {
-            $this->command->warn('Not enough parents or students found.');
+        if ($eleves->count() < 10) {
+            $this->command->warn('Less than 10 students found.');
             return;
         }
 
         $relations = [
-            'pere',
-            'mere',
-            'tuteur',
-            'pere',
-            'mere',
+            'Père',
+            'Mère',
+            'Tuteur',
         ];
 
-        foreach ($parents as $index => $parent) {
-            DB::table('parents')->updateOrInsert(
-                [
-                    'user_id' => $parent->id,
-                    'eleve_id' => $eleves[$index]->id,
-                ],
-                [
-                    'nom_complet' => $parent->name,
-                    'relation' => $relations[$index],
-                    'telephone' => $parent->telephone,
-                    'email' => $parent->email,
-                    'adresse' => $parent->adresse,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+        foreach ($eleves as $index => $eleve) {
+
+            // Create user account for parent
+            $user = User::create([
+                'name' => 'Parent '.$eleve->prenom.' '.$eleve->nom,
+                'email' => 'parent'.($index+1).'@example.com',
+                'password' => Hash::make('password'),
+                'school_id' => $eleve->school_id,
+                'statut' => 'actif',
+            ]);
+
+            // Optional if using Spatie roles
+            // $user->assignRole('parent');
+
+            // Create parent record
+            EleveParent::create([
+                'user_id' => $user->id,
+                'eleve_id' => $eleve->id,
+                'nom_complet' => 'Parent '.$eleve->prenom.' '.$eleve->nom,
+                'relation' => $relations[$index % count($relations)],
+                'telephone' => '+2577900000'.$index,
+                'email' => 'parent'.$index.'@example.com',
+                'adresse' => 'Gitega, Burundi',
+            ]);
         }
 
-        $this->command->info('5 parents inserted successfully.');
+        $this->command->info('10 parents created successfully.');
     }
 }
