@@ -93,7 +93,8 @@ class EleveSeeder extends Seeder
 
             // Nombre d'élèves par classe (60-80% de la capacité)
             $capacite = $classe->capacite ?? 40;
-            $nombreEleves = (int) ($capacite * (rand(60, 80) / 100));
+            // $nombreEleves = (int) ($capacite * (rand(60, 80) / 100));
+            $nombreEleves = 3;
 
             for ($i = 0; $i < $nombreEleves; $i++) {
                 $sexe = rand(0, 1) ? 'M' : 'F';
