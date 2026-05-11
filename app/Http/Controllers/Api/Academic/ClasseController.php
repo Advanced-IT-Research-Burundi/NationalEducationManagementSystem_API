@@ -58,13 +58,9 @@ class ClasseController extends Controller
             $query->where('statut', $request->statut);
         }
 
-        $classes = $query->latest()->paginate($request->get('per_page', 15));
+        $classes = $query->with('niveau.cycleScolaire', 'niveau.typeScolaire', 'school', 'creator', 'section')->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json($classes->load([
-            'niveau.cycleScolaire:id,nom',
-            'niveau.typeScolaire:id,nom',
-            'school',
-        ]));
+        return response()->json($classes);
     }
 
     /**
