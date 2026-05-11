@@ -54,7 +54,7 @@ class ClasseController extends Controller
 
         $classes = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json($classes);
+        return response()->json($classes->load(['niveau', 'school']));
     }
 
     /**

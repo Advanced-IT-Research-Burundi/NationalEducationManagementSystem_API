@@ -16,20 +16,37 @@ class CycleSeeder extends Seeder
         $this->command->info('Migrating Cycle Seeder ...');
 
         CycleScolaire::create([
-            'nom' => 'Premier Cycle',
-            'description' => 'Enseignement Préscolaire',
+            'nom' => 'Cycle 1',
+            'description' => 'Enseignement fondamental (1-2ème année)',
+            'type_id' => 2,
             'actif' => true,
         ]);
 
         CycleScolaire::create([
-            'nom' => 'Deuxieme Cycle',
-            'description' => 'Enseignement Fondamental (9 ans)',
+            'nom' => 'Cycle 2',
+            'type_id' => 2,
+            'description' => 'Enseignement fondamental (3-4ème année)',
             'actif' => true,
         ]);
 
         CycleScolaire::create([
-            'nom' => 'POST_FONDAMENTAL',
-            'description' => 'Enseignement Post-Fondamental (4 ans)',
+            'nom' => 'Cycle 3',
+            'type_id' => 2,
+            'description' => 'Enseignement fondamental (5-6ème année)',
+            'actif' => true,
+        ]);
+
+        CycleScolaire::create([
+            'nom' => 'Cycle 4',
+            'type_id' => 2,
+            'description' => 'Enseignement fondamental (7-8ème année)',
+            'actif' => true,
+        ]);
+
+         CycleScolaire::create([
+            'nom' => 'Cycle 5',
+            'type_id' => 3,
+            'description' => 'Enseignement Post-fondamental (1ère-4ème année)',
             'actif' => true,
         ]);
     }

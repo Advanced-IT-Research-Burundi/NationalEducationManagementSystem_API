@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             BurundiSchoolsSeeder::class,
             AnneeScolaireSeeder::class,
+            TypeSeeder::class,
             CycleSeeder::class,
             NiveauSeeder::class,
             NiveauSchoolSeeder::class,
@@ -44,7 +45,8 @@ class DatabaseSeeder extends Seeder
             MouvementEleveSeeder::class,
             SectionSeeder::class,
             BatimentSeeder::class,
-            MatiereSeeder::class
+            MatiereSeeder::class,
+
         ]);
     }
 }
