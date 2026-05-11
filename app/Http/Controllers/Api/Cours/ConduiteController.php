@@ -280,17 +280,28 @@ class ConduiteController extends Controller
                 break;
 
             case 'fautes_par_classe':
-                $data = $query->select('sanction_eleves.classe_id', DB::raw('COUNT(*) as total_fautes'))
-                    ->with('classe:id,nom')
-                    ->groupBy('sanction_eleves.classe_id')
+                $data = $query->select(
+                    'sanction_eleves.classe_id',
+                    'sanction_eleves.reglement_id',
+                    DB::raw('COUNT(*) as total_fautes')
+                )
+                    ->with(['classe:id,nom', 'reglement:id,intitule'])
+                    ->groupBy('sanction_eleves.classe_id', 'sanction_eleves.reglement_id')
+                    ->orderBy('sanction_eleves.classe_id')
+                    ->orderByDesc('total_fautes')
                     ->get();
                 break;
 
             case 'total_fautes':
-                $data = [
-                    'total' => $query->count(),
-                    'points_total' => $query->sum('points_retires'),
-                ];
+                $data = $query->select(
+                    'sanction_eleves.reglement_id',
+                    DB::raw('COUNT(*) as total_fautes'),
+                    DB::raw('SUM(sanction_eleves.points_retires) as points_total')
+                )
+                    ->with('reglement:id,intitule')
+                    ->groupBy('sanction_eleves.reglement_id')
+                    ->orderByDesc('total_fautes')
+                    ->get();
                 break;
 
             case 'details':
