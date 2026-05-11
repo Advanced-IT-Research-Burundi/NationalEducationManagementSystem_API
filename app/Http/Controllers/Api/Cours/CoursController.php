@@ -131,9 +131,7 @@ class CoursController extends Controller
     public function store(StoreCoursRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['ponderation_competence'] = isset($data['ponderation_competence'])
-            ? (float) $data['ponderation_competence']
-            : 0.0;
+
         $cours = Matiere::create($data);
 
         if (isset($data['niveau_ids'])) {
