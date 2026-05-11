@@ -13,6 +13,7 @@ use App\Services\ConduiteConfigService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PalmaresController extends Controller
@@ -79,14 +80,18 @@ class PalmaresController extends Controller
 
         $coursMeta = $cours->map(function ($matiere) {
             $code = self::palmaresCoursCode($matiere);
-
-            return [
+            $meta = [
                 'id' => $matiere->id,
                 'nom' => $matiere->nom,
                 'code' => $code,
                 'ponderation_tj' => $matiere->ponderation_tj,
                 'ponderation_examen' => $matiere->ponderation_examen,
             ];
+            if (Schema::hasColumn('matieres', 'ponderation_competence')) {
+                $meta['ponderation_competence'] = $matiere->ponderation_competence;
+            }
+
+            return $meta;
         })->values();
 
         // Get notes conduite
@@ -110,6 +115,12 @@ class PalmaresController extends Controller
                 $coursEvals = $evaluations->where('cours_id', $matiere->id);
 
                 $tjEvals = $coursEvals->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
+                $ponderationComp = Schema::hasColumn('matieres', 'ponderation_competence')
+                    ? (float) ($matiere->ponderation_competence ?? 0)
+                    : 0.0;
+                $compEvals = $ponderationComp > 0
+                    ? $coursEvals->where('type_evaluation', 'Compétence')
+                    : collect();
                 $examEvals = $coursEvals->where('type_evaluation', 'Examen');
 
                 $tjNote = 0;
@@ -119,6 +130,16 @@ class PalmaresController extends Controller
                     if ($note) {
                         $tjNote += $note->note;
                         $tjMax += $eval->note_maximale;
+                    }
+                }
+
+                $compNote = 0;
+                $compMax = 0;
+                foreach ($compEvals as $eval) {
+                    $note = $eval->notes->where('eleve_id', $eleve->id)->first();
+                    if ($note) {
+                        $compNote += $note->note;
+                        $compMax += $eval->note_maximale;
                     }
                 }
 
@@ -135,12 +156,17 @@ class PalmaresController extends Controller
                 $scaledTj = $matiere->ponderation_tj > 0 && $tjMax > 0
                     ? round(($tjNote / $tjMax) * $matiere->ponderation_tj, 2)
                     : $tjNote;
+                $scaledComp = 0;
+                if ($ponderationComp > 0 && $compMax > 0) {
+                    $scaledComp = round(($compNote / $compMax) * $ponderationComp, 2);
+                }
                 $scaledExam = $matiere->ponderation_examen > 0 && $examMax > 0
                     ? round(($examNote / $examMax) * $matiere->ponderation_examen, 2)
                     : $examNote;
 
-                $total = $scaledTj + $scaledExam;
-                $maxTotal = ($matiere->ponderation_tj ?: $tjMax) + ($matiere->ponderation_examen ?: $examMax);
+                $maxComp = $ponderationComp > 0 ? $ponderationComp : 0;
+                $total = $scaledTj + $scaledComp + $scaledExam;
+                $maxTotal = ($matiere->ponderation_tj ?: $tjMax) + $maxComp + ($matiere->ponderation_examen ?: $examMax);
 
                 $totalPoints += $total;
                 $totalMax += $maxTotal;

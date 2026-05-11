@@ -74,6 +74,7 @@
           if (!isset($catTotals[$cat])) {
               $catTotals[$cat] = [
                   'max_tj' => 0,
+                  'max_com' => 0,
                   'max_res' => 0,
                   'max_tot' => 0,
                   'annuel' => ['max_tot' => 0, 'tot' => 0, 'has_tot' => false, 'is_complete' => true],
@@ -83,12 +84,15 @@
               foreach ($trimestreLabels as $label) {
                   $catTotals[$cat]['trimestres'][$label] = [
                       'tj' => 0,
+                      'com' => 0,
                       'res' => 0,
                       'tot' => 0,
                       'has_tj' => false,
+                      'has_com' => false,
                       'has_res' => false,
                       'has_tot' => false,
                       'tj_complete' => true,
+                      'com_complete' => true,
                       'res_complete' => true,
                       'tot_complete' => true,
                   ];
@@ -96,6 +100,9 @@
           }
 
           $catTotals[$cat]['max_tj'] += $cours['max_tj'] ?? 0;
+          $catTotals[$cat]['max_com'] += (($cours['has_competence_track'] ?? false) && ($cours['max_competence'] ?? 0) > 0)
+              ? ($cours['max_competence'] ?? 0)
+              : 0;
           $catTotals[$cat]['max_res'] += $cours['max_examen'] ?? 0;
           $catTotals[$cat]['max_tot'] += $cours['max_total'] ?? 0;
           $catTotals[$cat]['annuel']['max_tot'] += $cours['annuel']['max_total'] ?? 0;
@@ -113,6 +120,13 @@
                   $catTotals[$cat]['trimestres'][$label]['has_tj'] = true;
               } elseif (($summary['max_tj'] ?? 0) > 0) {
                   $catTotals[$cat]['trimestres'][$label]['tj_complete'] = false;
+              }
+
+              if (($summary['note_competence'] ?? null) !== null) {
+                  $catTotals[$cat]['trimestres'][$label]['com'] += $summary['note_competence'];
+                  $catTotals[$cat]['trimestres'][$label]['has_com'] = true;
+              } elseif (($summary['max_competence'] ?? 0) > 0) {
+                  $catTotals[$cat]['trimestres'][$label]['com_complete'] = false;
               }
 
               if (($summary['note_examen'] ?? null) !== null) {
@@ -157,22 +171,22 @@
         <td class="td-name">{{ $cours['nom'] }}</td>
         <td>1</td>
         <td>{{ $fmt($cours['max_tj'] ?? null) }}</td>
-        <td></td>
+        <td>{{ ($cours['has_competence_track'] ?? false) && ($cours['max_competence'] ?? 0) > 0 ? $fmt($cours['max_competence']) : '—' }}</td>
         <td>{{ $fmt($cours['max_examen'] ?? null) }}</td>
         <td><strong>{{ $fmt($cours['max_total'] ?? null) }}</strong></td>
 
         <td>{{ $fmt($t1['note_tj'] ?? null) }}</td>
-        <td></td>
+        <td>{{ ($cours['has_competence_track'] ?? false) && ($cours['max_competence'] ?? 0) > 0 ? $fmt($t1['note_competence'] ?? null) : '—' }}</td>
         <td>{{ $fmt($t1['note_examen'] ?? null) }}</td>
         <td><strong>{{ $fmt($t1['note_total'] ?? null) }}</strong></td>
 
         <td>{{ $fmt($t2['note_tj'] ?? null) }}</td>
-        <td></td>
+        <td>{{ ($cours['has_competence_track'] ?? false) && ($cours['max_competence'] ?? 0) > 0 ? $fmt($t2['note_competence'] ?? null) : '—' }}</td>
         <td>{{ $fmt($t2['note_examen'] ?? null) }}</td>
         <td><strong>{{ $fmt($t2['note_total'] ?? null) }}</strong></td>
 
         <td>{{ $fmt($t3['note_tj'] ?? null) }}</td>
-        <td></td>
+        <td>{{ ($cours['has_competence_track'] ?? false) && ($cours['max_competence'] ?? 0) > 0 ? $fmt($t3['note_competence'] ?? null) : '—' }}</td>
         <td>{{ $fmt($t3['note_examen'] ?? null) }}</td>
         <td><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
 
@@ -185,23 +199,22 @@
       <tr style="font-weight: bold; background-color: #f5f5f5;">
         <td style="text-align: left; padding-left: 5px;">Total</td>
         <td>-</td>
-        <td>{{ $fmt($catTotals[$cat]['max_tj']) }}</td>
-        <td></td>
+        <td>{{ ($catTotals[$cat]['max_com'] ?? 0) > 0 ? $fmt($catTotals[$cat]['max_com']) : '—' }}</td>
         <td>{{ $fmt($catTotals[$cat]['max_res']) }}</td>
         <td>{{ $fmt($catTotals[$cat]['max_tot']) }}</td>
 
         <td>{{ $catTotals[$cat]['trimestres']['1er Trimestre']['has_tj'] && $catTotals[$cat]['trimestres']['1er Trimestre']['tj_complete'] ? $fmt($catTotals[$cat]['trimestres']['1er Trimestre']['tj']) : '' }}</td>
-        <td></td>
+        <td>{{ ($catTotals[$cat]['max_com'] ?? 0) > 0 ? ($catTotals[$cat]['trimestres']['1er Trimestre']['has_com'] && $catTotals[$cat]['trimestres']['1er Trimestre']['com_complete'] ? $fmt($catTotals[$cat]['trimestres']['1er Trimestre']['com']) : '') : '—' }}</td>
         <td>{{ $catTotals[$cat]['trimestres']['1er Trimestre']['has_res'] && $catTotals[$cat]['trimestres']['1er Trimestre']['res_complete'] ? $fmt($catTotals[$cat]['trimestres']['1er Trimestre']['res']) : '' }}</td>
         <td>{{ $catTotals[$cat]['trimestres']['1er Trimestre']['has_tot'] && $catTotals[$cat]['trimestres']['1er Trimestre']['tot_complete'] ? $fmt($catTotals[$cat]['trimestres']['1er Trimestre']['tot']) : '' }}</td>
 
         <td>{{ $catTotals[$cat]['trimestres']['2e Trimestre']['has_tj'] && $catTotals[$cat]['trimestres']['2e Trimestre']['tj_complete'] ? $fmt($catTotals[$cat]['trimestres']['2e Trimestre']['tj']) : '' }}</td>
-        <td></td>
+        <td>{{ ($catTotals[$cat]['max_com'] ?? 0) > 0 ? ($catTotals[$cat]['trimestres']['2e Trimestre']['has_com'] && $catTotals[$cat]['trimestres']['2e Trimestre']['com_complete'] ? $fmt($catTotals[$cat]['trimestres']['2e Trimestre']['com']) : '') : '—' }}</td>
         <td>{{ $catTotals[$cat]['trimestres']['2e Trimestre']['has_res'] && $catTotals[$cat]['trimestres']['2e Trimestre']['res_complete'] ? $fmt($catTotals[$cat]['trimestres']['2e Trimestre']['res']) : '' }}</td>
         <td>{{ $catTotals[$cat]['trimestres']['2e Trimestre']['has_tot'] && $catTotals[$cat]['trimestres']['2e Trimestre']['tot_complete'] ? $fmt($catTotals[$cat]['trimestres']['2e Trimestre']['tot']) : '' }}</td>
 
         <td>{{ $catTotals[$cat]['trimestres']['3e Trimestre']['has_tj'] && $catTotals[$cat]['trimestres']['3e Trimestre']['tj_complete'] ? $fmt($catTotals[$cat]['trimestres']['3e Trimestre']['tj']) : '' }}</td>
-        <td></td>
+        <td>{{ ($catTotals[$cat]['max_com'] ?? 0) > 0 ? ($catTotals[$cat]['trimestres']['3e Trimestre']['has_com'] && $catTotals[$cat]['trimestres']['3e Trimestre']['com_complete'] ? $fmt($catTotals[$cat]['trimestres']['3e Trimestre']['com']) : '') : '—' }}</td>
         <td>{{ $catTotals[$cat]['trimestres']['3e Trimestre']['has_res'] && $catTotals[$cat]['trimestres']['3e Trimestre']['res_complete'] ? $fmt($catTotals[$cat]['trimestres']['3e Trimestre']['res']) : '' }}</td>
         <td>{{ $catTotals[$cat]['trimestres']['3e Trimestre']['has_tot'] && $catTotals[$cat]['trimestres']['3e Trimestre']['tot_complete'] ? $fmt($catTotals[$cat]['trimestres']['3e Trimestre']['tot']) : '' }}</td>
 

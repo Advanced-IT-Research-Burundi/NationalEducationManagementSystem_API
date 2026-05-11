@@ -30,7 +30,13 @@ class ClasseController extends Controller
         // Sync Context with the explicit param so AcademicYearScope aligns.
         $this->resolveAnneeScolaireId($request);
 
-        $query = Classe::with(['niveau', 'school', 'creator', 'section']);
+        $query = Classe::with([
+            'niveau.cycleScolaire:id,nom',
+            'niveau.typeScolaire:id,nom',
+            'school',
+            'creator',
+            'section',
+        ]);
 
         // Search filter
         if ($request->filled('search')) {
@@ -54,7 +60,11 @@ class ClasseController extends Controller
 
         $classes = $query->latest()->paginate($request->get('per_page', 15));
 
-        return response()->json($classes->load(['niveau', 'school']));
+        return response()->json($classes->load([
+            'niveau.cycleScolaire:id,nom',
+            'niveau.typeScolaire:id,nom',
+            'school',
+        ]));
     }
 
     /**
@@ -127,7 +137,11 @@ class ClasseController extends Controller
 
         $this->resolveAnneeScolaireId($request);
 
-        $query = Classe::bySchool($school)->with(['niveau', 'section']);
+        $query = Classe::bySchool($school)->with([
+            'niveau.cycleScolaire:id,nom',
+            'niveau.typeScolaire:id,nom',
+            'section',
+        ]);
 
         $anneeId = $request->input('annee_scolaire_id') ?? $request->input('annee_scolaire');
         if ($anneeId) {
