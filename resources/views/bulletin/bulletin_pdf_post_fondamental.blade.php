@@ -318,13 +318,13 @@
       <td colspan="5"></td>
 
       <td colspan="3"></td>
-      <td>{{ isset($bulletin['trimestres']['1er Trimestre']) && $grandT1Points !== null && $grandT1Max > 0 ? round(($grandT1Points / $grandT1Max) * 100, 1) . '%' : '' }}</td>
+      <td>{{ isset($bulletin['trimestres']['1er Trimestre']) && $grandT1Points !== null && $grandT1Max > 0 ? round(($grandT1Points / $grandT1Max) * 100, 1): '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ isset($bulletin['trimestres']['2e Trimestre']) && $grandT2Points !== null && $grandT2Max > 0 ? round(($grandT2Points / $grandT2Max) * 100, 1) . '%' : '' }}</td>
+      <td>{{ isset($bulletin['trimestres']['2e Trimestre']) && $grandT2Points !== null && $grandT2Max > 0 ? round(($grandT2Points / $grandT2Max) * 100, 1): '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ isset($bulletin['trimestres']['3e Trimestre']) && $grandT3Points !== null && $grandT3Max > 0 ? round(($grandT3Points / $grandT3Max) * 100, 1) . '%' : '' }}</td>
+      <td>{{ isset($bulletin['trimestres']['3e Trimestre']) && $grandT3Points !== null && $grandT3Max > 0 ? round(($grandT3Points / $grandT3Max) * 100, 1): '' }}</td>
 
       <td colspan="2"></td>
       <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
