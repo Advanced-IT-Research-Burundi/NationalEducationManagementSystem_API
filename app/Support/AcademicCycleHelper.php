@@ -33,7 +33,7 @@ class AcademicCycleHelper
     /**
      * Gabarit PDF bulletin_post_fondamental (grille TJ / COM / RES).
      */
-    public static function usesPostFondamentalBulletinLayout(?Niveau $niveau): bool
+    public static function usesPostFondamentalBulletinLayout(?Niveau $niveau):bool
     {
         if (! $niveau) {
             return false;
@@ -43,6 +43,7 @@ class AcademicCycleHelper
             ? $niveau->getRelation('cycleScolaire')
             : $niveau->cycleScolaire)->nom;
 
-        return in_array($cycleNom, ['Cycle 5', 'POST_FONDAMENTAL', 'SECONDAIRE'], true);
+
+        return in_array($cycleNom, ['cycle 5', 'POST_FONDAMENTAL', 'SECONDAIRE'], true);
     }
 }
