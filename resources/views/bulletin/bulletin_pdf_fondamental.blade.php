@@ -303,9 +303,9 @@
                 @endforeach
 
                 @php
-                    $conduiteT1 = $bulletin['trimestres']['1er Trimestre']['conduite'] ?? null;
-                    $conduiteT2 = $bulletin['trimestres']['2e Trimestre']['conduite'] ?? null;
-                    $conduiteT3 = $bulletin['trimestres']['3e Trimestre']['conduite'] ?? null;
+                    $conduiteT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['conduite'] ?? null;
+                    $conduiteT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['conduite'] ?? null;
+                    $conduiteT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['conduite'] ?? null;
                     $conduiteAnnuel = $bulletin['annuel']['conduite'] ?? $bulletin['conduite'];
 
                     $grandT1Points =
@@ -348,21 +348,21 @@
                     <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE /
                         DISCIPLINE</td>
                     <td>-</td>
-                    <td>{{ $fmt($conduiteT1['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</td>
+                    <td>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</td>
                     <td></td>
-                    <td><strong>{{ $fmt($conduiteT1['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</strong></td>
+                    <td><strong>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</strong></td>
 
-                    <td>{{ $fmt($conduiteT1['note'] ?? null) }}</td>
+                    <td>{{ $fmt(($conduiteT1 ?? [])['note'] ?? null) }}</td>
                     <td></td>
-                    <td><strong>{{ $fmt($conduiteT1['note'] ?? null) }}</strong></td>
+                    <td><strong>{{ $fmt(($conduiteT1 ?? [])['note'] ?? null) }}</strong></td>
 
-                    <td>{{ $fmt($conduiteT2['note'] ?? null) }}</td>
+                    <td>{{ $fmt(($conduiteT2 ?? [])['note'] ?? null) }}</td>
                     <td></td>
-                    <td><strong>{{ $fmt($conduiteT2['note'] ?? null) }}</strong></td>
+                    <td><strong>{{ $fmt(($conduiteT2 ?? [])['note'] ?? null) }}</strong></td>
 
-                    <td>{{ $fmt($conduiteT3['note'] ?? null) }}</td>
+                    <td>{{ $fmt(($conduiteT3 ?? [])['note'] ?? null) }}</td>
                     <td></td>
-                    <td><strong>{{ $fmt($conduiteT3['note'] ?? null) }}</strong></td>
+                    <td><strong>{{ $fmt(($conduiteT3 ?? [])['note'] ?? null) }}</strong></td>
 
                     <td>{{ $fmt($conduiteAnnuel['max'] ?? null) }}</td>
                     <td>{{ $fmt($conduiteAnnuel['note'] ?? null) }}</td>
@@ -416,19 +416,19 @@
                     <td colspan="4"></td>
 
                     <td colspan="2"></td>
-                    <td>{{ $bulletin['trimestres']['1er Trimestre']['rang'] === 1 ? '1er' : $bulletin['trimestres']['1er Trimestre']['rang'] . ' eme' }}
+                    <td>@php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ $rT1 !== null ? ($rT1 === 1 ? '1er' : $rT1 . ' eme') : '' }}
                     </td>
 
                     <td colspan="2"></td>
-                    <td>{{ $bulletin['trimestres']['2e Trimestre']['rang'] === 1 ? '1er' : $bulletin['trimestres']['2e Trimestre']['rang'] . ' eme' }}
+                    <td>@php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ $rT2 !== null ? ($rT2 === 1 ? '1er' : $rT2 . ' eme') : '' }}
                     </td>
 
                     <td colspan="2"></td>
-                    <td>{{ $bulletin['trimestres']['3e Trimestre']['rang'] === 1 ? '1er' : $bulletin['trimestres']['3e Trimestre']['rang'] . ' eme' }}
+                    <td>@php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ $rT3 !== null ? ($rT3 === 1 ? '1er' : $rT3 . ' eme') : '' }}
                     </td>
 
                     <td colspan="3"></td>
-                    <td>{{ $bulletin['annuel']['rang'] === 1 ? '1er' : $bulletin['annuel']['rang'] . ' eme' }}</td>
+                    <td>@php($rAn = $bulletin['annuel']['rang'] ?? null){{ $rAn !== null ? ($rAn === 1 ? '1er' : $rAn . ' eme') : '' }}</td>
                 </tr>
 
                 <!-- Signatures -->
