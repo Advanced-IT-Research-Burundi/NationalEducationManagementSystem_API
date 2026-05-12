@@ -45,8 +45,10 @@ class Enseignant extends Model
         'user_id',
         'school_id',
         'matricule',
+        'date_naissance',
         'qualification',
         'qualification_precision',
+        'domaines',
         'annees_experience',
         'date_embauche',
         'telephone',
@@ -55,6 +57,8 @@ class Enseignant extends Model
     ];
 
     protected $casts = [
+        'date_naissance' => 'date',
+        'domaines' => 'array',
         'annees_experience' => 'integer',
         'date_embauche' => 'date',
     ];
