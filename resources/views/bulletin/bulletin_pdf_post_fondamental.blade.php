@@ -199,6 +199,7 @@
       <tr style="font-weight: bold; background-color: #f5f5f5;">
         <td style="text-align: left; padding-left: 5px;">Total</td>
         <td>-</td>
+        <td>{{ ($catTotals[$cat]['max_tj'] ?? 0) > 0 ? $fmt($catTotals[$cat]['max_tj']) : '—' }}</td>
         <td>{{ ($catTotals[$cat]['max_com'] ?? 0) > 0 ? $fmt($catTotals[$cat]['max_com']) : '—' }}</td>
         <td>{{ $fmt($catTotals[$cat]['max_res']) }}</td>
         <td>{{ $fmt($catTotals[$cat]['max_tot']) }}</td>
