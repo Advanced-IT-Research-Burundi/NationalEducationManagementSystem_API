@@ -44,6 +44,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'statut' => $user->statut,
             'is_super_admin' => $user->is_super_admin,
+            'must_change_password' => (bool) $user->must_change_password,
             'admin_level' => $user->admin_level,
             'admin_entity_id' => $user->admin_entity_id,
             'school_id' => $user->school_id,
@@ -119,7 +120,7 @@ class AuthController extends Controller
                     'email' => ['Les identifiants fournis sont incorrects.'],
                 ],
             ], 401);
-        }elseif($user->statut !== 'actif') {
+        } elseif ($user->statut !== 'actif') {
             return response()->json([
                 'success' => false,
                 'message' => 'Votre compte est inactif. Contactez l\'administrateur.',
@@ -281,5 +282,62 @@ class AuthController extends Controller
             ])->all(),
             'primary_role' => $user->getPrimaryRole()?->only(['id', 'name', 'slug']),
         ]);
+    }
+
+    /**
+     * Send password reset link to user's email.
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if ($user && $user->statut === 'actif') {
+            // Generate token and send email
+            $token = app('auth.password.broker')->createToken($user);
+            $user->sendPasswordResetNotification($token);
+        }
+
+        // Always return success to prevent email enumeration
+        return response()->json([
+            'message' => 'Si cette adresse email existe dans notre système, un lien de réinitialisation vous a été envoyé.',
+        ]);
+    }
+
+    /**
+     * Reset password using token.
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $response = app('auth.password.broker')->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->password = Hash::make($password);
+                $user->must_change_password = false;
+                $user->save();
+            }
+        );
+
+        if ($response === app('auth.password.broker')::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Mot de passe réinitialisé avec succès.',
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Le lien de réinitialisation est invalide ou expiré.',
+            'errors' => [
+                'token' => ['Le lien de réinitialisation est invalide ou expiré.'],
+            ],
+        ], 422);
     }
 }

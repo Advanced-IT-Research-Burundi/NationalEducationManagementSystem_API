@@ -38,7 +38,7 @@ class UserController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -69,9 +69,25 @@ class UserController extends Controller
     {
         $data = $request->validated();
 
-        $user = new User();
+        $user = new User;
         $user->fill($data);
-        $user->password = Hash::make($data['password']);
+
+        // Handle password for Parent users
+        if ($this->isParentRole($data)) {
+            if (empty($data['password'])) {
+                $generatedPassword = $this->generateSecurePassword();
+                $user->password = Hash::make($generatedPassword);
+                $user->must_change_password = true;
+                $data['generated_password'] = $generatedPassword; // For response
+            } else {
+                $user->password = Hash::make($data['password']);
+                $user->must_change_password = false;
+            }
+        } else {
+            $user->password = Hash::make($data['password']);
+            $user->must_change_password = false;
+        }
+
         $user->created_by = Auth::id();
         $user->statut = 'actif';
         $user->save();
@@ -80,10 +96,20 @@ class UserController extends Controller
         $this->syncSchoolDirectorAssignment($user);
         $this->syncEnseignantProfile($user, $data);
 
-        return response()->json([
+        // Send Welcome Mail
+        \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user, $data['generated_password'] ?? null));
+
+        $response = [
             'message' => 'User created successfully',
             'user' => tap($user->load('roles'))->setAttribute('is_super_admin', $user->isSuperAdmin()),
-        ], 201);
+        ];
+
+        // Include generated password in response for Parent users
+        if (isset($data['generated_password'])) {
+            $response['generated_password'] = $data['generated_password'];
+        }
+
+        return response()->json($response, 201);
     }
 
     /**
@@ -210,6 +236,7 @@ class UserController extends Controller
         $request->validate(['password' => 'required|string|min:8|confirmed']);
 
         $user->password = Hash::make($request->password);
+        $user->must_change_password = false;
         $user->save();
 
         return response()->json(['message' => 'Password reset successfully']);
@@ -272,12 +299,12 @@ class UserController extends Controller
             : null;
 
         $enseignant = Enseignant::create([
-            'user_id'           => $user->id,
-            'school_id'         => $schoolId,
-            'matricule'         => $data['matricule'],
-            'statut'            => Enseignant::STATUS_ACTIF,
+            'user_id' => $user->id,
+            'school_id' => $schoolId,
+            'matricule' => $data['matricule'],
+            'statut' => Enseignant::STATUS_ACTIF,
             'annees_experience' => 0,
-            'created_by'        => Auth::id(),
+            'created_by' => Auth::id(),
         ]);
 
         if ($schoolId) {
@@ -382,5 +409,16 @@ class UserController extends Controller
         if ($user->isSuperAdmin() && ! request()->user()?->isSuperAdmin()) {
             abort(Response::HTTP_FORBIDDEN, 'Le compte supAdmin (sudo) est protégé et ne peut pas être modifié via cette interface.');
         }
+    }
+
+    protected function isParentRole(array $data): bool
+    {
+        return ($data['role'] ?? null) === Role::PARENT ||
+               (isset($data['roles']) && is_array($data['roles']) && in_array(Role::PARENT, $data['roles']));
+    }
+
+    protected function generateSecurePassword(): string
+    {
+        return 'Temp'.rand(100000, 999999); // Simple temporary password, can be improved
     }
 }

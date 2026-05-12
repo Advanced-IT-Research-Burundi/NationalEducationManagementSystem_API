@@ -505,6 +505,17 @@ class RolesAndPermissionsSeeder extends Seeder
                     'print_bulletins',
                 ],
             ],
+            [
+                'name' => Role::PARENT,
+                'description' => 'Parent d\'élève avec accès limité aux informations de son enfant.',
+                'sort_order' => 100,
+                'permissions' => [
+                    'view_student',
+                    'view_eleve',
+                    'view_bulletin',
+                    'view_any_bulletin',
+                ],
+            ],
         ];
     }
 
@@ -553,11 +564,11 @@ class RolesAndPermissionsSeeder extends Seeder
             ->oldest('id')
             ->first();
 
-        if (!$bootstrapUser) {
+        if (! $bootstrapUser) {
             return;
         }
 
-        if (!$bootstrapUser->roles()->exists()) {
+        if (! $bootstrapUser->roles()->exists()) {
             $bootstrapUser->assignRole(Role::ADMIN_NATIONAL);
         }
     }
