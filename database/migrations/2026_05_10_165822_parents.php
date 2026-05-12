@@ -1,59 +1,47 @@
 <?php
 
-namespace Database\Seeders;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use App\Models\Eleve;
-use App\Models\User;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use App\Models\ParentEleve;
-
-class ParentSeeder extends Seeder
-{
+return new class extends Migration {
     /**
-     * Run the database seeds.
+     * Run the migrations.
      */
-    public function run(): void
+    public function up(): void
     {
-        $eleves = Eleve::take(10)->get();
+        Schema::dropIfExists('parent_eleve');
 
-        if ($eleves->count() < 10) {
-            $this->command->warn('Less than 10 students found.');
-            return;
-        }
-
-        $relations = [
-            'Père',
-            'Mère',
-            'Tuteur',
-        ];
-
-        foreach ($eleves as $index => $eleve) {
-
-            // Create user account for parent
-            $user = User::create([
-                'name' => 'Parent '.$eleve->prenom.' '.$eleve->nom,
-                'email' => 'parent'.$index.'@example.com',
-                'password' => Hash::make('password'),
-                'school_id' => $eleve->school_id,
-                'statut' => 'actif',
-            ]);
-
-            // Optional if using Spatie roles
-            // $user->assignRole('parent');
-
-            // Create parent record
-            ParentEleve::create([
-                'user_id' => $user->id,
-                'eleve_id' => $eleve->id,
-                'nom_complet' => 'Parent '.$eleve->prenom.' '.$eleve->nom,
-                'relation' => $relations[$index % count($relations)],
-                'telephone' => '+2577900000'.$index,
-                'email' => 'parent'.$index.'@example.com',
-                'adresse' => 'Gitega, Burundi',
-            ]);
-        }
-
-        $this->command->info('10 parents created successfully.');
+        Schema::create('parents', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('eleve_id')->constrained('eleves')->onDelete('cascade');
+            $table->string('nom_complet');
+            $table->string('relation');
+            $table->string('telephone')->nullable();
+            $table->string('email')->nullable();
+            $table->string('adresse')->nullable();
+            $table->timestamps();
+        });
     }
-}
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('parents');
+        
+        Schema::create('parent_eleve', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('parent_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('eleve_id')->constrained('eleves')->onDelete('cascade');
+            $table->string('relation_type')->default('parent');
+            $table->timestamps();
+            
+            $table->unique(['parent_id', 'eleve_id']);
+        });
+
+    }
+
+};

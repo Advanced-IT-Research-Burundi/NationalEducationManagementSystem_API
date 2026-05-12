@@ -12,6 +12,7 @@ use App\Http\Resources\PaysResource;
 use App\Http\Resources\ProvinceResource;
 use App\Http\Resources\SchoolResource;
 use App\Http\Resources\ZoneResource;
+use App\Mail\WelcomeMail;
 use App\Models\Enseignant;
 use App\Models\Role;
 use App\Models\School;
@@ -20,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -73,20 +75,10 @@ class UserController extends Controller
         $user->fill($data);
 
         // Handle password for Parent users
-        if ($this->isParentRole($data)) {
-            if (empty($data['password'])) {
-                $generatedPassword = $this->generateSecurePassword();
-                $user->password = Hash::make($generatedPassword);
-                $user->must_change_password = true;
-                $data['generated_password'] = $generatedPassword; // For response
-            } else {
-                $user->password = Hash::make($data['password']);
-                $user->must_change_password = false;
-            }
-        } else {
-            $user->password = Hash::make($data['password']);
-            $user->must_change_password = false;
-        }
+        $generatedPassword = $this->generateSecurePassword();
+        $user->password = Hash::make($generatedPassword);
+        $user->must_change_password = true;
+        $data['generated_password'] = $generatedPassword;
 
         $user->created_by = Auth::id();
         $user->statut = 'actif';
@@ -97,7 +89,7 @@ class UserController extends Controller
         $this->syncEnseignantProfile($user, $data);
 
         // Send Welcome Mail
-        \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user, $data['generated_password'] ?? null));
+        Mail::to($user->email)->send(new WelcomeMail($user, $data['generated_password'] ?? null));
 
         $response = [
             'message' => 'User created successfully',
