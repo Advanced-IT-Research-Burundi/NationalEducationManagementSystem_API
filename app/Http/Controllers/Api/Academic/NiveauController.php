@@ -111,14 +111,20 @@ class NiveauController extends Controller
      */
     public function list(): JsonResponse
     {
-        $niveaux = Niveau::actif()->ordered()->get([
-            'id',
-            'nom',
-            'code',
-            'ordre',
-            'type_id',
-            'cycle_id',
-        ]);
+        $niveaux = Niveau::actif()
+            ->ordered()
+            ->with([
+                'cycleScolaire:id,nom',
+                'typeScolaire:id,nom',
+            ])
+            ->get([
+                'id',
+                'nom',
+                'code',
+                'ordre',
+                'type_id',
+                'cycle_id',
+            ]);
 
         return response()->json($niveaux);
     }

@@ -17,13 +17,19 @@ class TypeSeeder extends Seeder
         $this->command->info('Migrating Type Seeder ...');
 
         TypeScolaire::create([
-            'name' => 'Fondamental',
+            'nom' => 'Prescolaire',
+            'description' => 'Description for Prescolaire',
+            'actif' => true,
+        ]);
+
+        TypeScolaire::create([
+            'nom' => 'Fondamental',
             'description' => 'Description for Fondamental',
             'actif' => true,
         ]);
 
         TypeScolaire::create([
-            'name' => 'Post-Fondamental',
+            'nom' => 'Post-Fondamental',
             'description' => 'Description for Post-Fondamental',
             'actif' => true,
         ]);

@@ -33,18 +33,20 @@ class DatabaseSeeder extends Seeder
             BurundiAdministrativeDivisionsSeeder::class,
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
-            BurundiSchoolsSeeder::class,
-            AnneeScolaireSeeder::class,
-            CycleSeeder::class,
-            NiveauSeeder::class,
-            NiveauSchoolSeeder::class,
-            EnseignementSeeder::class,
-            ClasseSeeder::class,
-            EleveSeeder::class,
-            MouvementEleveSeeder::class,
-            SectionSeeder::class,
-            BatimentSeeder::class,
-            MatiereSeeder::class
+            // BurundiSchoolsSeeder::class,
+            // AnneeScolaireSeeder::class,
+            // TypeSeeder::class,
+            // CycleSeeder::class,
+            // NiveauSeeder::class,
+            // NiveauSchoolSeeder::class,
+            // EnseignementSeeder::class,
+            // ClasseSeeder::class,
+            // EleveSeeder::class,
+            // MouvementEleveSeeder::class,
+            // SectionSeeder::class,
+            // BatimentSeeder::class,
+            // MatiereSeeder::class,
+
         ]);
     }
 }

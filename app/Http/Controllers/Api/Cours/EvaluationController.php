@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\NotesTemplateExport;
-use App\Models\Niveau;
+use App\Models\Matiere;
+use App\Support\AcademicCycleHelper;
 
 class EvaluationController extends Controller
 {
@@ -91,16 +92,13 @@ class EvaluationController extends Controller
             ], 422);
         }
 
-        // Validate that 'Compétence' type is only used for post-fondamental classes
         if ($validated['type_evaluation'] === 'Compétence') {
-            $classe = Classe::findOrFail($validated['classe_id']);
-            $niveau = $classe->niveau;
-            $cycle = $niveau->cycle;
-
-            if ($cycle->nom !== 'POST_FONDAMENTAL') {
-                return response()->json([
-                    'message' => "Le type 'Compétence' ne peut être utilisé que pour les classes post-fondamentales.",
-                ], 422);
+            $err = $this->validateCompetenceEvaluationContext(
+                (int) $validated['classe_id'],
+                (int) $validated['cours_id']
+            );
+            if ($err !== null) {
+                return response()->json(['message' => $err], 422);
             }
         }
 
@@ -137,6 +135,16 @@ class EvaluationController extends Controller
             'date_passation' => ['sometimes', 'date'],
             'note_maximale' => ['sometimes', 'numeric', 'min:0.01', 'max:999.99'],
         ]);
+
+        $nextType = $validated['type_evaluation'] ?? $evaluation->type_evaluation;
+        if ($nextType === 'Compétence') {
+            $classeId = isset($validated['classe_id']) ? (int) $validated['classe_id'] : (int) $evaluation->classe_id;
+            $coursId = isset($validated['cours_id']) ? (int) $validated['cours_id'] : (int) $evaluation->cours_id;
+            $err = $this->validateCompetenceEvaluationContext($classeId, $coursId);
+            if ($err !== null) {
+                return response()->json(['message' => $err], 422);
+            }
+        }
 
         $evaluation->update($validated);
 
@@ -294,5 +302,23 @@ class EvaluationController extends Controller
             'message' => count($notes) . ' notes importées avec succès.',
             'data' => $evaluation->load('notes.eleve:id,nom,prenom,matricule'),
         ]);
+    }
+
+    /**
+     * @return string|null Error message or null if OK
+     */
+    private function validateCompetenceEvaluationContext(int $classeId, int $coursId): ?string
+    {
+        $classe = Classe::with(['niveau.cycleScolaire', 'niveau.typeScolaire'])->find($classeId);
+        if (! $classe || ! AcademicCycleHelper::isPostFondamental($classe->niveau)) {
+            return "Le type 'Compétence' ne peut être utilisé que pour les classes post-fondamentales.";
+        }
+
+        $matiere = Matiere::find($coursId);
+        if (! $matiere || (float) ($matiere->ponderation_competence ?? 0) <= 0) {
+            return "Ce cours n'a pas de pondération compétences : impossible d'utiliser le type 'Compétence'. Définissez un maximum compétences sur la fiche cours.";
+        }
+
+        return null;
     }
 }

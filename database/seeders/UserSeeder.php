@@ -105,6 +105,7 @@ class UserSeeder extends Seeder
                 'role' => 'Personnel Administratif',
                 'admin_level' => 'ECOLE',
             ],
+            
         ];
 
         foreach ($users as $userData) {

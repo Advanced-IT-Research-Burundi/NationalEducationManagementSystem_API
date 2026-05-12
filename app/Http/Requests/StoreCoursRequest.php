@@ -18,6 +18,7 @@ class StoreCoursRequest extends FormRequest
             'categorie_cours_id' => ['nullable', 'exists:categories_cours,id'],
             'est_principale' => ['boolean'],
             'ponderation_tj' => ['required', 'numeric', 'min:0'],
+            'ponderation_competence' => ['nullable', 'numeric', 'min:0'],
             'ponderation_examen' => ['required', 'numeric', 'min:0'],
             'credit_heures' => ['nullable', 'numeric', 'min:0'],
             'section_id' => ['nullable', 'exists:sections,id'],

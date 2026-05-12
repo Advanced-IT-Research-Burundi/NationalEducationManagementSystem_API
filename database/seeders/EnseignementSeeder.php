@@ -33,7 +33,7 @@ class EnseignementSeeder extends Seeder
             'CAPES' => ['Lettres Modernes', 'SVT', 'EPS']
         ];
 
-        for ($i = 1; $i <= 40; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             // 2. Création de l'Utilisateur
             $email = "enseignant{$i}@nems.bi";
             $user = User::updateOrCreate(

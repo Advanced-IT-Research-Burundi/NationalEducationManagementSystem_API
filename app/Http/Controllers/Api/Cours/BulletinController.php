@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use App\Support\AcademicCycleHelper;
 
 class BulletinController extends Controller
 {
@@ -76,6 +77,7 @@ class BulletinController extends Controller
         $hasCategorieCours = Schema::hasColumn('matieres', 'categorie_cours_id');
         $hasNiveauId = Schema::hasColumn('matieres', 'niveau_id');
         $hasPonderationTj = Schema::hasColumn('matieres', 'ponderation_tj');
+        $hasPonderationComp = Schema::hasColumn('matieres', 'ponderation_competence');
         $hasPonderationExam = Schema::hasColumn('matieres', 'ponderation_examen');
 
         $coursQuery = Matiere::query()->where('actif', true);
@@ -138,6 +140,7 @@ class BulletinController extends Controller
                         $eleve->id,
                         $matiere,
                         $hasPonderationTj,
+                        $hasPonderationComp,
                         $hasPonderationExam
                     );
 
@@ -165,9 +168,12 @@ class BulletinController extends Controller
                     'categorie' => $hasCategorieCours ? $matiere->categorieCours?->nom : null,
                     'categorie_ordre' => $hasCategorieCours ? ($matiere->categorieCours?->ordre ?? 99) : 99,
                     'max_tj' => $baseSummary['max_tj'],
+                    'max_competence' => $baseSummary['max_competence'],
+                    'has_competence_track' => $baseSummary['has_competence_track'],
                     'max_examen' => $baseSummary['max_examen'],
                     'max_total' => $baseSummary['max_total'],
                     'note_tj' => $displayNotesSummary['note_tj'],
+                    'note_competence' => $displayNotesSummary['note_competence'],
                     'note_examen' => $displayNotesSummary['note_examen'],
                     'note_total' => $displayNotesSummary['note_total'],
                     'credit_heures' => (int) $matiere->credit_heures,
@@ -389,8 +395,7 @@ class BulletinController extends Controller
             ->with(['niveau.cycleScolaire'])
             ->find($classeId);
 
-        $cycleName = optional($classe->niveau?->cycleScolaire)->nom;
-        $viewName = in_array($cycleName, ['POST_FONDAMENTAL', 'SECONDAIRE'], true)
+        $viewName = AcademicCycleHelper::usesPostFondamentalBulletinLayout($classe->niveau)
             ? 'bulletin.bulletin_pdf_post_fondamental'
             : 'bulletin.bulletin_pdf_fondamental';
 
@@ -408,78 +413,123 @@ class BulletinController extends Controller
         return $pdf->download($filename);
     }
 
-    private function buildCourseSummary(Collection $evaluations, int $eleveId, Matiere $matiere, bool $hasPonderationTj = true, bool $hasPonderationExam = true): array
-    {
-        $tjEvals = $evaluations->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP', 'Compétence']);
+    private function buildCourseSummary(
+        Collection $evaluations,
+        int $eleveId,
+        Matiere $matiere,
+        bool $hasPonderationTj = true,
+        bool $hasPonderationComp = false,
+        bool $hasPonderationExam = true
+    ): array {
+        $ponderationTj = $hasPonderationTj ? (float) ($matiere->ponderation_tj ?? 0) : 0;
+        $ponderationComp = $hasPonderationComp ? (float) ($matiere->ponderation_competence ?? 0) : 0;
+        $ponderationExam = $hasPonderationExam ? (float) ($matiere->ponderation_examen ?? 0) : 0;
+        $trackCompetence = $ponderationComp > 0;
+
+        $tjEvals = $evaluations->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
+        $compEvals = $trackCompetence
+            ? $evaluations->where('type_evaluation', 'Compétence')
+            : collect();
         $examEvals = $evaluations->where('type_evaluation', 'Examen');
 
         $tjNote = 0;
         $tjMax = 0;
         $tjComplete = true;
-
         foreach ($tjEvals as $eval) {
-            $tjMax += $eval->note_maximale;
+            $tjMax += (float) $eval->note_maximale;
             $note = $eval->notes->where('eleve_id', $eleveId)->first();
-
             if (is_null($note)) {
                 $tjComplete = false;
             } else {
-                $tjNote += $note->note;
+                $tjNote += (float) $note->note;
             }
         }
-
         if (! $tjComplete) {
             $tjNote = null;
+        }
+
+        $compNote = 0;
+        $compMax = 0;
+        $compComplete = true;
+        foreach ($compEvals as $eval) {
+            $compMax += (float) $eval->note_maximale;
+            $note = $eval->notes->where('eleve_id', $eleveId)->first();
+            if (is_null($note)) {
+                $compComplete = false;
+            } else {
+                $compNote += (float) $note->note;
+            }
+        }
+        if ($trackCompetence && ! $compEvals->isEmpty() && ! $compComplete) {
+            $compNote = null;
         }
 
         $examNote = 0;
         $examMax = 0;
         $examComplete = true;
-
         foreach ($examEvals as $eval) {
-            $examMax += $eval->note_maximale;
+            $examMax += (float) $eval->note_maximale;
             $note = $eval->notes->where('eleve_id', $eleveId)->first();
-
             if (is_null($note)) {
                 $examComplete = false;
             } else {
-                $examNote += $note->note;
+                $examNote += (float) $note->note;
             }
         }
-
         if (! $examComplete) {
             $examNote = null;
         }
 
-        $ponderationTj = $hasPonderationTj ? (float) ($matiere->ponderation_tj ?? 0) : 0;
-        $ponderationExam = $hasPonderationExam ? (float) ($matiere->ponderation_examen ?? 0) : 0;
-
         $scaledTj = ($ponderationTj > 0 && $tjMax > 0 && ! is_null($tjNote))
             ? round(($tjNote / $tjMax) * $ponderationTj, 2)
-            : $tjNote;
+            : (($ponderationTj <= 0 && $tjMax > 0) ? $tjNote : $tjNote);
+
+        $scaledComp = null;
+        if ($trackCompetence) {
+            $scaledComp = ($ponderationComp > 0 && $compMax > 0 && ! is_null($compNote))
+                ? round(($compNote / $compMax) * $ponderationComp, 2)
+                : (($ponderationComp <= 0 && $compMax > 0) ? $compNote : $compNote);
+            if ($compEvals->isEmpty()) {
+                $scaledComp = null;
+            }
+        }
+
         $scaledExam = ($ponderationExam > 0 && $examMax > 0 && ! is_null($examNote))
             ? round(($examNote / $examMax) * $ponderationExam, 2)
-            : $examNote;
+            : (($ponderationExam <= 0 && $examMax > 0) ? $examNote : $examNote);
+
+        $maxTj = $ponderationTj > 0 ? $ponderationTj : $tjMax;
+        $maxComp = $trackCompetence ? ($ponderationComp > 0 ? $ponderationComp : $compMax) : 0;
+        $maxExam = $ponderationExam > 0 ? $ponderationExam : $examMax;
+        $maxTotal = $maxTj + $maxComp + $maxExam;
 
         $isTjExpected = ($ponderationTj > 0 || $tjMax > 0);
+        $isCompExpected = $trackCompetence && ($ponderationComp > 0 || $compMax > 0);
         $isExamExpected = ($ponderationExam > 0 || $examMax > 0);
 
         $total = null;
-        if (($isTjExpected && is_null($scaledTj)) || ($isExamExpected && is_null($scaledExam))) {
+        $tjIncomplete = $isTjExpected && is_null($scaledTj);
+        $compIncomplete = $isCompExpected && is_null($scaledComp);
+        $examIncomplete = $isExamExpected && is_null($scaledExam);
+
+        if ($tjIncomplete || $compIncomplete || $examIncomplete) {
             $total = null;
-        } elseif ($isTjExpected || $isExamExpected) {
-            $total = ($scaledTj ?? 0) + ($scaledExam ?? 0);
+        } elseif ($isTjExpected || $isCompExpected || $isExamExpected) {
+            $total = round(($scaledTj ?? 0) + ($scaledComp ?? 0) + ($scaledExam ?? 0), 2);
         }
 
         return [
-            'max_tj' => $ponderationTj ?: $tjMax,
-            'max_examen' => $ponderationExam ?: $examMax,
-            'max_total' => ($ponderationTj ?: $tjMax) + ($ponderationExam ?: $examMax),
+            'has_competence_track' => $trackCompetence,
+            'max_tj' => $maxTj,
+            'max_competence' => $maxComp,
+            'max_examen' => $maxExam,
+            'max_total' => $maxTotal,
             'note_tj' => $scaledTj,
+            'note_competence' => $trackCompetence ? $scaledComp : null,
             'note_examen' => $scaledExam,
             'note_total' => $total,
-            'is_complete' => ! ($isTjExpected && is_null($scaledTj)) && ! ($isExamExpected && is_null($scaledExam)),
-            'has_expected_notes' => $isTjExpected || $isExamExpected,
+            'is_complete' => ! $tjIncomplete && ! $compIncomplete && ! $examIncomplete,
+            'has_expected_notes' => $isTjExpected || $isCompExpected || $isExamExpected,
         ];
     }
 
@@ -487,6 +537,7 @@ class BulletinController extends Controller
     {
         $annual = [
             'max_tj' => ($baseSummary['max_tj'] ?? 0) * $trimestreCount,
+            'max_competence' => ($baseSummary['max_competence'] ?? 0) * $trimestreCount,
             'max_examen' => ($baseSummary['max_examen'] ?? 0) * $trimestreCount,
             'max_total' => ($baseSummary['max_total'] ?? 0) * $trimestreCount,
             'note_tj' => 0,
@@ -494,7 +545,12 @@ class BulletinController extends Controller
             'note_total' => 0,
             'is_complete' => true,
             'has_expected_notes' => false,
+            'has_competence_track' => $baseSummary['has_competence_track'] ?? false,
         ];
+
+        if ($annual['has_competence_track']) {
+            $annual['note_competence'] = 0;
+        }
 
         foreach ($trimestreSummaries as $summary) {
             $annual['has_expected_notes'] = $annual['has_expected_notes'] || ($summary['has_expected_notes'] ?? false);
@@ -503,6 +559,14 @@ class BulletinController extends Controller
                 $annual['note_tj'] += $summary['note_tj'];
             } elseif (($summary['has_expected_notes'] ?? false) && ($summary['max_tj'] ?? 0) > 0) {
                 $annual['note_tj'] = null;
+            }
+
+            if ($annual['has_competence_track'] && ($summary['has_competence_track'] ?? false)) {
+                if (! is_null($summary['note_competence'] ?? null)) {
+                    $annual['note_competence'] += $summary['note_competence'];
+                } elseif (($summary['has_expected_notes'] ?? false) && ($summary['max_competence'] ?? 0) > 0) {
+                    $annual['note_competence'] = null;
+                }
             }
 
             if (! is_null($summary['note_examen'])) {
@@ -525,8 +589,11 @@ class BulletinController extends Controller
 
         if (! $annual['has_expected_notes']) {
             $annual['note_tj'] = null;
+            $annual['note_competence'] = null;
             $annual['note_examen'] = null;
             $annual['note_total'] = null;
+        } elseif (! $annual['has_competence_track']) {
+            $annual['note_competence'] = null;
         }
 
         return $annual;
@@ -535,7 +602,10 @@ class BulletinController extends Controller
     private function resolveBaseCourseSummary(array $trimestreSummaries): array
     {
         foreach ($trimestreSummaries as $summary) {
-            if (($summary['max_total'] ?? 0) > 0 || ($summary['max_tj'] ?? 0) > 0 || ($summary['max_examen'] ?? 0) > 0) {
+            if (($summary['max_total'] ?? 0) > 0
+                || ($summary['max_tj'] ?? 0) > 0
+                || ($summary['max_competence'] ?? 0) > 0
+                || ($summary['max_examen'] ?? 0) > 0) {
                 return $summary;
             }
         }
@@ -580,10 +650,13 @@ class BulletinController extends Controller
     private function emptySummary(): array
     {
         return [
+            'has_competence_track' => false,
             'max_tj' => 0,
+            'max_competence' => 0,
             'max_examen' => 0,
             'max_total' => 0,
             'note_tj' => null,
+            'note_competence' => null,
             'note_examen' => null,
             'note_total' => null,
             'is_complete' => false,

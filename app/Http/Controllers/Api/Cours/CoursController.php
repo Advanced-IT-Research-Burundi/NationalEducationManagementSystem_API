@@ -118,7 +118,7 @@ class CoursController extends Controller
         }
 
         $columns = ['id', 'nom', 'code'];
-        foreach (['niveau_id', 'section_id', 'categorie_cours_id', 'ponderation_tj', 'ponderation_examen'] as $col) {
+        foreach (['niveau_id', 'section_id', 'categorie_cours_id', 'ponderation_tj', 'ponderation_competence', 'ponderation_examen'] as $col) {
             if (Schema::hasColumn('matieres', $col)) {
                 $columns[] = $col;
             }
@@ -131,6 +131,7 @@ class CoursController extends Controller
     public function store(StoreCoursRequest $request): JsonResponse
     {
         $data = $request->validated();
+
         $cours = Matiere::create($data);
 
         if (isset($data['niveau_ids'])) {

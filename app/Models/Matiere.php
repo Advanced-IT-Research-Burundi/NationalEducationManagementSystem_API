@@ -19,6 +19,7 @@ class Matiere extends Model
         'categorie_cours_id',
         'est_principale',
         'ponderation_tj',
+        'ponderation_competence',
         'ponderation_examen',
         'credit_heures',
         'section_id',
@@ -35,6 +36,7 @@ class Matiere extends Model
         'coefficient' => 'integer',
         'heures_par_semaine' => 'integer',
         'ponderation_tj' => 'decimal:2',
+        'ponderation_competence' => 'decimal:2',
         'ponderation_examen' => 'decimal:2',
         'credit_heures' => 'decimal:2',
     ];
