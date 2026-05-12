@@ -336,16 +336,16 @@
       <td colspan="5"></td>
 
       <td colspan="3"></td>
-      <td>{{ ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? '' }}</td>
+      <td>@php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ $rT1 !== null ? ($rT1 === 1 ? '1er' : $rT1 . ' eme') : '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? '' }}</td>
+      <td>@php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ $rT2 !== null ? ($rT2 === 1 ? '1er' : $rT2 . ' eme') : '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? '' }}</td>
+      <td>@php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ $rT3 !== null ? ($rT3 === 1 ? '1er' : $rT3 . ' eme') : '' }}</td>
 
       <td colspan="2"></td>
-      <td>{{ $bulletin['annuel']['rang'] ?? '' }}</td>
+      <td>@php($rAn = $bulletin['annuel']['rang'] ?? null){{ $rAn !== null ? ($rAn === 1 ? '1er' : $rAn . ' eme') : '' }}</td>
       <td></td>
     </tr>
 
