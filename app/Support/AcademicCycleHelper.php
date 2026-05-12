@@ -30,9 +30,6 @@ class AcademicCycleHelper
         return $typeNom === 'Post-Fondamental';
     }
 
-    /**
-     * Gabarit PDF bulletin_post_fondamental (grille TJ / COM / RES).
-     */
     public static function usesPostFondamentalBulletinLayout(?Niveau $niveau):bool
     {
         if (! $niveau) {
