@@ -318,13 +318,13 @@
       <td colspan="5"></td>
 
       <td colspan="3"></td>
-      <td>{{ isset($bulletin['trimestres']['1er Trimestre']) && $grandT1Points !== null && $grandT1Max > 0 ? round(($grandT1Points / $grandT1Max) * 100, 1) . '%' : '' }}</td>
+      <td>{{ isset($bulletin['trimestres']['1er Trimestre']) && $grandT1Points !== null && $grandT1Max > 0 ? round(($grandT1Points / $grandT1Max) * 100, 1): '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ isset($bulletin['trimestres']['2e Trimestre']) && $grandT2Points !== null && $grandT2Max > 0 ? round(($grandT2Points / $grandT2Max) * 100, 1) . '%' : '' }}</td>
+      <td>{{ isset($bulletin['trimestres']['2e Trimestre']) && $grandT2Points !== null && $grandT2Max > 0 ? round(($grandT2Points / $grandT2Max) * 100, 1): '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ isset($bulletin['trimestres']['3e Trimestre']) && $grandT3Points !== null && $grandT3Max > 0 ? round(($grandT3Points / $grandT3Max) * 100, 1) . '%' : '' }}</td>
+      <td>{{ isset($bulletin['trimestres']['3e Trimestre']) && $grandT3Points !== null && $grandT3Max > 0 ? round(($grandT3Points / $grandT3Max) * 100, 1): '' }}</td>
 
       <td colspan="2"></td>
       <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
@@ -336,16 +336,16 @@
       <td colspan="5"></td>
 
       <td colspan="3"></td>
-      <td>{{ ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? '' }}</td>
+      <td>@php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ $rT1 !== null ? ($rT1 === 1 ? '1er' : $rT1 . ' eme') : '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? '' }}</td>
+      <td>@php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ $rT2 !== null ? ($rT2 === 1 ? '1er' : $rT2 . ' eme') : '' }}</td>
 
       <td colspan="3"></td>
-      <td>{{ ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? '' }}</td>
+      <td>@php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ $rT3 !== null ? ($rT3 === 1 ? '1er' : $rT3 . ' eme') : '' }}</td>
 
       <td colspan="2"></td>
-      <td>{{ $bulletin['annuel']['rang'] ?? '' }}</td>
+      <td>@php($rAn = $bulletin['annuel']['rang'] ?? null){{ $rAn !== null ? ($rAn === 1 ? '1er' : $rAn . ' eme') : '' }}</td>
       <td></td>
     </tr>
 
