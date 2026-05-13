@@ -6,21 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\AnneeScolaire;
 use App\Models\Classe;
 use App\Models\Evaluation;
+use App\Models\Inscription;
 use App\Models\Matiere;
 use App\Models\NoteConduite;
+use App\Models\Role;
 use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
+use App\Support\AcademicCycleHelper;
+use App\Traits\ResolvesAnneeScolaire;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
-use App\Support\AcademicCycleHelper;
 
 class BulletinController extends Controller
 {
-    use \App\Traits\ResolvesAnneeScolaire;
+    use ResolvesAnneeScolaire;
 
     private const TRIMESTRES = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
 
@@ -45,15 +48,17 @@ class BulletinController extends Controller
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
+        $this->authorizeBulletinRequest($request, $classeId, $requestedEleveId, $anneeScolaireId);
+
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
         $ttl = 600;
 
-        $data = Cache::remember($cacheKey, $ttl, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $data = Cache::remember($cacheKey, $ttl, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
 
         if ($requestedEleveId) {
             $data['bulletins'] = array_values(array_filter(
                 $data['bulletins'],
-                fn($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
+                fn ($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
 
@@ -235,7 +240,7 @@ class BulletinController extends Controller
             }
 
             $annualConduiteNote = collect($requestedTrimestres)
-                ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
+                ->sum(fn ($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
             $annualConduiteMax = count($requestedTrimestres) * $conduiteMax;
             $annualIsComplete = ! $annualHasIncomplete;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
@@ -321,12 +326,12 @@ class BulletinController extends Controller
             ];
         }
 
-        $annualRanks = $this->buildRanks($bulletins, fn($bulletin) => $bulletin['annuel']);
+        $annualRanks = $this->buildRanks($bulletins, fn ($bulletin) => $bulletin['annuel']);
         $trimestreRanks = [];
         foreach ($requestedTrimestres as $currentTrimestre) {
             $trimestreRanks[$currentTrimestre] = $this->buildRanks(
                 $bulletins,
-                fn($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
+                fn ($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
             );
         }
 
@@ -380,14 +385,17 @@ class BulletinController extends Controller
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
-        $bulletinData = Cache::remember($cacheKey, 600, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $requestedEleveIdForAuth = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
+        $this->authorizeBulletinRequest($request, $classeId, $requestedEleveIdForAuth, $anneeScolaireId);
+
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
+        $bulletinData = Cache::remember($cacheKey, 600, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
 
         if ($request->filled('eleve_id')) {
             $requestedEleveId = $request->integer('eleve_id');
             $bulletinData['bulletins'] = array_values(array_filter(
                 $bulletinData['bulletins'],
-                fn($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
+                fn ($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
 
@@ -408,9 +416,37 @@ class BulletinController extends Controller
             $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
             $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
         }
-        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . $eleveNom . '_' . $elevePrenom . '.pdf';
+        $filename = 'bulletin_'.($bulletinData['classe']['nom'] ?? 'classe').'_'.$eleveNom.'_'.$elevePrenom.'.pdf';
 
         return $pdf->download($filename);
+    }
+
+    private function authorizeBulletinRequest(Request $request, int $classeId, ?int $eleveId, int $anneeScolaireId): void
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user && $user->hasAnyPermissionName([
+                'view_data',
+                'view_bulletin',
+                'view_any_bulletin',
+                'manage_grades',
+            ]),
+            403
+        );
+
+        if ($user->hasRole(Role::PARENT)) {
+            abort_if($eleveId === null, 403, 'Accès bulletin parent : paramètre eleve_id requis.');
+            abort_unless($user->isLinkedParentOfEleve($eleveId), 403);
+            $matchesInscription = Inscription::withoutGlobalScopes()
+                ->where('eleve_id', $eleveId)
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->whereHas('affectation', function ($q) use ($classeId) {
+                    $q->where('classe_id', $classeId);
+                })
+                ->exists();
+            abort_unless($matchesInscription, 403, 'Classe ou année scolaire incompatible avec cet élève.');
+        }
     }
 
     private function buildCourseSummary(

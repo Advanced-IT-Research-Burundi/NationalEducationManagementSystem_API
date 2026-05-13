@@ -17,8 +17,20 @@ return new class extends Migration
         }
 
         // Add index on statut_academique if not present
-        $hasStatutIndex = collect(DB::select('SHOW INDEX FROM inscriptions'))
-            ->contains('Key_name', 'inscriptions_statut_academique_index');
+        $indexExists = function (string $table, string $keyName): bool {
+            $driver = Schema::getConnection()->getDriverName();
+
+            if ($driver === 'sqlite') {
+                $rows = DB::select('PRAGMA index_list('.$table.')');
+
+                return collect($rows)->contains(fn ($row) => ($row->name ?? '') === $keyName);
+            }
+
+            return collect(DB::select('SHOW INDEX FROM '.$table))
+                ->contains(fn ($row) => ($row->Key_name ?? '') === $keyName);
+        };
+
+        $hasStatutIndex = $indexExists('inscriptions', 'inscriptions_statut_academique_index');
         if (! $hasStatutIndex) {
             Schema::table('inscriptions', function (Blueprint $table) {
                 $table->index('statut_academique');
@@ -26,8 +38,7 @@ return new class extends Migration
         }
 
         // Replace the unique constraint: (eleve_id, annee_scolaire_id) -> (eleve_id, annee_scolaire_id, school_id)
-        $hasOldUnique = collect(DB::select('SHOW INDEX FROM inscriptions'))
-            ->contains('Key_name', 'inscriptions_eleve_id_annee_scolaire_id_unique');
+        $hasOldUnique = $indexExists('inscriptions', 'inscriptions_eleve_id_annee_scolaire_id_unique');
 
         if ($hasOldUnique) {
             // MySQL requires dropping the FK before dropping the unique index it relies on

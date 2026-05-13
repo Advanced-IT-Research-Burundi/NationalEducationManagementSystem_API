@@ -238,6 +238,8 @@ class EleveController extends Controller
     {
         $eleve = Eleve::findOrFail($id);
 
+        $this->authorize('view', $eleve);
+
         $eleve->load([
             'ecole',
             'ecoleOrigine',

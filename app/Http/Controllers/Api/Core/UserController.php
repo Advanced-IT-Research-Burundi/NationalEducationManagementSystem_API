@@ -13,6 +13,8 @@ use App\Http\Resources\ProvinceResource;
 use App\Http\Resources\SchoolResource;
 use App\Http\Resources\ZoneResource;
 use App\Mail\WelcomeMail;
+use App\Models\Eleve;
+use App\Models\EleveParent;
 use App\Models\Enseignant;
 use App\Models\Role;
 use App\Models\School;
@@ -72,21 +74,27 @@ class UserController extends Controller
         $data = $request->validated();
 
         $user = new User;
+
+        if ($this->isParentRole($data)) {
+            $generatedPassword = $this->generateSecurePassword();
+            $user->password = $generatedPassword;
+            $data['generated_password'] = $generatedPassword;
+            unset($data['password'], $data['password_confirmation']);
+        } else {
+            $user->password = $data['password'];
+            unset($data['password'], $data['password_confirmation']);
+        }
+
         $user->fill($data);
-
-        // Handle password for Parent users
-        $generatedPassword = $this->generateSecurePassword();
-        $user->password = Hash::make($generatedPassword);
-        $user->must_change_password = true;
-        $data['generated_password'] = $generatedPassword;
-
         $user->created_by = Auth::id();
         $user->statut = 'actif';
+        $user->must_change_password = true;
         $user->save();
 
         $this->syncUserRoles($user, $data);
         $this->syncSchoolDirectorAssignment($user);
         $this->syncEnseignantProfile($user, $data);
+        $this->syncParentEleveLinksFromRequest($user, $data);
 
         // Send Welcome Mail
         Mail::to($user->email)->send(new WelcomeMail($user, $data['generated_password'] ?? null));
@@ -123,6 +131,7 @@ class UserController extends Controller
             'zone',
             'colline',
             'school',
+            'eleveParents.eleve.ecole',
         ]);
 
         $payload = $user->toArray();
@@ -154,6 +163,27 @@ class UserController extends Controller
         $payload['is_super_admin'] = $user->isSuperAdmin();
         $payload['authorization'] = $user->getAuthorizationSnapshot();
 
+        $payload['parent_eleves'] = $user->relationLoaded('eleveParents')
+            ? $user->eleveParents->map(function (EleveParent $link) {
+                $eleve = $link->eleve;
+
+                return [
+                    'id' => $link->id,
+                    'eleve_id' => $link->eleve_id,
+                    'relation' => $link->relation,
+                    'eleve' => $eleve ? [
+                        'id' => $eleve->id,
+                        'nom' => $eleve->nom,
+                        'prenom' => $eleve->prenom,
+                        'matricule' => $eleve->matricule,
+                        'school' => $eleve->relationLoaded('ecole') && $eleve->ecole
+                            ? ['id' => $eleve->ecole->id, 'name' => $eleve->ecole->name]
+                            : null,
+                    ] : null,
+                ];
+            })->values()->all()
+            : [];
+
         return response()->json($payload);
     }
 
@@ -179,6 +209,7 @@ class UserController extends Controller
         $this->syncUserRoles($user, $data);
         $this->syncSchoolDirectorAssignment($user, $previousSchoolId, $wasSchoolDirector);
         $this->syncEnseignantProfile($user, $data);
+        $this->syncParentEleveLinksFromRequest($user, $data);
 
         return response()->json([
             'message' => 'User updated successfully',
@@ -389,6 +420,7 @@ class UserController extends Controller
         ])->save();
 
         $this->syncSchoolDirectorAssignment($user, $previousSchoolId, $wasSchoolDirector);
+        $this->syncParentEleveLinksFromRequest($user, []);
 
         return response()->json([
             'message' => 'Rôles utilisateur mis à jour.',
@@ -407,6 +439,76 @@ class UserController extends Controller
     {
         return ($data['role'] ?? null) === Role::PARENT ||
                (isset($data['roles']) && is_array($data['roles']) && in_array(Role::PARENT, $data['roles']));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function syncParentEleveLinksFromRequest(User $user, array $data): void
+    {
+        $user->loadMissing('roles');
+
+        if (! $user->hasRole(Role::PARENT)) {
+            EleveParent::query()->where('user_id', $user->id)->delete();
+
+            return;
+        }
+
+        $links = $data['parent_eleves'] ?? null;
+
+        if (! is_array($links)) {
+            return;
+        }
+
+        $this->syncParentEleveLinks($user, $links);
+    }
+
+    /**
+     * @param  list<array{eleve_id: int, relation?: string|null}>  $links
+     */
+    protected function syncParentEleveLinks(User $user, array $links): void
+    {
+        $normalized = collect($links)
+            ->filter(fn ($row) => is_array($row) && ! empty($row['eleve_id']))
+            ->map(fn (array $row) => [
+                'eleve_id' => (int) $row['eleve_id'],
+                'relation' => isset($row['relation']) && is_string($row['relation']) && $row['relation'] !== ''
+                    ? $row['relation']
+                    : 'Parent',
+            ])
+            ->unique('eleve_id')
+            ->values();
+
+        foreach ($normalized as $row) {
+            $eleve = Eleve::withoutGlobalScopes()->find($row['eleve_id']);
+
+            if (! $eleve) {
+                abort(Response::HTTP_UNPROCESSABLE_ENTITY, "Élève introuvable (id {$row['eleve_id']}).");
+            }
+
+            $this->authorize('view', $eleve);
+        }
+
+        $keepIds = $normalized->pluck('eleve_id')->all();
+
+        EleveParent::query()
+            ->where('user_id', $user->id)
+            ->whereNotIn('eleve_id', $keepIds)
+            ->delete();
+
+        foreach ($normalized as $row) {
+            EleveParent::query()->updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'eleve_id' => $row['eleve_id'],
+                ],
+                [
+                    'nom_complet' => $user->name,
+                    'relation' => $row['relation'],
+                    'email' => $user->email,
+                ]
+            );
+        }
     }
 
     protected function generateSecurePassword(): string

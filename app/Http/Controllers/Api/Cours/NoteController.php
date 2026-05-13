@@ -3,20 +3,27 @@
 namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
-use App\Models\AnneeScolaire;
 use App\Models\Note;
+use App\Models\Role;
+use App\Traits\ResolvesAnneeScolaire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 class NoteController extends Controller
 {
-    use \App\Traits\ResolvesAnneeScolaire;
+    use ResolvesAnneeScolaire;
+
     /**
      * Consultation des notes avec filtres en cascade.
      */
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Note::class);
+
+        $user = $request->user();
+        $isParent = $user->hasRole(Role::PARENT);
+
         $query = Note::with([
             'eleve:id,nom,prenom,matricule',
             'evaluation' => function ($q) {
@@ -26,6 +33,16 @@ class NoteController extends Controller
             'evaluation.cours:id,nom,code',
             'evaluation.anneeScolaire:id,libelle,code',
         ]);
+
+        if ($isParent) {
+            $linkedIds = $user->linkedParentEleveIds();
+
+            if ($linkedIds === []) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereIn('eleve_id', $linkedIds);
+            }
+        }
 
         // Filter by classe (through evaluation)
         if ($request->filled('classe_id')) {
@@ -38,7 +55,7 @@ class NoteController extends Controller
             $query->whereHas('evaluation.classe', function ($q) use ($request) {
                 $q->where('school_id', $request->integer('school_id'));
             });
-        } elseif (auth()->check() && auth()->user()->school_id) {
+        } elseif (! $isParent && auth()->check() && auth()->user()->school_id) {
             $query->whereHas('evaluation.classe', function ($q) {
                 $q->where('school_id', auth()->user()->school_id);
             });

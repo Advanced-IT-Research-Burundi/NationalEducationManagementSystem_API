@@ -52,6 +52,10 @@ class StoreUserRequest extends FormRequest
                 Rule::requiredIf(fn () => $this->input('role') === Role::ENSEIGNANT),
                 'nullable', 'string', 'max:50', 'unique:enseignants,matricule',
             ],
+
+            'parent_eleves' => ['sometimes', 'array'],
+            'parent_eleves.*.eleve_id' => ['required', 'integer', 'exists:eleves,id'],
+            'parent_eleves.*.relation' => ['nullable', 'string', 'max:100'],
         ];
     }
 

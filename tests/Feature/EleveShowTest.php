@@ -1,15 +1,20 @@
 <?php
 
 use App\Models\Eleve;
+use App\Models\Role;
 use App\Models\School;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+
     $this->user = User::factory()->create(['admin_level' => 'PAYS']);
+    $this->user->assignRole(Role::ADMIN_NATIONAL);
     $this->actingAs($this->user, 'sanctum');
 
     $now = now();

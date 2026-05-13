@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Role;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,7 @@ class UpdateUserRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
@@ -45,6 +46,10 @@ class UpdateUserRequest extends FormRequest
             'colline_id' => ['nullable', 'exists:collines,id'],
             'school_id' => ['nullable', 'exists:schools,id'],
             'statut' => ['sometimes', 'in:actif,inactif'],
+
+            'parent_eleves' => ['sometimes', 'array'],
+            'parent_eleves.*.eleve_id' => ['required', 'integer', 'exists:eleves,id'],
+            'parent_eleves.*.relation' => ['nullable', 'string', 'max:100'],
         ];
     }
 

@@ -7,27 +7,29 @@
  * + Module Cours (Cours, Évaluations, Notes, Bulletins, Palmarès, Catégories)
  */
 
+use App\Http\Controllers\Api\Academic\AffectationMatiereController;
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
 use App\Http\Controllers\Api\Academic\ClasseController;
 use App\Http\Controllers\Api\Academic\CycleScolaireController;
 use App\Http\Controllers\Api\Academic\EleveController;
 use App\Http\Controllers\Api\Academic\EnseignantController;
+use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\MouvementEleveController;
 use App\Http\Controllers\Api\Academic\NiveauController;
 use App\Http\Controllers\Api\Academic\PromotionController;
-use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\SectionController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
-use App\Http\Controllers\Api\Academic\AffectationMatiereController;
-use App\Http\Controllers\Api\Cours\CoursController;
+use App\Http\Controllers\Api\Cours\BulletinController;
 use App\Http\Controllers\Api\Cours\CategoriCoursController;
+use App\Http\Controllers\Api\Cours\ConduiteController;
+use App\Http\Controllers\Api\Cours\CoursController;
 use App\Http\Controllers\Api\Cours\EvaluationController;
 use App\Http\Controllers\Api\Cours\NoteController;
-use App\Http\Controllers\Api\Cours\BulletinController;
 use App\Http\Controllers\Api\Cours\PalmaresController;
 use App\Http\Controllers\Api\Cours\ReglementScolaireController;
-use App\Http\Controllers\Api\Cours\ConduiteController;
+use App\Http\Controllers\Api\Parent\ParentChildrenController;
 use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | Protected Academic Routes
@@ -35,6 +37,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->group(function () {
+
+    Route::get('parent/children', [ParentChildrenController::class, 'index'])->name('parent.children');
 
     // Années Scolaires (School Years)
     Route::get('annees-scolaires/list', [AnneeScolaireController::class, 'list'])->name('annees-scolaires.list');
