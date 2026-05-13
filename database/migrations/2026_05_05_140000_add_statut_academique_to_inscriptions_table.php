@@ -16,9 +16,10 @@ return new class extends Migration
             });
         }
 
+        $indexKeys = $this->inscriptionIndexKeyNames();
+
         // Add index on statut_academique if not present
-        $hasStatutIndex = collect(DB::select('SHOW INDEX FROM inscriptions'))
-            ->contains('Key_name', 'inscriptions_statut_academique_index');
+        $hasStatutIndex = in_array('inscriptions_statut_academique_index', $indexKeys, true);
         if (! $hasStatutIndex) {
             Schema::table('inscriptions', function (Blueprint $table) {
                 $table->index('statut_academique');
@@ -26,8 +27,7 @@ return new class extends Migration
         }
 
         // Replace the unique constraint: (eleve_id, annee_scolaire_id) -> (eleve_id, annee_scolaire_id, school_id)
-        $hasOldUnique = collect(DB::select('SHOW INDEX FROM inscriptions'))
-            ->contains('Key_name', 'inscriptions_eleve_id_annee_scolaire_id_unique');
+        $hasOldUnique = in_array('inscriptions_eleve_id_annee_scolaire_id_unique', $indexKeys, true);
 
         if ($hasOldUnique) {
             // MySQL requires dropping the FK before dropping the unique index it relies on
@@ -62,5 +62,32 @@ return new class extends Migration
             $table->dropIndex(['statut_academique']);
             $table->dropColumn('statut_academique');
         });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function inscriptionIndexKeyNames(): array
+    {
+        $connection = Schema::getConnection();
+        $table = 'inscriptions';
+        $prefixed = $connection->getTablePrefix().$table;
+
+        return match ($connection->getDriverName()) {
+            'mysql', 'mariadb' => collect(DB::select('SHOW INDEX FROM `'.$prefixed.'`'))
+                ->pluck('Key_name')
+                ->unique()
+                ->values()
+                ->all(),
+            'sqlite' => collect(DB::select(
+                'SELECT name FROM sqlite_master WHERE tbl_name = ? AND type = ?',
+                [$prefixed, 'index']
+            ))
+                ->pluck('name')
+                ->filter()
+                ->values()
+                ->all(),
+            default => [],
+        };
     }
 };

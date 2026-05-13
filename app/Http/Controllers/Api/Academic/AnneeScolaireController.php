@@ -6,13 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAnneeScolaireRequest;
 use App\Http\Requests\UpdateAnneeScolaireRequest;
 use App\Models\AnneeScolaire;
+use App\Models\ConfigurationAcademique;
 use App\Models\Inscription;
+use App\Services\CurrentAcademicContextService;
 use App\Services\TransitionScolaireService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AnneeScolaireController extends Controller
 {
+    public function __construct(
+        private readonly CurrentAcademicContextService $academicContextService
+    ) {}
+
     /**
      * Display a listing of années scolaires.
      */
@@ -52,6 +58,13 @@ class AnneeScolaireController extends Controller
 
         $anneeScolaire = AnneeScolaire::create($data);
 
+        if (! empty($data['est_active'])) {
+            ConfigurationAcademique::current()->forceFill([
+                'current_annee_scolaire_id' => $anneeScolaire->id,
+                'current_trimestre_id' => null,
+            ])->save();
+        }
+
         return response()->json([
             'message' => 'Année scolaire créée avec succès',
             'annee_scolaire' => $anneeScolaire,
@@ -81,6 +94,13 @@ class AnneeScolaireController extends Controller
         }
 
         $anneeScolaire->update($data);
+
+        if (! empty($data['est_active'])) {
+            ConfigurationAcademique::current()->forceFill([
+                'current_annee_scolaire_id' => $anneeScolaire->id,
+                'current_trimestre_id' => null,
+            ])->save();
+        }
 
         return response()->json([
             'message' => 'Année scolaire mise à jour avec succès',
@@ -126,7 +146,7 @@ class AnneeScolaireController extends Controller
      */
     public function current(): JsonResponse
     {
-        $current = AnneeScolaire::current();
+        $current = $this->academicContextService->resolveAnneeScolaire();
 
         if (! $current) {
             return response()->json([

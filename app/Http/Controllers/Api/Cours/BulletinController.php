@@ -8,19 +8,25 @@ use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\Matiere;
 use App\Models\NoteConduite;
+use App\Models\Trimestre;
 use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
+use App\Services\CurrentAcademicContextService;
+use App\Support\AcademicCycleHelper;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
-use App\Support\AcademicCycleHelper;
 
 class BulletinController extends Controller
 {
     use \App\Traits\ResolvesAnneeScolaire;
+
+    public function __construct(
+        private readonly CurrentAcademicContextService $academicContextService
+    ) {}
 
     private const TRIMESTRES = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
 
@@ -31,31 +37,43 @@ class BulletinController extends Controller
     {
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
-            'trimestre' => ['nullable', 'string'],
+            'mode' => ['nullable', 'in:current,annual'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
 
         $classeId = $request->integer('classe_id');
-        $trimestre = $request->trimestre;
+        $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         $requestedEleveId = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
+        $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
+        $trimestre = $currentTrimestre?->nom;
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($mode === 'annual' ? 'annual' : ($currentTrimestre?->id ?? 'current'));
         $ttl = 600;
 
-        $data = Cache::remember($cacheKey, $ttl, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $data = Cache::remember($cacheKey, $ttl, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $currentTrimestre));
 
         if ($requestedEleveId) {
             $data['bulletins'] = array_values(array_filter(
                 $data['bulletins'],
-                fn($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
+                fn ($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
+
+        $data['mode'] = $mode;
+        $data['trimestre_meta'] = $currentTrimestre ? [
+            'id' => $currentTrimestre->id,
+            'nom' => $currentTrimestre->nom,
+            'date_debut' => optional($currentTrimestre->date_debut)?->toDateString(),
+            'date_fin' => optional($currentTrimestre->date_fin)?->toDateString(),
+            'actif' => (bool) $currentTrimestre->actif,
+            'verrouille' => (bool) $currentTrimestre->verrouille,
+        ] : null;
 
         return response()->json(['data' => $data]);
     }
@@ -63,7 +81,7 @@ class BulletinController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildBulletinData(int $classeId, ?string $trimestre, int $anneeScolaireId): array
+    private function buildBulletinData(int $classeId, ?string $trimestre, int $anneeScolaireId, ?Trimestre $trimestreModel = null): array
     {
         $classe = Classe::withoutGlobalScope(AcademicYearScope::class)
             ->with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])
@@ -100,7 +118,9 @@ class BulletinController extends Controller
             ->where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
 
-        if ($trimestre) {
+        if ($trimestreModel) {
+            $evaluationsQuery->matchingTrimestre($trimestreModel);
+        } elseif ($trimestre) {
             $evaluationsQuery->where('trimestre', $trimestre);
         }
 
@@ -109,7 +129,9 @@ class BulletinController extends Controller
         // Get notes conduite
         $notesConduiteQuery = NoteConduite::where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
-        if ($trimestre) {
+        if ($trimestreModel) {
+            $notesConduiteQuery->matchingTrimestre($trimestreModel);
+        } elseif ($trimestre) {
             $notesConduiteQuery->where('trimestre', $trimestre);
         }
         $notesConduite = $notesConduiteQuery->get();
@@ -235,7 +257,7 @@ class BulletinController extends Controller
             }
 
             $annualConduiteNote = collect($requestedTrimestres)
-                ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
+                ->sum(fn ($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
             $annualConduiteMax = count($requestedTrimestres) * $conduiteMax;
             $annualIsComplete = ! $annualHasIncomplete;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
@@ -321,12 +343,12 @@ class BulletinController extends Controller
             ];
         }
 
-        $annualRanks = $this->buildRanks($bulletins, fn($bulletin) => $bulletin['annuel']);
+        $annualRanks = $this->buildRanks($bulletins, fn ($bulletin) => $bulletin['annuel']);
         $trimestreRanks = [];
         foreach ($requestedTrimestres as $currentTrimestre) {
             $trimestreRanks[$currentTrimestre] = $this->buildRanks(
                 $bulletins,
-                fn($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
+                fn ($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
             );
         }
 
@@ -367,27 +389,29 @@ class BulletinController extends Controller
     {
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
-            'trimestre' => ['nullable', 'string'],
+            'mode' => ['nullable', 'in:current,annual'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
 
         $classeId = $request->integer('classe_id');
-        $trimestre = $request->trimestre;
+        $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
+        $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
+        $trimestre = $currentTrimestre?->nom;
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
-        $bulletinData = Cache::remember($cacheKey, 600, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($mode === 'annual' ? 'annual' : ($currentTrimestre?->id ?? 'current'));
+        $bulletinData = Cache::remember($cacheKey, 600, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $currentTrimestre));
 
         if ($request->filled('eleve_id')) {
             $requestedEleveId = $request->integer('eleve_id');
             $bulletinData['bulletins'] = array_values(array_filter(
                 $bulletinData['bulletins'],
-                fn($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
+                fn ($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
 
@@ -408,7 +432,7 @@ class BulletinController extends Controller
             $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
             $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
         }
-        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . $eleveNom . '_' . $elevePrenom . '.pdf';
+        $filename = 'bulletin_'.($bulletinData['classe']['nom'] ?? 'classe').'_'.$eleveNom.'_'.$elevePrenom.'.pdf';
 
         return $pdf->download($filename);
     }

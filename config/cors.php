@@ -23,13 +23,7 @@ return [
      * Wildcard * is invalid when supports_credentials is true (browser will block).
      * Set CORS_ALLOWED_ORIGINS in .env for production, comma-separated.
      */
-    'allowed_origins' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', env(
-            'CORS_ALLOWED_ORIGINS',
-            'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000'
-        ))
-    ))),
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 

@@ -43,6 +43,10 @@ class AnneeScolaireSeeder extends Seeder
             );
         }
 
+        $this->call([
+            TrimestreSeeder::class,
+        ]);
+
         $this->command->info('Années scolaires créées avec succès!');
     }
 }

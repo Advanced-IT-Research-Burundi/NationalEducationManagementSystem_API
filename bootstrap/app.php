@@ -4,6 +4,7 @@ use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\CompressResponse;
 use App\Http\Middleware\SetActiveAcademicYear;
+use App\Http\Middleware\SetCurrentAcademicContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             SetActiveAcademicYear::class,
+            SetCurrentAcademicContext::class,
             CompressResponse::class,
         ]);
     })

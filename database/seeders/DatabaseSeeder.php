@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
-
         User::updateOrCreate(
             ['email' => 'nijeanlionel@gmail.com'],
             [
@@ -27,7 +26,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-
         $this->call([
             PaysSeeder::class,
             BurundiAdministrativeDivisionsSeeder::class,
@@ -35,6 +33,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             // BurundiSchoolsSeeder::class,
             // AnneeScolaireSeeder::class,
+            // TrimestreSeeder::class,
             // TypeSeeder::class,
             // CycleSeeder::class,
             // NiveauSeeder::class,

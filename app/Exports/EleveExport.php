@@ -5,25 +5,24 @@ namespace App\Exports;
 use App\Models\Eleve;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class EleveExport implements FromQuery, WithTitle, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
+class EleveExport implements FromQuery, WithColumnWidths, WithEvents, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     public function __construct(
-        private readonly ?int    $schoolId = null,
-        private readonly ?string $statut   = null,
-        private readonly ?int    $niveauId = null,
+        private readonly ?int $schoolId = null,
+        private readonly ?string $statut = null,
+        private readonly ?int $niveauId = null,
     ) {}
 
     // ── Données ──────────────────────────────────────────────────────────────
@@ -32,13 +31,12 @@ class EleveExport implements FromQuery, WithTitle, WithHeadings, WithMapping, Wi
     {
         return Eleve::query()
             ->with([
-                'collineOrigine',   // FK → nom colline
-                'ecoleOrigine',     // FK → nom école d'origine
-                'ecole',            // FK → nom école actuelle
-                'niveau',           // FK → nom niveau
+                'collineOrigine',
+                'ecole',
+                'niveau',
             ])
             ->when($this->schoolId, fn ($q) => $q->where('school_id', $this->schoolId))
-            ->when($this->statut,   fn ($q) => $q->where('statut_global', $this->statut))
+            ->when($this->statut, fn ($q) => $q->where('statut_global', $this->statut))
             ->when($this->niveauId, fn ($q) => $q->where('niveau_id', $this->niveauId))
             ->orderBy('nom')
             ->orderBy('prenom');
@@ -91,9 +89,9 @@ class EleveExport implements FromQuery, WithTitle, WithHeadings, WithMapping, Wi
             $eleve->nom_tuteur,
             $eleve->contact_tuteur,
             $eleve->est_orphelin ? '1' : '0',
-            $eleve->a_handicap   ? '1' : '0',
+            $eleve->a_handicap ? '1' : '0',
             $eleve->type_handicap,
-            $eleve->ecoleOrigine?->nom ?? '',       // ← NOM au lieu de l'ID
+            '',
             $eleve->ecole?->nom ?? '',              // ← NOM au lieu de l'ID
             $eleve->niveau?->nom ?? '',             // ← NOM au lieu de l'ID
             $eleve->statut_global,
@@ -121,8 +119,8 @@ class EleveExport implements FromQuery, WithTitle, WithHeadings, WithMapping, Wi
     {
         return [
             1 => [
-                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 10, 'name' => 'Arial'],
-                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
+                'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 10, 'name' => 'Arial'],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
             ],
         ];
@@ -132,9 +130,9 @@ class EleveExport implements FromQuery, WithTitle, WithHeadings, WithMapping, Wi
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                $sheet    = $event->sheet->getDelegate();
-                $lastRow  = $sheet->getHighestRow();
-                $lastCol  = 'T';
+                $sheet = $event->sheet->getDelegate();
+                $lastRow = $sheet->getHighestRow();
+                $lastCol = 'T';
 
                 // FK columns (in green to show "name, not ID")
                 foreach (['H', 'Q', 'R', 'S'] as $col) {
@@ -149,7 +147,7 @@ class EleveExport implements FromQuery, WithTitle, WithHeadings, WithMapping, Wi
                 $sheet->getStyle("A1:{$lastCol}{$lastRow}")->applyFromArray([
                     'borders' => ['allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
-                        'color'       => ['argb' => 'FFBFBFBF'],
+                        'color' => ['argb' => 'FFBFBFBF'],
                     ]],
                 ]);
 

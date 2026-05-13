@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Api\Academic;
 
+/**
+ * @deprecated Ancien module d'évaluations (modèle incompatible). Les routes publiques ont été retirées.
+ *             Utiliser App\Http\Controllers\Api\Cours\EvaluationController sous le préfixe /academic/evaluations.
+ */
+
 use App\Http\Controllers\Controller;
+use App\Http\Resources\EvaluationResource;
 use App\Models\Evaluation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-use App\Http\Resources\EvaluationResource;
-
 
 class EvaluationController extends Controller
 {
