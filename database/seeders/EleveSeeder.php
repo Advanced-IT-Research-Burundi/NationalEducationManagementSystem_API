@@ -145,6 +145,7 @@ class EleveSeeder extends Seeder
             'a_handicap' => rand(0, 50) === 0, // 2% handicap
             'type_handicap' => rand(0, 50) === 0 ? ['Visuel', 'Auditif', 'Moteur', 'Mental'][rand(0, 3)] : null,
             'statut_global' => 'actif',
+
         ]);
     }
 

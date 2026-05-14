@@ -28,6 +28,18 @@ class PalmaresController extends Controller
     public function __construct(
         private readonly CurrentAcademicContextService $academicContextService
     ) {}
+    private function authorizePalmaresAccess(Request $request, bool $forPdf = false): void
+    {
+        $user = $request->user();
+
+        abort_unless($user, 401, 'Non authentifié.');
+
+        $allowed = $forPdf
+            ? $user->hasAnyPermissionName(['manage_grades', 'generate_reports', 'print_bulletins'])
+            : $user->hasAnyPermissionName(['view_data', 'manage_grades', 'view_reports', 'view_bulletin', 'view_any_bulletin', 'print_bulletins']);
+
+        abort_unless($allowed, 403, 'Vous n’êtes pas autorisé à accéder au palmarès.');
+    }
 
     private static function palmaresCoursCode(Matiere $matiere): string
     {
@@ -47,6 +59,8 @@ class PalmaresController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $this->authorizePalmaresAccess($request);
+
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
@@ -273,6 +287,8 @@ class PalmaresController extends Controller
      */
     public function pdf(Request $request)
     {
+        $this->authorizePalmaresAccess($request, true);
+
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],

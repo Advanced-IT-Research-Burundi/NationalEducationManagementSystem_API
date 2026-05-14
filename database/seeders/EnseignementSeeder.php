@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Colline;
+use App\Models\Commune;
 use App\Models\Enseignant;
 use App\Models\Pays;
-use App\Models\Commune;
-use App\Models\Zone;
-use App\Models\Colline;
 use App\Models\Province;
+use App\Models\User;
+use App\Models\Zone;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -25,12 +25,13 @@ class EnseignementSeeder extends Seeder
         $commune = Commune::where('name', 'BUJUMBURA MAIRIE')->first() ?? Commune::first();
         $zone = Zone::where('name', 'ROHERO')->first() ?? Zone::first();
         $colline = Colline::where('name', 'MUKAZA')->first() ?? Colline::first();
+        $ecole = Ecole::where('name', 'Lycée Municipal de Rohero')->first() ?? Ecole::first();
 
         $qualifications = [
             'Master' => ['Informatique', 'Mathématiques', 'Physique', 'Économie'],
             'Licence' => ['Anglais', 'Français', 'Histoire', 'Géographie'],
             'Doctorat' => ['Biologie', 'Chimie', 'Sociologie'],
-            'CAPES' => ['Lettres Modernes', 'SVT', 'EPS']
+            'CAPES' => ['Lettres Modernes', 'SVT', 'EPS'],
         ];
 
         for ($i = 1; $i <= 10; $i++) {
@@ -39,7 +40,7 @@ class EnseignementSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => $email],
                 [
-                    'name' => "Enseignant Test " . $i,
+                    'name' => 'Enseignant Test '.$i,
                     'password' => Hash::make('Advanced2026'),
                     'email_verified_at' => now(),
                     'statut' => 'actif',
@@ -64,15 +65,15 @@ class EnseignementSeeder extends Seeder
             Enseignant::updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'school_id'               => 1, // Assurez-vous que l'école ID 1 existe
-                    'matricule'               => 'ENS-' . str_pad($i, 4, '0', STR_PAD_LEFT),
-                    'qualification'           => $qualType,
+                    'school_id' => 1, // Assurez-vous que l'école ID 1 existe
+                    'matricule' => 'ENS-'.str_pad($i, 4, '0', STR_PAD_LEFT),
+                    'qualification' => $qualType,
                     'qualification_precision' => $precision,
-                    'annees_experience'       => rand(1, 25),
-                    'date_embauche'           => now()->subYears(rand(0, 15))->format('Y-m-d'),
-                    'telephone'               => '79' . rand(100000, 999999),
-                    'statut'                  => 'actif',
-                    'created_by'              => 1,
+                    'annees_experience' => rand(1, 25),
+                    'date_embauche' => now()->subYears(rand(0, 15))->format('Y-m-d'),
+                    'telephone' => '79'.rand(100000, 999999),
+                    'statut' => 'actif',
+                    'created_by' => 1,
                 ]
             );
         }

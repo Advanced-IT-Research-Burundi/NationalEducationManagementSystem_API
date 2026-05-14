@@ -9,6 +9,10 @@ class EleveResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $inscriptionCourante = $this->getInscriptionCourante();
+        $contextualSchool = $this->resolveContextualSchool($inscriptionCourante);
+        $contextualNiveau = $this->resolveContextualNiveau($inscriptionCourante);
+
         $data = [
             'id' => $this->id,
             'matricule' => $this->matricule,
@@ -25,13 +29,13 @@ class EleveResource extends JsonResource
             'commune_origine_id' => $this->commune_origine_id,
             'zone_origine_id' => $this->zone_origine_id,
             'colline_origine_id' => $this->colline_origine_id,
-            'niveau_id' => $this->niveau_id,
+            'niveau_id' => $contextualNiveau['id'] ?? $this->niveau_id,
 
             'province_origine' => new ProvinceResource($this->whenLoaded('provinceOrigine')),
             'commune_origine' => new CommuneResource($this->whenLoaded('communeOrigine')),
             'zone_origine' => new ZoneResource($this->whenLoaded('zoneOrigine')),
             'colline_origine' => new CollineResource($this->whenLoaded('collineOrigine')),
-            'niveau' => new NiveauResource($this->whenLoaded('niveau')),
+            'niveau' => $contextualNiveau ?? new NiveauResource($this->whenLoaded('niveau')),
 
             'nom_pere' => $this->nom_pere,
             'nom_mere' => $this->nom_mere,
@@ -41,9 +45,9 @@ class EleveResource extends JsonResource
             'a_handicap' => $this->a_handicap,
             'type_handicap' => $this->type_handicap,
 
-            'school_id' => $this->school_id,
+            'school_id' => $contextualSchool['id'] ?? $this->school_id,
             'statut_global' => $this->statut_global,
-            'school' => new SchoolResource($this->whenLoaded('ecole')),
+            'school' => $contextualSchool ?? new SchoolResource($this->whenLoaded('ecole')),
 
             'classes' => $this->whenLoaded('classes', function () {
                 return $this->classes->map(fn ($classe) => [
@@ -80,7 +84,6 @@ class EleveResource extends JsonResource
         // When inscriptions are loaded and a target year is set, extract the
         // contextual inscription data so the frontend knows the student's state
         // for the consulted school year (niveau, classe, statut_academique, etc.)
-        $inscriptionCourante = $this->getInscriptionCourante();
         if ($inscriptionCourante) {
             $data['inscription_courante'] = [
                 'id' => $inscriptionCourante->id,
@@ -121,5 +124,39 @@ class EleveResource extends JsonResource
         }
 
         return $this->inscriptions->first();
+    }
+
+    private function resolveContextualSchool($inscriptionCourante): ?array
+    {
+        if ($inscriptionCourante && $inscriptionCourante->relationLoaded('ecole') && $inscriptionCourante->ecole) {
+            return [
+                'id' => $inscriptionCourante->ecole->id,
+                'name' => $inscriptionCourante->ecole->name,
+                'code_ecole' => $inscriptionCourante->ecole->code_ecole,
+            ];
+        }
+
+        if ($this->relationLoaded('ecole') && $this->ecole) {
+            return (new SchoolResource($this->ecole))->resolve();
+        }
+
+        return null;
+    }
+
+    private function resolveContextualNiveau($inscriptionCourante): ?array
+    {
+        if ($inscriptionCourante && $inscriptionCourante->relationLoaded('niveauDemande') && $inscriptionCourante->niveauDemande) {
+            return [
+                'id' => $inscriptionCourante->niveauDemande->id,
+                'nom' => $inscriptionCourante->niveauDemande->nom,
+                'code' => $inscriptionCourante->niveauDemande->code,
+            ];
+        }
+
+        if ($this->relationLoaded('niveau') && $this->niveau) {
+            return (new NiveauResource($this->niveau))->resolve();
+        }
+
+        return null;
     }
 }

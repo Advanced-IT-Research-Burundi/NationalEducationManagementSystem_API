@@ -44,7 +44,12 @@ class UpdateEleveRequest extends FormRequest
             'nom_tuteur' => ['nullable', 'string', 'max:200'],
             'contact_tuteur' => ['nullable', 'string', 'max:255'],
             'adresse' => ['nullable', 'string', 'max:500'],
-            'statut' => ['sometimes', Rule::in(['INSCRIT', 'ACTIF', 'SUSPENDU', 'TRANSFERE', 'DIPLOME', 'ABANDONNE'])],
+            'est_orphelin' => ['sometimes', 'boolean'],
+            'a_handicap' => ['sometimes', 'boolean'],
+            'type_handicap' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'photo_path' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'school_id' => ['sometimes', 'nullable', 'exists:schools,id'],
+            'statut_global' => ['sometimes', Rule::in(['actif', 'inactif', 'transfere', 'abandonne', 'decede'])],
         ];
     }
 
