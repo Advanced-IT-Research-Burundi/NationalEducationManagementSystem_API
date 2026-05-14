@@ -2,10 +2,17 @@
 
 namespace App\Scopes;
 
+use App\Models\Eleve;
+use App\Models\Enseignant;
+use App\Models\Role;
+use App\Models\School;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class AdminScope implements Scope
 {
@@ -14,7 +21,7 @@ class AdminScope implements Scope
      */
     public function apply(Builder $builder, Model $model): void
     {
-        if (!Auth::hasUser()) {
+        if (! Auth::hasUser()) {
             return;
         }
 
@@ -27,15 +34,15 @@ class AdminScope implements Scope
         }
 
         // 2. Filter based on Admin Level
-        // We assume the model has columns matching the hierarchy: 
+        // We assume the model has columns matching the hierarchy:
         // pays_id, ministere_id, province_id, commune_id, zone_id, school_id (or id for School)
-        
+
         // Enseignant multi-école: include all assigned schools
-        if ($user->hasRole(\App\Models\Role::ENSEIGNANT)) {
+        if ($user->hasRole(Role::ENSEIGNANT)) {
             $schoolIds = $this->resolveTeacherSchoolIds($user);
 
             if ($schoolIds->isNotEmpty()) {
-                if ($model instanceof \App\Models\School) {
+                if ($model instanceof School) {
                     $builder->whereIn($qualify('id'), $schoolIds);
                 } elseif ($this->hasColumn($model, 'school_id')) {
                     $this->filterBySchools($builder, $model, $qualify, $schoolIds);
@@ -47,10 +54,24 @@ class AdminScope implements Scope
             }
         }
 
+        if ($user->hasRole(Role::PARENT)) {
+            if ($model instanceof Eleve) {
+                $ids = $user->linkedParentEleveIds();
+
+                if ($ids === []) {
+                    $builder->whereRaw('1 = 0');
+                } else {
+                    $builder->whereIn($qualify('id'), $ids);
+                }
+
+                return;
+            }
+        }
+
         $schoolScopeId = $this->resolveSchoolScopedSchoolId($user);
 
         if ($schoolScopeId !== null) {
-            if ($model instanceof \App\Models\School) {
+            if ($model instanceof School) {
                 $builder->where($qualify('id'), $schoolScopeId);
             } elseif ($this->hasColumn($model, 'school_id')) {
                 $this->filterBySchools($builder, $model, $qualify, collect([$schoolScopeId]));
@@ -88,7 +109,7 @@ class AdminScope implements Scope
                 break;
 
             case 'ECOLE':
-                if ($model instanceof \App\Models\School) {
+                if ($model instanceof School) {
                     $builder->where($qualify('id'), $entityId);
                 } elseif ($this->hasColumn($model, 'school_id')) {
                     $this->filterBySchools($builder, $model, $qualify, collect([$entityId]));
@@ -106,7 +127,7 @@ class AdminScope implements Scope
      */
     protected function applyHierarchyFilter(Builder $builder, Model $model, callable $qualify, string $column, $entityId): void
     {
-        if ($model instanceof \App\Models\School) {
+        if ($model instanceof School) {
             $builder->where($qualify($column), $entityId);
 
             return;
@@ -154,11 +175,11 @@ class AdminScope implements Scope
      * Filter by school(s) on a model that has school_id.
      * For Enseignant, also includes matches from the enseignant_school pivot table.
      *
-     * @param  \Closure|\Illuminate\Support\Collection  $schoolConstraint  Closure (subquery) or Collection of IDs
+     * @param  \Closure|Collection  $schoolConstraint  Closure (subquery) or Collection of IDs
      */
     protected function filterBySchools(Builder $builder, Model $model, callable $qualify, $schoolConstraint): void
     {
-        if ($model instanceof \App\Models\Enseignant) {
+        if ($model instanceof Enseignant) {
             $builder->where(function ($q) use ($qualify, $schoolConstraint) {
                 $q->whereIn($qualify('school_id'), $schoolConstraint)
                     ->orWhereIn($qualify('id'), function ($sub) use ($schoolConstraint) {
@@ -175,7 +196,7 @@ class AdminScope implements Scope
     /**
      * Filter models that use ecole_origine_id / ecole_destination_id by a set of school IDs.
      */
-    protected function applySchoolIdsFilter(Builder $builder, Model $model, callable $qualify, \Illuminate\Support\Collection $schoolIds): void
+    protected function applySchoolIdsFilter(Builder $builder, Model $model, callable $qualify, Collection $schoolIds): void
     {
         $hasOrigine = $this->hasColumn($model, 'ecole_origine_id');
         $hasDestination = $this->hasColumn($model, 'ecole_destination_id');
@@ -199,7 +220,7 @@ class AdminScope implements Scope
     /**
      * Identifiant d'établissement pour utilisateurs cantonnés à une école (directeur, staff, élève suivant cours, etc.).
      */
-    protected function resolveSchoolScopedSchoolId(\App\Models\User $user): ?int
+    protected function resolveSchoolScopedSchoolId(User $user): ?int
     {
         if ($user->admin_level === 'ECOLE') {
             $id = $user->admin_entity_id ?? $user->school_id;
@@ -211,8 +232,8 @@ class AdminScope implements Scope
             return (int) $user->school_id;
         }
 
-        if ($user->hasRole(\App\Models\Role::DIRECTEUR_ECOLE)) {
-            $id = \App\Models\School::withoutGlobalScopes()
+        if ($user->hasRole(Role::DIRECTEUR_ECOLE)) {
+            $id = School::withoutGlobalScopes()
                 ->where('directeur_id', $user->id)
                 ->value('id');
 
@@ -226,19 +247,19 @@ class AdminScope implements Scope
      * Check if model table has a given column.
      * We use a lightweight check to avoid schema queries on every request if possible.
      * But Schema::hasColumn is cached by Laravel usually.
-     * However, ideally we should know the schema. 
-     * Since we control the models, we can assume the columns exist if we apply this scope 
+     * However, ideally we should know the schema.
+     * Since we control the models, we can assume the columns exist if we apply this scope
      * only to relevant models.
      */
     protected function hasColumn(Model $model, string $column): bool
     {
-        return \Illuminate\Support\Facades\Schema::hasColumn($model->getTable(), $column);
+        return Schema::hasColumn($model->getTable(), $column);
     }
 
     /**
      * Collect all school IDs a teacher has access to (direct + pivot).
      */
-    protected function resolveTeacherSchoolIds(\App\Models\User $user): \Illuminate\Support\Collection
+    protected function resolveTeacherSchoolIds(User $user): Collection
     {
         $user->loadMissing('enseignant');
 

@@ -510,10 +510,13 @@ class RolesAndPermissionsSeeder extends Seeder
                 'description' => 'Parent d\'élève avec accès limité aux informations de son enfant.',
                 'sort_order' => 100,
                 'permissions' => [
+                    'access_dashboard',
                     'view_student',
                     'view_eleve',
+                    'view_any_note',
                     'view_bulletin',
                     'view_any_bulletin',
+                    'print_bulletins',
                 ],
             ],
         ];

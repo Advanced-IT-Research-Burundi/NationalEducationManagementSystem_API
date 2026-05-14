@@ -5,10 +5,10 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Mail\ResetPasswordMail;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
@@ -142,9 +142,27 @@ class User extends Authenticatable
     /**
      * Children (eleves) that this parent user is linked to.
      */
-    public function eleveParents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function eleveParents(): HasMany
     {
         return $this->hasMany(EleveParent::class, 'user_id');
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function linkedParentEleveIds(): array
+    {
+        return $this->eleveParents()
+            ->pluck('eleve_id')
+            ->unique()
+            ->values()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    public function isLinkedParentOfEleve(int $eleveId): bool
+    {
+        return $this->eleveParents()->where('eleve_id', $eleveId)->exists();
     }
 
     // Helper to check permission (Manual implementation if needed, but Spatie provides can())

@@ -39,6 +39,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->group(function () {
 
+    Route::get('parent/children', [ParentChildrenController::class, 'index'])->name('parent.children');
+
     // Années Scolaires (School Years)
     Route::get('annees-scolaires/list', [AnneeScolaireController::class, 'list'])->name('annees-scolaires.list');
     Route::get('annees-scolaires/current', [AnneeScolaireController::class, 'current'])->name('annees-scolaires.current');
