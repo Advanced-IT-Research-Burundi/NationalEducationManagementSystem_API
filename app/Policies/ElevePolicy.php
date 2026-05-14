@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Eleve;
+use App\Models\Role;
 use App\Models\User;
 
 class ElevePolicy
@@ -12,6 +13,14 @@ class ElevePolicy
      */
     public function viewAny(User $user): bool
     {
+        if ($user->hasRole(Role::PARENT) && ! $user->hasAnyPermissionName([
+            'view_any_eleve',
+            'manage_students',
+            'view_data',
+        ])) {
+            return false;
+        }
+
         return $user->hasAnyPermissionName([
             'view_data',
             'view_eleve',
@@ -25,6 +34,11 @@ class ElevePolicy
      */
     public function view(User $user, Eleve $eleve): bool
     {
+        if ($user->hasRole(Role::PARENT)) {
+            return $user->isLinkedParentOfEleve($eleve->id)
+                && $user->hasAnyPermissionName(['view_student', 'view_eleve', 'view_any_eleve']);
+        }
+
         if (! $user->hasAnyPermissionName([
             'view_data',
             'view_eleve',
@@ -34,7 +48,6 @@ class ElevePolicy
             return false;
         }
 
-        // Check if user can access this school's data
         return $user->canAccessSchool($eleve->school);
     }
 

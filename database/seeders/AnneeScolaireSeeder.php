@@ -14,22 +14,22 @@ class AnneeScolaireSeeder extends Seeder
     {
         $anneesScolaires = [
             [
-                'code' => '2023-2024',
-                'libelle' => 'Année Scolaire 2023-2024',
+                'code' => '23-24',
+                'libelle' => '2023-2024',
                 'date_debut' => '2023-09-04',
                 'date_fin' => '2024-06-28',
                 'est_active' => false,
             ],
             [
-                'code' => '2024-2025',
-                'libelle' => 'Année Scolaire 2024-2025',
+                'code' => '24-25',
+                'libelle' => '2024-2025',
                 'date_debut' => '2024-09-02',
                 'date_fin' => '2025-06-27',
                 'est_active' => false,
             ],
             [
-                'code' => '2025-2026',
-                'libelle' => 'Année Scolaire 2025-2026',
+                'code' => '25-26',
+                'libelle' => '2025-2026',
                 'date_debut' => '2025-09-01',
                 'date_fin' => '2026-06-30',
                 'est_active' => true,
@@ -42,6 +42,10 @@ class AnneeScolaireSeeder extends Seeder
                 $annee
             );
         }
+
+        $this->call([
+            TrimestreSeeder::class,
+        ]);
 
         $this->command->info('Années scolaires créées avec succès!');
     }

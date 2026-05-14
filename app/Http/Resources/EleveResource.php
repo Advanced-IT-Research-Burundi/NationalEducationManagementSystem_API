@@ -55,6 +55,17 @@ class EleveResource extends JsonResource
                     'nom' => $classe->nom,
                 ]);
             }),
+            'parents' => $this->whenLoaded('parents', function () {
+                return $this->parents->map(fn ($parent) => [
+                    'id' => $parent->id,
+                    'user_id' => $parent->user_id,
+                    'name' => $parent->nom_complet,
+                    'email' => $parent->email,
+                    'telephone' => $parent->telephone,
+                    'adresse' => $parent->adresse,
+                    'relation_type' => $parent->relation,
+                ]);
+            }),
             'inscriptions' => $this->whenLoaded('inscriptions'),
 
             'created_by' => $this->whenLoaded('creator', fn () => [

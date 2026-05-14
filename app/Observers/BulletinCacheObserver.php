@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\NoteConduite;
-use Illuminate\Support\Facades\Cache;
+use App\Support\BulletinCache;
 
 class BulletinCacheObserver
 {
@@ -23,8 +23,7 @@ class BulletinCacheObserver
         $anneeScolaireId = $noteConduite->annee_scolaire_id;
 
         if ($classeId && $anneeScolaireId) {
-            Cache::forget("bulletin:{$classeId}:{$anneeScolaireId}:all");
-            Cache::forget("bulletin:{$classeId}:{$anneeScolaireId}:{$noteConduite->trimestre}");
+            BulletinCache::forgetClasseAnnee((int) $classeId, (int) $anneeScolaireId);
         }
     }
 }

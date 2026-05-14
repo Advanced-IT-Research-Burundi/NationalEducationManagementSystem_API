@@ -19,6 +19,10 @@ return [
 
     'allowed_methods' => ['*'],
 
+    /*
+     * Wildcard * is invalid when supports_credentials is true (browser will block).
+     * Set CORS_ALLOWED_ORIGINS in .env for production, comma-separated.
+     */
     'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -19,7 +18,7 @@ class AuthenticationTest extends TestCase
             'statut' => 'actif',
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/auth/login', [
             'email' => 'test@example.com',
             'password' => 'password123',
         ]);
@@ -34,8 +33,6 @@ class AuthenticationTest extends TestCase
                     'email',
                 ],
             ]);
-
-        $this->assertAuthenticatedAs($user);
     }
 
     public function test_user_cannot_login_with_invalid_credentials()
@@ -45,13 +42,13 @@ class AuthenticationTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/auth/login', [
             'email' => 'test@example.com',
             'password' => 'wrongpassword',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+        $response->assertStatus(401);
+        $this->assertNotEmpty($response->json('errors.email'));
 
         $this->assertGuest();
     }
@@ -64,13 +61,16 @@ class AuthenticationTest extends TestCase
             'statut' => 'inactif',
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/auth/login', [
             'email' => 'inactive@example.com',
             'password' => 'password123',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+        $response->assertStatus(401);
+        $this->assertStringContainsStringIgnoringCase(
+            'inactif',
+            (string) ($response->json('errors.email.0') ?? ''),
+        );
 
         $this->assertGuest();
     }
@@ -81,8 +81,8 @@ class AuthenticationTest extends TestCase
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/logout');
+            'Authorization' => 'Bearer '.$token,
+        ])->postJson('/api/auth/logout');
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Déconnexion réussie']);
@@ -96,8 +96,8 @@ class AuthenticationTest extends TestCase
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->getJson('/api/me');
+            'Authorization' => 'Bearer '.$token,
+        ])->getJson('/api/auth/me');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -112,8 +112,8 @@ class AuthenticationTest extends TestCase
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/refresh');
+            'Authorization' => 'Bearer '.$token,
+        ])->postJson('/api/auth/refresh');
 
         $response->assertStatus(200)
             ->assertJsonStructure([

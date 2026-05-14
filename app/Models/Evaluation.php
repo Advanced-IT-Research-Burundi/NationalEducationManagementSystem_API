@@ -27,6 +27,7 @@ class Evaluation extends Model
         'classe_id',
         'cours_id',
         'annee_scolaire_id',
+        'trimestre_id',
         'trimestre',
         'type_evaluation',
         'date_passation',
@@ -37,6 +38,12 @@ class Evaluation extends Model
     protected $casts = [
         'note_maximale' => 'decimal:2',
         'date_passation' => 'date',
+    ];
+
+    protected $appends = [
+        'trimestre_label',
+        'trimestre_meta',
+        'is_trimestre_locked',
     ];
 
     const TRIMESTRES = [
@@ -51,6 +58,7 @@ class Evaluation extends Model
         'Devoir',
         'TP',
         'Examen',
+        'Compétence',
     ];
 
     /**
@@ -69,6 +77,11 @@ class Evaluation extends Model
     public function anneeScolaire(): BelongsTo
     {
         return $this->belongsTo(AnneeScolaire::class);
+    }
+
+    public function trimestreModel(): BelongsTo
+    {
+        return $this->belongsTo(Trimestre::class, 'trimestre_id');
     }
 
     public function notes(): HasMany
@@ -99,6 +112,25 @@ class Evaluation extends Model
         return $query->where('trimestre', $trimestre);
     }
 
+    public function scopeByTrimestreId($query, int $trimestreId)
+    {
+        return $query->where('trimestre_id', $trimestreId);
+    }
+
+    /**
+     * Filtre sur le trimestre (id prioritaire, repli sur le libellé si trimestre_id encore nul).
+     */
+    public function scopeMatchingTrimestre($query, Trimestre $trimestre)
+    {
+        return $query->where(function ($q) use ($trimestre) {
+            $q->where('trimestre_id', $trimestre->id)
+                ->orWhere(function ($q2) use ($trimestre) {
+                    $q2->whereNull('trimestre_id')
+                        ->where('trimestre', $trimestre->nom);
+                });
+        });
+    }
+
     public function scopeByAnneeScolaire($query, int $anneeScolaireId)
     {
         return $query->where('annee_scolaire_id', $anneeScolaireId);
@@ -114,5 +146,33 @@ class Evaluation extends Model
         return $query->whereHas('classe', function ($q) use ($schoolId) {
             $q->where('school_id', $schoolId);
         });
+    }
+
+    public function getTrimestreLabelAttribute(): ?string
+    {
+        return $this->trimestreModel?->nom ?: $this->attributes['trimestre'] ?? null;
+    }
+
+    public function getTrimestreMetaAttribute(): ?array
+    {
+        $trimestre = $this->trimestreModel;
+
+        if (! $trimestre) {
+            return null;
+        }
+
+        return [
+            'id' => $trimestre->id,
+            'nom' => $trimestre->nom,
+            'date_debut' => optional($trimestre->date_debut)?->toDateString(),
+            'date_fin' => optional($trimestre->date_fin)?->toDateString(),
+            'actif' => (bool) $trimestre->actif,
+            'verrouille' => (bool) $trimestre->verrouille,
+        ];
+    }
+
+    public function getIsTrimestreLockedAttribute(): bool
+    {
+        return (bool) ($this->trimestreModel?->verrouille ?? false);
     }
 }

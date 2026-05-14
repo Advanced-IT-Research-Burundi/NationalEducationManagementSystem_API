@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
-use App\Models\AnneeScolaire;
 use App\Models\Note;
+use App\Services\CurrentAcademicContextService;
+use App\Models\Role;
+use App\Traits\ResolvesAnneeScolaire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -12,20 +14,43 @@ use Illuminate\Support\Facades\Schema;
 class NoteController extends Controller
 {
     use \App\Traits\ResolvesAnneeScolaire;
+
+    public function __construct(
+        private readonly CurrentAcademicContextService $academicContextService
+    ) {}
+    use ResolvesAnneeScolaire;
+
     /**
      * Consultation des notes avec filtres en cascade.
      */
     public function index(Request $request): JsonResponse
     {
+        $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
+        $this->authorize('viewAny', Note::class);
+
+        $user = $request->user();
+        $isParent = $user->hasRole(Role::PARENT);
+
         $query = Note::with([
             'eleve:id,nom,prenom,matricule',
             'evaluation' => function ($q) {
-                $q->select('id', 'classe_id', 'cours_id', 'trimestre', 'type_evaluation', 'note_maximale', 'annee_scolaire_id', 'date_passation');
+                $q->select('id', 'classe_id', 'cours_id', 'trimestre', 'trimestre_id', 'type_evaluation', 'note_maximale', 'annee_scolaire_id', 'date_passation');
             },
             'evaluation.classe:id,nom,code',
             'evaluation.cours:id,nom,code',
             'evaluation.anneeScolaire:id,libelle,code',
+            'evaluation.trimestreModel',
         ]);
+
+        if ($isParent) {
+            $linkedIds = $user->linkedParentEleveIds();
+
+            if ($linkedIds === []) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereIn('eleve_id', $linkedIds);
+            }
+        }
 
         // Filter by classe (through evaluation)
         if ($request->filled('classe_id')) {
@@ -38,7 +63,7 @@ class NoteController extends Controller
             $query->whereHas('evaluation.classe', function ($q) use ($request) {
                 $q->where('school_id', $request->integer('school_id'));
             });
-        } elseif (auth()->check() && auth()->user()->school_id) {
+        } elseif (! $isParent && auth()->check() && auth()->user()->school_id) {
             $query->whereHas('evaluation.classe', function ($q) {
                 $q->where('school_id', auth()->user()->school_id);
             });
@@ -51,19 +76,16 @@ class NoteController extends Controller
             });
         }
 
-        // Filter by trimestre
-        if ($request->filled('trimestre')) {
-            $query->whereHas('evaluation', function ($q) use ($request) {
-                $q->where('trimestre', $request->trimestre);
-            });
-        }
-
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         if ($anneeScolaireId) {
             $query->whereHas('evaluation', function ($q) use ($anneeScolaireId) {
                 $q->where('annee_scolaire_id', $anneeScolaireId);
             });
         }
+
+        $query->whereHas('evaluation', function ($q) use ($currentTrimestre) {
+            $q->where('trimestre_id', $currentTrimestre->id);
+        });
 
         // Filter by section (through evaluation.cours)
         if ($request->filled('section_id')) {

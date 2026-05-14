@@ -12,14 +12,24 @@ class Role extends SpatieRole
     use HasFactory;
 
     public const SUPER_ADMIN = 'Super Administrateur';
+
     public const ADMIN_NATIONAL = 'Admin National';
+
     public const ADMIN_MINISTERE = 'Admin Ministère';
+
     public const DIRECTEUR_PROVINCIAL = 'Directeur Provincial';
+
     public const AGENT_COMMUNAL = 'Agent Communal';
+
     public const SUPERVISEUR_ZONE = 'Superviseur Zone';
+
     public const DIRECTEUR_ECOLE = 'Directeur École';
+
     public const ENSEIGNANT = 'Enseignant';
+
     public const PERSONNEL_ADMINISTRATIF = 'Personnel Administratif';
+
+    public const PARENT = 'Parent';
 
     public const SYSTEM_ROLE_NAMES = [
         self::SUPER_ADMIN,
@@ -31,6 +41,7 @@ class Role extends SpatieRole
         self::DIRECTEUR_ECOLE,
         self::ENSEIGNANT,
         self::PERSONNEL_ADMINISTRATIF,
+        self::PARENT,
     ];
 
     protected $fillable = ['name', 'guard_name', 'description', 'is_system', 'sort_order'];

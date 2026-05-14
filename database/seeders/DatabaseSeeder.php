@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
 
-
         User::updateOrCreate(
             ['email' => 'nijeanlionel@gmail.com'],
             [
@@ -27,24 +26,26 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-
         $this->call([
             PaysSeeder::class,
             BurundiAdministrativeDivisionsSeeder::class,
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
-            BurundiSchoolsSeeder::class,
-            AnneeScolaireSeeder::class,
-            CycleSeeder::class,
-            NiveauSeeder::class,
-            NiveauSchoolSeeder::class,
-            EnseignementSeeder::class,
-            ClasseSeeder::class,
-            EleveSeeder::class,
-            MouvementEleveSeeder::class,
-            SectionSeeder::class,
-            BatimentSeeder::class,
-            MatiereSeeder::class
+            // BurundiSchoolsSeeder::class,
+            // AnneeScolaireSeeder::class,
+            // TrimestreSeeder::class,
+            // TypeSeeder::class,
+            // CycleSeeder::class,
+            // NiveauSeeder::class,
+            // NiveauSchoolSeeder::class,
+            // EnseignementSeeder::class,
+            // ClasseSeeder::class,
+            // EleveSeeder::class,
+            // MouvementEleveSeeder::class,
+            // SectionSeeder::class,
+            // BatimentSeeder::class,
+            // MatiereSeeder::class,
+
         ]);
     }
 }

@@ -3,21 +3,23 @@
 namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
-use App\Models\AnneeScolaire;
 use App\Models\Classe;
-use App\Models\Evaluation;
 use App\Models\NoteConduite;
 use App\Models\SanctionEleve;
 use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
+use App\Services\CurrentAcademicContextService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class ConduiteController extends Controller
 {
     use \App\Traits\EnsuresActiveAcademicYear;
     use \App\Traits\ResolvesAnneeScolaire;
+
+    public function __construct(
+        private readonly CurrentAcademicContextService $academicContextService
+    ) {}
 
     public function modifierConduite(Request $request)
     {
@@ -25,12 +27,13 @@ class ConduiteController extends Controller
             'eleve_id' => 'required|exists:eleves,id',
             'classe_id' => 'required|exists:classes,id',
             'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
-            'trimestre' => ['required', 'string'],
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
             'observation' => 'nullable|string',
         ]);
+
+        $currentTrimestre = $this->academicContextService->ensureCurrentTrimestreNotLocked();
 
         $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($request);
         if (! $validated['annee_scolaire_id']) {
@@ -38,12 +41,6 @@ class ConduiteController extends Controller
         }
 
         $this->ensureActiveYear($validated['annee_scolaire_id']);
-
-        $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
-        validator(
-            ['trimestre' => $validated['trimestre']],
-            ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
-        )->validate();
 
         $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->with('niveau')->findOrFail($validated['classe_id']);
         $conduiteMax = ConduiteConfigService::getMaxNote($classe);
@@ -56,8 +53,9 @@ class ConduiteController extends Controller
                 'classe_id' => $validated['classe_id'],
                 'reglement_id' => $validated['reglement_id'] ?? null,
                 'annee_scolaire_id' => $validated['annee_scolaire_id'],
+                'trimestre_id' => $currentTrimestre->id,
                 'user_id' => auth()->id(),
-                'trimestre' => $validated['trimestre'],
+                'trimestre' => $currentTrimestre->nom,
                 'date_sanction' => $validated['date_sanction'],
                 'points_retires' => $validated['points_retires'],
                 'observation' => $validated['observation'] ?? null,
@@ -68,9 +66,9 @@ class ConduiteController extends Controller
                     'eleve_id' => $validated['eleve_id'],
                     'classe_id' => $validated['classe_id'],
                     'annee_scolaire_id' => $validated['annee_scolaire_id'],
-                    'trimestre' => $validated['trimestre'],
+                    'trimestre_id' => $currentTrimestre->id,
                 ],
-                ['note' => $conduiteMax]
+                ['note' => $conduiteMax, 'trimestre' => $currentTrimestre->nom]
             );
 
             if ($noteConduite->note - $validated['points_retires'] < 0) {
@@ -107,23 +105,18 @@ class ConduiteController extends Controller
             'eleve_ids.*' => 'exists:eleves,id',
             'classe_id' => 'required|exists:classes,id',
             'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
-            'trimestre' => ['required', 'string'],
             'reglement_id' => 'nullable|exists:reglement_scolaires,id',
             'points_retires' => 'required|numeric|min:0',
             'date_sanction' => 'required|date',
             'observation' => 'nullable|string',
         ]);
 
+        $currentTrimestre = $this->academicContextService->ensureCurrentTrimestreNotLocked();
+
         $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($request);
         if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
-
-        $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
-        validator(
-            ['trimestre' => $validated['trimestre']],
-            ['trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)]]
-        )->validate();
 
         $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->with('niveau')->findOrFail($validated['classe_id']);
         $conduiteMax = ConduiteConfigService::getMaxNote($classe);
@@ -138,8 +131,9 @@ class ConduiteController extends Controller
                     'classe_id' => $validated['classe_id'],
                     'reglement_id' => $validated['reglement_id'] ?? null,
                     'annee_scolaire_id' => $validated['annee_scolaire_id'],
+                    'trimestre_id' => $currentTrimestre->id,
                     'user_id' => auth()->id(),
-                    'trimestre' => $validated['trimestre'],
+                    'trimestre' => $currentTrimestre->nom,
                     'date_sanction' => $validated['date_sanction'],
                     'points_retires' => $validated['points_retires'],
                     'observation' => $validated['observation'] ?? null,
@@ -150,9 +144,9 @@ class ConduiteController extends Controller
                         'eleve_id' => $eleveId,
                         'classe_id' => $validated['classe_id'],
                         'annee_scolaire_id' => $validated['annee_scolaire_id'],
-                        'trimestre' => $validated['trimestre'],
+                        'trimestre_id' => $currentTrimestre->id,
                     ],
-                    ['note' => $conduiteMax]
+                    ['note' => $conduiteMax, 'trimestre' => $currentTrimestre->nom]
                 );
 
                 $nouvelleNote = max(0, $noteConduite->note - $validated['points_retires']);
@@ -179,20 +173,19 @@ class ConduiteController extends Controller
         $validated = $request->validate([
             'classe_id' => 'required|exists:classes,id',
             'annee_scolaire_id' => 'nullable|exists:annee_scolaires,id',
-            'trimestre' => ['required', 'string'],
         ]);
+
+        $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
 
         $validated['annee_scolaire_id'] = $this->resolveAnneeScolaireId($request);
         if (! $validated['annee_scolaire_id']) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
-        $validated['trimestre'] = $this->normalizeTrimestre($validated['trimestre']);
-
         $notes = NoteConduite::with('eleve')
             ->where('classe_id', $validated['classe_id'])
             ->where('annee_scolaire_id', $validated['annee_scolaire_id'])
-            ->where('trimestre', $validated['trimestre'])
+            ->where('trimestre_id', $currentTrimestre->id)
             ->get();
 
         return response()->json($notes);
@@ -205,13 +198,12 @@ class ConduiteController extends Controller
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
+        $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
+
         $query = SanctionEleve::with(['reglement', 'user', 'anneeScolaire'])
             ->where('eleve_id', $eleve)
-            ->where('annee_scolaire_id', $anneeScolaireId);
-
-        if ($request->filled('trimestre')) {
-            $query->where('trimestre', $this->normalizeTrimestre($request->trimestre));
-        }
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('trimestre_id', $currentTrimestre->id);
 
         return response()->json($query->orderBy('date_sanction', 'desc')->get());
     }
@@ -248,10 +240,9 @@ class ConduiteController extends Controller
         if (! $statsAnneeId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
+        $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
         $query->where('sanction_eleves.annee_scolaire_id', $statsAnneeId);
-        if ($request->filled('trimestre')) {
-            $query->where('sanction_eleves.trimestre', $this->normalizeTrimestre($request->trimestre));
-        }
+        $query->where('sanction_eleves.trimestre_id', $currentTrimestre->id);
 
         $type = $request->input('type', 'details');
 
@@ -280,17 +271,28 @@ class ConduiteController extends Controller
                 break;
 
             case 'fautes_par_classe':
-                $data = $query->select('sanction_eleves.classe_id', DB::raw('COUNT(*) as total_fautes'))
-                    ->with('classe:id,nom')
-                    ->groupBy('sanction_eleves.classe_id')
+                $data = $query->select(
+                    'sanction_eleves.classe_id',
+                    'sanction_eleves.reglement_id',
+                    DB::raw('COUNT(*) as total_fautes')
+                )
+                    ->with(['classe:id,nom', 'reglement:id,intitule'])
+                    ->groupBy('sanction_eleves.classe_id', 'sanction_eleves.reglement_id')
+                    ->orderBy('sanction_eleves.classe_id')
+                    ->orderByDesc('total_fautes')
                     ->get();
                 break;
 
             case 'total_fautes':
-                $data = [
-                    'total' => $query->count(),
-                    'points_total' => $query->sum('points_retires'),
-                ];
+                $data = $query->select(
+                    'sanction_eleves.reglement_id',
+                    DB::raw('COUNT(*) as total_fautes'),
+                    DB::raw('SUM(sanction_eleves.points_retires) as points_total')
+                )
+                    ->with('reglement:id,intitule')
+                    ->groupBy('sanction_eleves.reglement_id')
+                    ->orderByDesc('total_fautes')
+                    ->get();
                 break;
 
             case 'details':

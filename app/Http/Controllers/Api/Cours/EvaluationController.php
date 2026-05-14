@@ -2,28 +2,37 @@
 
 namespace App\Http\Controllers\Api\Cours;
 
+use App\Exports\NotesTemplateExport;
 use App\Http\Controllers\Controller;
+use App\Models\Classe;
 use App\Models\AnneeScolaire;
 use App\Models\Eleve;
 use App\Models\Evaluation;
+use App\Models\Matiere;
 use App\Models\Note;
-use App\Models\Classe;
 use App\Scopes\AcademicYearScope;
+use App\Services\CurrentAcademicContextService;
+use App\Support\AcademicCycleHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\NotesTemplateExport;
 
 class EvaluationController extends Controller
 {
     use \App\Traits\ResolvesAnneeScolaire;
 
+    public function __construct(
+        private readonly CurrentAcademicContextService $academicContextService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        $query = Evaluation::with(['classe:id,nom,code', 'cours:id,nom,code', 'anneeScolaire:id,libelle,code', 'creator:id,name'])
+        $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
+
+        $query = Evaluation::with(['classe:id,nom,code', 'cours:id,nom,code', 'anneeScolaire:id,libelle,code', 'creator:id,name', 'trimestreModel'])
             ->withCount('notes');
 
         if ($request->filled('classe_id')) {
@@ -32,10 +41,6 @@ class EvaluationController extends Controller
 
         if ($request->filled('cours_id')) {
             $query->byCours($request->integer('cours_id'));
-        }
-
-        if ($request->filled('trimestre')) {
-            $query->byTrimestre($request->trimestre);
         }
 
         if ($request->filled('type_evaluation')) {
@@ -47,6 +52,8 @@ class EvaluationController extends Controller
             $query->byAnneeScolaire($anneeScolaireId);
         }
 
+        $query->byTrimestreId($currentTrimestre->id);
+
         if ($request->filled('school_id')) {
             $query->bySchool($request->integer('school_id'));
         } elseif (auth()->check() && auth()->user()->school_id) {
@@ -57,11 +64,11 @@ class EvaluationController extends Controller
             $enseignantId = auth()->user()->enseignant->id ?? null;
             if ($enseignantId) {
                 $query->whereHas('classe.enseignants', function ($q) use ($enseignantId) {
-                          $q->where('enseignants.id', $enseignantId);
-                      })
-                      ->whereHas('cours.enseignants', function ($q) use ($enseignantId) {
-                          $q->where('enseignants.id', $enseignantId);
-                      });
+                    $q->where('enseignants.id', $enseignantId);
+                })
+                    ->whereHas('cours.enseignants', function ($q) use ($enseignantId) {
+                        $q->where('enseignants.id', $enseignantId);
+                    });
             }
         }
 
@@ -72,30 +79,44 @@ class EvaluationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+
         $validated = $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'cours_id' => ['required', 'exists:matieres,id'],
-            'trimestre' => ['required', Rule::in(Evaluation::TRIMESTRES)],
             'type_evaluation' => ['required', Rule::in(Evaluation::TYPES_EVALUATION)],
             'date_passation' => ['required', 'date'],
             'note_maximale' => ['required', 'numeric', 'min:0.01', 'max:999.99'],
         ]);
 
+        $currentTrimestre = $this->academicContextService->ensureCurrentTrimestreNotLocked();
+
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         if (! $anneeScolaireId) {
             return response()->json([
-                'message' => "Aucune année scolaire active trouvée. Veuillez activer une année scolaire.",
+                'message' => 'Aucune année scolaire active trouvée. Veuillez activer une année scolaire.',
             ], 422);
         }
 
+        if ($validated['type_evaluation'] === 'Compétence') {
+            $err = $this->validateCompetenceEvaluationContext(
+                (int) $validated['classe_id'],
+                (int) $validated['cours_id']
+            );
+            if ($err !== null) {
+                return response()->json(['message' => $err], 422);
+            }
+        }
+
         $validated['annee_scolaire_id'] = $anneeScolaireId;
+        $validated['trimestre_id'] = $currentTrimestre->id;
+        $validated['trimestre'] = $currentTrimestre->nom;
         $validated['created_by'] = Auth::id();
 
         $evaluation = Evaluation::create($validated);
 
         return response()->json([
             'message' => 'Évaluation créée avec succès',
-            'data' => $evaluation->load(['classe', 'cours', 'anneeScolaire']),
+            'data' => $evaluation->load(['classe', 'cours', 'anneeScolaire', 'trimestreModel']),
         ], 201);
     }
 
@@ -106,6 +127,7 @@ class EvaluationController extends Controller
                 'classe:id,nom,code',
                 'cours:id,nom,code',
                 'anneeScolaire:id,libelle,code',
+                'trimestreModel',
                 'notes.eleve:id,nom,prenom,matricule',
             ]),
         ]);
@@ -116,22 +138,36 @@ class EvaluationController extends Controller
         $validated = $request->validate([
             'classe_id' => ['sometimes', 'exists:classes,id'],
             'cours_id' => ['sometimes', 'exists:matieres,id'],
-            'trimestre' => ['sometimes', Rule::in(Evaluation::TRIMESTRES)],
             'type_evaluation' => ['sometimes', Rule::in(Evaluation::TYPES_EVALUATION)],
             'date_passation' => ['sometimes', 'date'],
             'note_maximale' => ['sometimes', 'numeric', 'min:0.01', 'max:999.99'],
         ]);
 
+        $this->academicContextService->ensureEntityBelongsToCurrentTrimestre($evaluation);
+        $this->academicContextService->ensureCurrentTrimestreNotLocked($evaluation->trimestreModel);
+
+        $nextType = $validated['type_evaluation'] ?? $evaluation->type_evaluation;
+        if ($nextType === 'Compétence') {
+            $classeId = isset($validated['classe_id']) ? (int) $validated['classe_id'] : (int) $evaluation->classe_id;
+            $coursId = isset($validated['cours_id']) ? (int) $validated['cours_id'] : (int) $evaluation->cours_id;
+            $err = $this->validateCompetenceEvaluationContext($classeId, $coursId);
+            if ($err !== null) {
+                return response()->json(['message' => $err], 422);
+            }
+        }
+
         $evaluation->update($validated);
 
         return response()->json([
             'message' => 'Évaluation mise à jour avec succès',
-            'data' => $evaluation->load(['classe', 'cours', 'anneeScolaire']),
+            'data' => $evaluation->load(['classe', 'cours', 'anneeScolaire', 'trimestreModel']),
         ]);
     }
 
     public function destroy(Evaluation $evaluation): JsonResponse
     {
+        $this->academicContextService->ensureEntityBelongsToCurrentTrimestre($evaluation);
+        $this->academicContextService->ensureCurrentTrimestreNotLocked($evaluation->trimestreModel);
         $evaluation->notes()->delete();
         $evaluation->delete();
 
@@ -143,6 +179,9 @@ class EvaluationController extends Controller
      */
     public function storeNotes(Request $request, Evaluation $evaluation): JsonResponse
     {
+        $this->academicContextService->ensureEntityBelongsToCurrentTrimestre($evaluation);
+        $this->academicContextService->ensureCurrentTrimestreNotLocked($evaluation->trimestreModel);
+
         $validated = $request->validate([
             'notes' => ['required', 'array', 'min:1'],
             'notes.*.eleve_id' => ['required', 'exists:eleves,id'],
@@ -200,6 +239,7 @@ class EvaluationController extends Controller
             'notes.eleve:id,nom,prenom,matricule',
             'classe:id,nom',
             'cours:id,nom',
+            'trimestreModel',
         ]);
 
         return response()->json([
@@ -233,6 +273,9 @@ class EvaluationController extends Controller
      */
     public function importNotes(Request $request, Evaluation $evaluation): JsonResponse
     {
+        $this->academicContextService->ensureEntityBelongsToCurrentTrimestre($evaluation);
+        $this->academicContextService->ensureCurrentTrimestreNotLocked($evaluation->trimestreModel);
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
         ]);
@@ -255,14 +298,15 @@ class EvaluationController extends Controller
 
             if ($eleveId && is_numeric($note)) {
                 if ($note > $evaluation->note_maximale) {
-                    $errors[] = "Ligne " . ($index + 2) . ": note ({$note}) dépasse le maximum ({$evaluation->note_maximale}).";
+                    $errors[] = 'Ligne '.($index + 2).": note ({$note}) dépasse le maximum ({$evaluation->note_maximale}).";
+
                     continue;
                 }
                 $notes[] = ['eleve_id' => (int) $eleveId, 'note' => (float) $note];
             }
         }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             return response()->json([
                 'message' => 'Des erreurs ont été trouvées dans le fichier.',
                 'errors' => $errors,
@@ -288,8 +332,26 @@ class EvaluationController extends Controller
         });
 
         return response()->json([
-            'message' => count($notes) . ' notes importées avec succès.',
+            'message' => count($notes).' notes importées avec succès.',
             'data' => $evaluation->load('notes.eleve:id,nom,prenom,matricule'),
         ]);
+    }
+
+    /**
+     * @return string|null Error message or null if OK
+     */
+    private function validateCompetenceEvaluationContext(int $classeId, int $coursId): ?string
+    {
+        $classe = Classe::with(['niveau.cycleScolaire', 'niveau.typeScolaire'])->find($classeId);
+        if (! $classe || ! AcademicCycleHelper::isPostFondamental($classe->niveau)) {
+            return "Le type 'Compétence' ne peut être utilisé que pour les classes post-fondamentales.";
+        }
+
+        $matiere = Matiere::find($coursId);
+        if (! $matiere || (float) ($matiere->ponderation_competence ?? 0) <= 0) {
+            return "Ce cours n'a pas de pondération compétences : impossible d'utiliser le type 'Compétence'. Définissez un maximum compétences sur la fiche cours.";
+        }
+
+        return null;
     }
 }

@@ -21,7 +21,6 @@ use App\Http\Controllers\Api\Academic\MatiereController;
 use App\Http\Controllers\Api\Academic\NiveauController;
 use App\Http\Controllers\Api\Academic\SectionController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
-use App\Http\Controllers\Api\Academic\EvaluationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -192,11 +191,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Matières (alias without /academic prefix for UI)
     Route::get('matieres/list', [MatiereController::class, 'list']);
     Route::apiResource('matieres', MatiereController::class);
-
-    // Évaluations (alias without /academic prefix for UI)
-    Route::get('evaluations/by-classe/{classe}', [EvaluationController::class, 'byClasse']);
-    Route::get('evaluations/by-eleve/{eleve}', [EvaluationController::class, 'byEleve']);
-    Route::apiResource('evaluations', EvaluationController::class);
 
     // Route::get('eleves/export', [EleveController::class, 'export']);
 });

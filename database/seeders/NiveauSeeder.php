@@ -19,11 +19,13 @@ class NiveauSeeder extends Seeder
     public function run(): void
     {
         // Get cycle IDs
-        $premiercyclePrimaire = CycleScolaire::where('nom', 'PRIMAIRE')->first()?->id;
-        $cycleFondamental = CycleScolaire::where('nom', 'FONDAMENTAL')->first()?->id;
-        $cyclePostFondamental = CycleScolaire::where('nom', 'POST_FONDAMENTAL')->first()?->id;
+        $cycle1 = CycleScolaire::where('nom', 'Cycle 1')->first()?->id;
+        $cycle2 = CycleScolaire::where('nom', 'Cycle 2')->first()?->id;
+        $cycle3 = CycleScolaire::where('nom', 'Cycle 3')->first()?->id;
+        $cycle4 = CycleScolaire::where('nom', 'Cycle 4')->first()?->id;
+        $cycle5 = CycleScolaire::where('nom', 'Cycle 5')->first()?->id;
 
-        if (!$premiercyclePrimaire || !$cycleFondamental || !$cyclePostFondamental) {
+        if (!$cycle1 || !$cycle2 || !$cycle3 || !$cycle4 || !$cycle5) {
             $this->command->error('Les cycles scolaires ne sont pas créés. Veuillez exécuter CycleSeeder d\'abord.');
             return;
         }
@@ -32,26 +34,29 @@ class NiveauSeeder extends Seeder
             // Préscolaire
             [
                 'code' => 'PS1',
-                'nom' => 'Petite Section',
+                'nom' => '1ère Année Maternelle',
                 'ordre' => 1,
-                'cycle_id' => $cyclePrimaire,
-                'description' => 'Préscolaire - Petite Section (3-4 ans)',
+                'type_id' => 1,
+                'cycle_id' => null,
+                'description' => 'Maternelle - 1ère année',
                 'actif' => true,
             ],
             [
                 'code' => 'PS2',
-                'nom' => 'Moyenne Section',
+                'nom' => '2ème Année Maternelle',
                 'ordre' => 2,
-                'cycle_id' => $cyclePrimaire,
-                'description' => 'Préscolaire - Moyenne Section (4-5 ans)',
+                'type_id' => 1,
+                'cycle_id' => null,
+                'description' => 'Maternelle - 2ème année',
                 'actif' => true,
             ],
             [
                 'code' => 'PS3',
-                'nom' => 'Grande Section',
+                'nom' => '3ème Année Maternelle',
                 'ordre' => 3,
-                'cycle_id' => $cyclePrimaire,
-                'description' => 'Préscolaire - Grande Section (5-6 ans)',
+                'type_id' => 1,
+                'cycle_id' => null,
+                'description' => 'Maternelle - 3ème année',
                 'actif' => true,
             ],
 
@@ -60,7 +65,8 @@ class NiveauSeeder extends Seeder
                 'code' => '1F',
                 'nom' => '1ère Année Fondamentale',
                 'ordre' => 4,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle1,
                 'description' => 'Fondamental Cycle 1 - 1ère année',
                 'actif' => true,
             ],
@@ -68,7 +74,8 @@ class NiveauSeeder extends Seeder
                 'code' => '2F',
                 'nom' => '2ème Année Fondamentale',
                 'ordre' => 5,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle1,
                 'description' => 'Fondamental Cycle 1 - 2ème année',
                 'actif' => true,
             ],
@@ -76,7 +83,8 @@ class NiveauSeeder extends Seeder
                 'code' => '3F',
                 'nom' => '3ème Année Fondamentale',
                 'ordre' => 6,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle2,
                 'description' => 'Fondamental Cycle 1 - 3ème année',
                 'actif' => true,
             ],
@@ -84,7 +92,8 @@ class NiveauSeeder extends Seeder
                 'code' => '4F',
                 'nom' => '4ème Année Fondamentale',
                 'ordre' => 7,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle2,
                 'description' => 'Fondamental Cycle 1 - 4ème année',
                 'actif' => true,
             ],
@@ -94,7 +103,8 @@ class NiveauSeeder extends Seeder
                 'code' => '5F',
                 'nom' => '5ème Année Fondamentale',
                 'ordre' => 8,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle3,
                 'description' => 'Fondamental Cycle 2 - 5ème année',
                 'actif' => true,
             ],
@@ -102,7 +112,8 @@ class NiveauSeeder extends Seeder
                 'code' => '6F',
                 'nom' => '6ème Année Fondamentale',
                 'ordre' => 9,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle3,
                 'description' => 'Fondamental Cycle 2 - 6ème année',
                 'actif' => true,
             ],
@@ -112,7 +123,8 @@ class NiveauSeeder extends Seeder
                 'code' => '7F',
                 'nom' => '7ème Année Fondamentale',
                 'ordre' => 10,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle4,
                 'description' => 'Fondamental Cycle 3 - 7ème année',
                 'actif' => true,
             ],
@@ -120,7 +132,8 @@ class NiveauSeeder extends Seeder
                 'code' => '8F',
                 'nom' => '8ème Année Fondamentale',
                 'ordre' => 11,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle4,
                 'description' => 'Fondamental Cycle 3 - 8ème année',
                 'actif' => true,
             ],
@@ -128,7 +141,8 @@ class NiveauSeeder extends Seeder
                 'code' => '9F',
                 'nom' => '9ème Année Fondamentale',
                 'ordre' => 12,
-                'cycle_id' => $cycleFondamental,
+                'type_id' => 2,
+                'cycle_id' => $cycle4,
                 'description' => 'Fondamental Cycle 3 - 9ème année (Concours National)',
                 'actif' => true,
             ],
@@ -138,32 +152,36 @@ class NiveauSeeder extends Seeder
                 'code' => '1PF',
                 'nom' => '1ère Année Post-Fondamentale',
                 'ordre' => 13,
-                'cycle_id' => $cyclePostFondamental,
-                'description' => 'Post-Fondamental - 1ère année (10ème)',
+                'type_id' => 3,
+                'cycle_id' => $cycle5,
+                'description' => 'Post-Fondamental - 1ère année',
                 'actif' => true,
             ],
             [
                 'code' => '2PF',
                 'nom' => '2ème Année Post-Fondamentale',
                 'ordre' => 14,
-                'cycle_id' => $cyclePostFondamental,
-                'description' => 'Post-Fondamental - 2ème année (11ème)',
+                'type_id' => 3,
+                'cycle_id' => $cycle5,
+                'description' => 'Post-Fondamental - 2ème année',
                 'actif' => true,
             ],
             [
                 'code' => '3PF',
                 'nom' => '3ème Année Post-Fondamentale',
                 'ordre' => 15,
-                'cycle_id' => $cyclePostFondamental,
-                'description' => 'Post-Fondamental - 3ème année (12ème)',
+                'type_id' => 3,
+                'cycle_id' => $cycle5,
+                'description' => 'Post-Fondamental - 3ème année',
                 'actif' => true,
             ],
             [
                 'code' => '4PF',
                 'nom' => '4ème Année Post-Fondamentale',
                 'ordre' => 16,
-                'cycle_id' => $cyclePostFondamental,
-                'description' => 'Post-Fondamental - 4ème année (13ème - Examen d\'État)',
+                'type_id' => 3,
+                'cycle_id' => $cycle5,
+                'description' => 'Post-Fondamental - 4ème année',
                 'actif' => true,
             ],
         ];

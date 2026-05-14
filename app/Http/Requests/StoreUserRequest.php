@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Models\Role;
+use App\Models\User;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -14,20 +16,23 @@ class StoreUserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('create', \App\Models\User::class);
+        return $this->user()->can('create', User::class);
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => [
+                Rule::requiredIf(fn () => $this->input('role') !== Role::PARENT),
+                'nullable', 'string', 'min:8', 'confirmed',
+            ],
             'role' => ['required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'api')],
             'admin_level' => ['required', Rule::in(['PAYS', 'MINISTERE', 'PROVINCE', 'COMMUNE', 'ZONE', 'COLLINE', 'ECOLE'])],
 
@@ -47,6 +52,10 @@ class StoreUserRequest extends FormRequest
                 Rule::requiredIf(fn () => $this->input('role') === Role::ENSEIGNANT),
                 'nullable', 'string', 'max:50', 'unique:enseignants,matricule',
             ],
+
+            'parent_eleves' => ['sometimes', 'array'],
+            'parent_eleves.*.eleve_id' => ['required', 'integer', 'exists:eleves,id'],
+            'parent_eleves.*.relation' => ['nullable', 'string', 'max:100'],
         ];
     }
 

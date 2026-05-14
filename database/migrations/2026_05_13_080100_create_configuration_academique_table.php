@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('matiere_niveau_scolaire', function (Blueprint $table) {
+        Schema::create('configuration_academique', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('current_annee_scolaire_id')->nullable()->constrained('annee_scolaires')->nullOnDelete();
+            $table->foreignId('current_trimestre_id')->nullable()->constrained('trimestres')->nullOnDelete();
             $table->timestamps();
         });
     }
@@ -22,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('matiere_niveau_scolaire');
+        Schema::dropIfExists('configuration_academique');
     }
 };

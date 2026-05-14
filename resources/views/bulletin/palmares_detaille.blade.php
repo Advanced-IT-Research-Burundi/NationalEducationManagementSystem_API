@@ -139,6 +139,7 @@
         <th>Prénom</th>
         <th>Sexe</th>
         <th>Total<br />points<br />obtenus</th>
+        <th>Maximum</th>
         <th>%</th>
         @foreach($cours as $c)
           <th class="th-small">{{ $c['code'] }}</th>
@@ -155,6 +156,7 @@
           <td class="td-name">{{ $entry['eleve']['prenom'] }}</td>
           <td>{{ $entry['eleve']['sexe'] ?? '—' }}</td>
           <td><strong>{{ $entry['total_points'] }}</strong></td>
+          <td>{{ $entry['total_max'] ?? '—' }}</td>
           <td><strong>{{ $entry['pourcentage'] }}%</strong></td>
 
           @foreach($cours as $c)

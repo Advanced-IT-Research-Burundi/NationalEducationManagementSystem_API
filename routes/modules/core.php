@@ -6,17 +6,17 @@
  * Authentication, Authorization, Users, Roles, Permissions, Geographic Hierarchy
  */
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Core\AuthController;
-use App\Http\Controllers\Api\Core\UserController;
-use App\Http\Controllers\Api\Core\RoleController;
-use App\Http\Controllers\Api\Core\PermissionController;
-use App\Http\Controllers\Api\Core\PaysController;
-use App\Http\Controllers\Api\Core\MinistereController;
-use App\Http\Controllers\Api\Core\ProvinceController;
-use App\Http\Controllers\Api\Core\CommuneController;
-use App\Http\Controllers\Api\Core\ZoneController;
 use App\Http\Controllers\Api\Core\CollineController;
+use App\Http\Controllers\Api\Core\CommuneController;
+use App\Http\Controllers\Api\Core\MinistereController;
+use App\Http\Controllers\Api\Core\PaysController;
+use App\Http\Controllers\Api\Core\PermissionController;
+use App\Http\Controllers\Api\Core\ProvinceController;
+use App\Http\Controllers\Api\Core\RoleController;
+use App\Http\Controllers\Api\Core\UserController;
+use App\Http\Controllers\Api\Core\ZoneController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +25,8 @@ use App\Http\Controllers\Api\Core\CollineController;
 */
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('auth.forgot-password');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
 });
 
 /*

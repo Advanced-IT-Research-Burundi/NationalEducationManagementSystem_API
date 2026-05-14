@@ -16,6 +16,7 @@ use App\Models\Eleve;
 use App\Models\Inscription;
 use App\Models\Niveau;
 use App\Models\School;
+use App\Services\AcademicYearService;
 use App\Services\TransitionScolaireService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,7 +41,7 @@ class EleveController extends Controller
         // Resolve which school year to display
         $anneeScolaireId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : \App\Services\AcademicYearService::currentId();
+            : AcademicYearService::currentId();
 
         if ($anneeScolaireId) {
             $query->where(function ($q) use ($anneeScolaireId, $request) {
@@ -248,9 +249,10 @@ class EleveController extends Controller
     {
         $eleve = Eleve::findOrFail($id);
 
+        $this->authorize('view', $eleve);
+
         $eleve->load([
             'ecole',
-            'ecoleOrigine',
             'provinceOrigine',
             'communeOrigine',
             'zoneOrigine',
@@ -258,6 +260,7 @@ class EleveController extends Controller
             'niveau',
             'creator',
             'classes',
+            'parents',
             'inscriptions' => function ($q) {
                 $q->withoutGlobalScopes()
                     ->with(['anneeScolaire', 'ecole', 'niveauDemande', 'affectation.classe.niveau'])
@@ -382,13 +385,13 @@ class EleveController extends Controller
                     $q2->where('classe_id', $classeId);
                 });
         })
-        ->with(['inscriptions' => function ($q) use ($classeId, $anneeScolaireId) {
-            $q->withoutGlobalScopes()
-                ->where('annee_scolaire_id', $anneeScolaireId)
-                ->whereHas('affectation', fn ($q2) => $q2->where('classe_id', $classeId))
-                ->with(['niveauDemande', 'ecole', 'affectation.classe']);
-        }])
-        ->get();
+            ->with(['inscriptions' => function ($q) use ($classeId, $anneeScolaireId) {
+                $q->withoutGlobalScopes()
+                    ->where('annee_scolaire_id', $anneeScolaireId)
+                    ->whereHas('affectation', fn ($q2) => $q2->where('classe_id', $classeId))
+                    ->with(['niveauDemande', 'ecole', 'affectation.classe']);
+            }])
+            ->get();
 
         $eleves->each(function ($eleve) use ($anneeScolaireId) {
             $eleve->setAttribute('_annee_scolaire_consultee_id', $anneeScolaireId);
@@ -534,7 +537,7 @@ class EleveController extends Controller
 
         $anneeScolaireId = $request->filled('annee_scolaire_id')
             ? $request->integer('annee_scolaire_id')
-            : \App\Services\AcademicYearService::currentId();
+            : AcademicYearService::currentId();
 
         $query = Eleve::query();
 

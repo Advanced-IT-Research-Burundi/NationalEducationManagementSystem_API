@@ -3,12 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Mail\ResetPasswordMail;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -17,7 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, LogsActivity, Notifiable;
+    use CanResetPassword, HasApiTokens, HasFactory, HasRoles, LogsActivity, Notifiable;
 
     /**
      * Guard name for Spatie Permission.
@@ -45,6 +49,7 @@ class User extends Authenticatable
         'colline_id',
         'school_id',
         'created_by',
+        'must_change_password',
     ];
 
     /**
@@ -132,6 +137,32 @@ class User extends Authenticatable
     public function enseignant(): HasOne
     {
         return $this->hasOne(Enseignant::class);
+    }
+
+    /**
+     * Children (eleves) that this parent user is linked to.
+     */
+    public function eleveParents(): HasMany
+    {
+        return $this->hasMany(EleveParent::class, 'user_id');
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function linkedParentEleveIds(): array
+    {
+        return $this->eleveParents()
+            ->pluck('eleve_id')
+            ->unique()
+            ->values()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    public function isLinkedParentOfEleve(int $eleveId): bool
+    {
+        return $this->eleveParents()->where('eleve_id', $eleveId)->exists();
     }
 
     // Helper to check permission (Manual implementation if needed, but Spatie provides can())
@@ -404,5 +435,10 @@ class User extends Authenticatable
             'agent_administratif' => 'personnel_administratif',
             default => $normalized,
         };
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        Mail::to($this->email)->send(new ResetPasswordMail($this, $token));
     }
 }
