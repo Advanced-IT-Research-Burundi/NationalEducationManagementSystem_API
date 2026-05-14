@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
 use App\Models\Note;
+use App\Services\CurrentAcademicContextService;
 use App\Models\Role;
 use App\Traits\ResolvesAnneeScolaire;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,11 @@ use Illuminate\Support\Facades\Schema;
 
 class NoteController extends Controller
 {
+    use \App\Traits\ResolvesAnneeScolaire;
+
+    public function __construct(
+        private readonly CurrentAcademicContextService $academicContextService
+    ) {}
     use ResolvesAnneeScolaire;
 
     /**
@@ -19,6 +25,7 @@ class NoteController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
         $this->authorize('viewAny', Note::class);
 
         $user = $request->user();
@@ -27,11 +34,12 @@ class NoteController extends Controller
         $query = Note::with([
             'eleve:id,nom,prenom,matricule',
             'evaluation' => function ($q) {
-                $q->select('id', 'classe_id', 'cours_id', 'trimestre', 'type_evaluation', 'note_maximale', 'annee_scolaire_id', 'date_passation');
+                $q->select('id', 'classe_id', 'cours_id', 'trimestre', 'trimestre_id', 'type_evaluation', 'note_maximale', 'annee_scolaire_id', 'date_passation');
             },
             'evaluation.classe:id,nom,code',
             'evaluation.cours:id,nom,code',
             'evaluation.anneeScolaire:id,libelle,code',
+            'evaluation.trimestreModel',
         ]);
 
         if ($isParent) {
@@ -68,19 +76,16 @@ class NoteController extends Controller
             });
         }
 
-        // Filter by trimestre
-        if ($request->filled('trimestre')) {
-            $query->whereHas('evaluation', function ($q) use ($request) {
-                $q->where('trimestre', $request->trimestre);
-            });
-        }
-
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         if ($anneeScolaireId) {
             $query->whereHas('evaluation', function ($q) use ($anneeScolaireId) {
                 $q->where('annee_scolaire_id', $anneeScolaireId);
             });
         }
+
+        $query->whereHas('evaluation', function ($q) use ($currentTrimestre) {
+            $q->where('trimestre_id', $currentTrimestre->id);
+        });
 
         // Filter by section (through evaluation.cours)
         if ($request->filled('section_id')) {

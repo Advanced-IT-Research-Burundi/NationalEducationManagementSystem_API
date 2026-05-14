@@ -26,14 +26,9 @@ beforeEach(function () {
     DB::table('collines')->insert(['id' => 1, 'name' => 'Colline Test', 'zone_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
 });
 
-it('returns school and ecole_origine in the show response', function () {
+it('returns school and province d\'origine in the show response', function () {
     $currentSchool = School::withoutGlobalScopes()->create([
         'name' => 'École Primaire Kamenge',
-        'colline_id' => 1,
-    ]);
-
-    $origineSchool = School::withoutGlobalScopes()->create([
-        'name' => 'École Fondamentale Ngozi',
         'colline_id' => 1,
     ]);
 
@@ -44,7 +39,7 @@ it('returns school and ecole_origine in the show response', function () {
         'date_naissance' => '2010-05-15',
         'lieu_naissance' => 'Bujumbura',
         'school_id' => $currentSchool->id,
-        'ecole_origine_id' => $origineSchool->id,
+        'province_origine_id' => 1,
         'created_by' => $this->user->id,
     ]);
 
@@ -53,8 +48,8 @@ it('returns school and ecole_origine in the show response', function () {
     $response->assertSuccessful()
         ->assertJsonPath('data.school.name', 'École Primaire Kamenge')
         ->assertJsonPath('data.school.id', $currentSchool->id)
-        ->assertJsonPath('data.ecole_origine.name', 'École Fondamentale Ngozi')
-        ->assertJsonPath('data.ecole_origine.id', $origineSchool->id);
+        ->assertJsonPath('data.province_origine.name', 'Province Test')
+        ->assertJsonPath('data.province_origine.id', 1);
 });
 
 it('returns null school when no school is assigned', function () {

@@ -7,6 +7,7 @@
  * + Module Cours (Cours, Évaluations, Notes, Bulletins, Palmarès, Catégories)
  */
 
+use App\Http\Controllers\Api\Academic\AcademicContextController;
 use App\Http\Controllers\Api\Academic\AffectationMatiereController;
 use App\Http\Controllers\Api\Academic\AnneeScolaireController;
 use App\Http\Controllers\Api\Academic\ClasseController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\Academic\MouvementEleveController;
 use App\Http\Controllers\Api\Academic\NiveauController;
 use App\Http\Controllers\Api\Academic\PromotionController;
 use App\Http\Controllers\Api\Academic\SectionController;
+use App\Http\Controllers\Api\Academic\TrimestreController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
 use App\Http\Controllers\Api\Cours\BulletinController;
 use App\Http\Controllers\Api\Cours\CategoriCoursController;
@@ -27,7 +29,6 @@ use App\Http\Controllers\Api\Cours\EvaluationController;
 use App\Http\Controllers\Api\Cours\NoteController;
 use App\Http\Controllers\Api\Cours\PalmaresController;
 use App\Http\Controllers\Api\Cours\ReglementScolaireController;
-use App\Http\Controllers\Api\Parent\ParentChildrenController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -47,6 +48,13 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
     Route::apiResource('annees-scolaires', AnneeScolaireController::class)->parameters([
         'annees-scolaires' => 'anneeScolaire',
     ]);
+
+    Route::get('context/current', [AcademicContextController::class, 'current'])->name('context.current');
+    Route::put('context/current', [AcademicContextController::class, 'update'])->name('context.update');
+    Route::post('context/sync-trimestre', [AcademicContextController::class, 'syncTrimestre'])->name('context.sync-trimestre');
+
+    Route::post('trimestres/{trimestre}/toggle-lock', [TrimestreController::class, 'toggleLock'])->name('trimestres.toggle-lock');
+    Route::apiResource('trimestres', TrimestreController::class);
 
     // Niveaux (Grade Levels)
     Route::get('niveaux/list', [NiveauController::class, 'list'])->name('niveaux.list');

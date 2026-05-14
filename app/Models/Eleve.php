@@ -52,7 +52,6 @@ class Eleve extends Model
         'est_orphelin',
         'a_handicap',
         'type_handicap',
-        'ecole_origine_id',
         'statut_global',
         'created_by',
         'school_id',
@@ -287,10 +286,5 @@ class Eleve extends Model
     public function ecole()
     {
         return $this->belongsTo(School::class, 'school_id');
-    }
-
-    public function ecoleOrigine(): BelongsTo
-    {
-        return $this->belongsTo(School::class, 'ecole_origine_id');
     }
 }

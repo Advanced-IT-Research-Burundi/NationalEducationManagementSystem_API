@@ -1,7 +1,8 @@
 <?php
 
 test('example', function () {
-    $response = $this->get('/');
+    $response = $this->getJson('/api/health');
 
-    $response->assertStatus(200);
+    $response->assertStatus(200)
+        ->assertJsonPath('status', 'healthy');
 });

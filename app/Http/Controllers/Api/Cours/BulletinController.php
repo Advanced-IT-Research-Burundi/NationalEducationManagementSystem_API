@@ -9,6 +9,11 @@ use App\Models\Evaluation;
 use App\Models\Inscription;
 use App\Models\Matiere;
 use App\Models\NoteConduite;
+use App\Models\Trimestre;
+use App\Scopes\AcademicYearScope;
+use App\Services\ConduiteConfigService;
+use App\Services\CurrentAcademicContextService;
+use App\Support\AcademicCycleHelper;
 use App\Models\Role;
 use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
@@ -25,6 +30,10 @@ class BulletinController extends Controller
 {
     use ResolvesAnneeScolaire;
 
+    public function __construct(
+        private readonly CurrentAcademicContextService $academicContextService
+    ) {}
+
     private const TRIMESTRES = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
 
     /**
@@ -34,15 +43,17 @@ class BulletinController extends Controller
     {
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
-            'trimestre' => ['nullable', 'string'],
+            'mode' => ['nullable', 'in:current,annual'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
 
         $classeId = $request->integer('classe_id');
-        $trimestre = $request->trimestre;
+        $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         $requestedEleveId = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
+        $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
+        $trimestre = $currentTrimestre?->nom;
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
@@ -62,13 +73,23 @@ class BulletinController extends Controller
             ));
         }
 
+        $data['mode'] = $mode;
+        $data['trimestre_meta'] = $currentTrimestre ? [
+            'id' => $currentTrimestre->id,
+            'nom' => $currentTrimestre->nom,
+            'date_debut' => optional($currentTrimestre->date_debut)?->toDateString(),
+            'date_fin' => optional($currentTrimestre->date_fin)?->toDateString(),
+            'actif' => (bool) $currentTrimestre->actif,
+            'verrouille' => (bool) $currentTrimestre->verrouille,
+        ] : null;
+
         return response()->json(['data' => $data]);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function buildBulletinData(int $classeId, ?string $trimestre, int $anneeScolaireId): array
+    private function buildBulletinData(int $classeId, ?string $trimestre, int $anneeScolaireId, ?Trimestre $trimestreModel = null): array
     {
         $classe = Classe::withoutGlobalScope(AcademicYearScope::class)
             ->with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])
@@ -105,7 +126,9 @@ class BulletinController extends Controller
             ->where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
 
-        if ($trimestre) {
+        if ($trimestreModel) {
+            $evaluationsQuery->matchingTrimestre($trimestreModel);
+        } elseif ($trimestre) {
             $evaluationsQuery->where('trimestre', $trimestre);
         }
 
@@ -114,7 +137,9 @@ class BulletinController extends Controller
         // Get notes conduite
         $notesConduiteQuery = NoteConduite::where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
-        if ($trimestre) {
+        if ($trimestreModel) {
+            $notesConduiteQuery->matchingTrimestre($trimestreModel);
+        } elseif ($trimestre) {
             $notesConduiteQuery->where('trimestre', $trimestre);
         }
         $notesConduite = $notesConduiteQuery->get();
@@ -372,14 +397,16 @@ class BulletinController extends Controller
     {
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
-            'trimestre' => ['nullable', 'string'],
+            'mode' => ['nullable', 'in:current,annual'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
 
         $classeId = $request->integer('classe_id');
-        $trimestre = $request->trimestre;
+        $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
+        $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
+        $trimestre = $currentTrimestre?->nom;
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);

@@ -45,6 +45,11 @@ class AnneeScolaire extends Model
      */
     public static function current(): ?self
     {
+        $config = ConfigurationAcademique::query()->first();
+        if ($config?->current_annee_scolaire_id) {
+            return static::withoutGlobalScopes()->find($config->current_annee_scolaire_id);
+        }
+
         return static::active()->first();
     }
 
@@ -111,6 +116,11 @@ class AnneeScolaire extends Model
         return $this->hasMany(MouvementEleve::class, 'annee_scolaire_id');
     }
 
+    public function trimestres(): HasMany
+    {
+        return $this->hasMany(Trimestre::class, 'annee_scolaire_id');
+    }
+
     /**
      * Activate this school year (deactivates all others)
      */
@@ -120,7 +130,16 @@ class AnneeScolaire extends Model
         static::where('id', '!=', $this->id)->update(['est_active' => false]);
 
         // Activate this one
-        return $this->update(['est_active' => true]);
+        $updated = $this->update(['est_active' => true]);
+
+        if ($updated) {
+            ConfigurationAcademique::current()->forceFill([
+                'current_annee_scolaire_id' => $this->id,
+                'current_trimestre_id' => null,
+            ])->save();
+        }
+
+        return $updated;
     }
 
     /**

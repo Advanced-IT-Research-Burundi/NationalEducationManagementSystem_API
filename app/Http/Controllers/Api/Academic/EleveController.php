@@ -242,7 +242,6 @@ class EleveController extends Controller
 
         $eleve->load([
             'ecole',
-            'ecoleOrigine',
             'provinceOrigine',
             'communeOrigine',
             'zoneOrigine',

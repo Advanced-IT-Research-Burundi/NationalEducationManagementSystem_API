@@ -26,6 +26,7 @@ class SanctionEleve extends Model
         'classe_id',
         'reglement_id',
         'annee_scolaire_id',
+        'trimestre_id',
         'user_id',
         'trimestre',
         'date_sanction',
@@ -60,6 +61,11 @@ class SanctionEleve extends Model
     public function anneeScolaire()
     {
         return $this->belongsTo(AnneeScolaire::class);
+    }
+
+    public function trimestreModel()
+    {
+        return $this->belongsTo(Trimestre::class, 'trimestre_id');
     }
 
     public function inscription()
