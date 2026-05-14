@@ -14,12 +14,16 @@ use App\Services\CurrentAcademicContextService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PalmaresController extends Controller
 {
     use \App\Traits\ResolvesAnneeScolaire;
+
+    /** Même libellés que le bulletin / colonne `evaluations.trimestre`. */
+    private const TRIMESTRES = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
 
     public function __construct(
         private readonly CurrentAcademicContextService $academicContextService
@@ -110,6 +114,10 @@ class PalmaresController extends Controller
         }
         $notesConduite = $notesConduiteQuery->get();
 
+        $trimestreLabels = $mode === 'annual'
+            ? self::TRIMESTRES
+            : ($trimestre ? [$trimestre] : self::TRIMESTRES);
+
         // Calculate totals per student
         $classement = [];
         foreach ($eleves as $eleve) {
@@ -122,84 +130,63 @@ class PalmaresController extends Controller
             foreach ($cours as $matiere) {
                 $coursEvals = $evaluations->where('cours_id', $matiere->id);
 
-                $tjEvals = $coursEvals->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
-                $ponderationComp = Schema::hasColumn('matieres', 'ponderation_competence')
-                    ? (float) ($matiere->ponderation_competence ?? 0)
-                    : 0.0;
-                $compEvals = $ponderationComp > 0
-                    ? $coursEvals->where('type_evaluation', 'Compétence')
-                    : collect();
-                $examEvals = $coursEvals->where('type_evaluation', 'Examen');
+                $courseTotalAccum = 0.0;
+                $courseMaxAccum = 0.0;
 
-                $tjNote = 0;
-                $tjMax = 0;
-                foreach ($tjEvals as $eval) {
-                    $note = $eval->notes->where('eleve_id', $eleve->id)->first();
-                    if ($note) {
-                        $tjNote += $note->note;
-                        $tjMax += $eval->note_maximale;
-                    }
+                foreach ($trimestreLabels as $trimLabel) {
+                    $trimEvals = $coursEvals->where('trimestre', $trimLabel);
+                    [$totalTrim, $maxTotalTrim] = $this->matiereScoresPourEvaluations(
+                        $matiere,
+                        $eleve->id,
+                        $trimEvals
+                    );
+                    $courseTotalAccum += $totalTrim;
+                    $courseMaxAccum += $maxTotalTrim;
                 }
 
-                $compNote = 0;
-                $compMax = 0;
-                foreach ($compEvals as $eval) {
-                    $note = $eval->notes->where('eleve_id', $eleve->id)->first();
-                    if ($note) {
-                        $compNote += $note->note;
-                        $compMax += $eval->note_maximale;
-                    }
-                }
-
-                $examNote = 0;
-                $examMax = 0;
-                foreach ($examEvals as $eval) {
-                    $note = $eval->notes->where('eleve_id', $eleve->id)->first();
-                    if ($note) {
-                        $examNote += $note->note;
-                        $examMax += $eval->note_maximale;
-                    }
-                }
-
-                $scaledTj = $matiere->ponderation_tj > 0 && $tjMax > 0
-                    ? round(($tjNote / $tjMax) * $matiere->ponderation_tj, 2)
-                    : $tjNote;
-                $scaledComp = 0;
-                if ($ponderationComp > 0 && $compMax > 0) {
-                    $scaledComp = round(($compNote / $compMax) * $ponderationComp, 2);
-                }
-                $scaledExam = $matiere->ponderation_examen > 0 && $examMax > 0
-                    ? round(($examNote / $examMax) * $matiere->ponderation_examen, 2)
-                    : $examNote;
-
-                $maxComp = $ponderationComp > 0 ? $ponderationComp : 0;
-                $total = $scaledTj + $scaledComp + $scaledExam;
-                $maxTotal = ($matiere->ponderation_tj ?: $tjMax) + $maxComp + ($matiere->ponderation_examen ?: $examMax);
-
-                $totalPoints += $total;
-                $totalMax += $maxTotal;
+                $totalPoints += $courseTotalAccum;
+                $totalMax += $courseMaxAccum;
 
                 if ($type === 'detaille') {
                     $code = self::palmaresCoursCode($matiere);
 
-                    $coursPoints[$code] = round($total, 2);
-                    $coursMaxima[$code] = round($maxTotal, 2);
+                    $coursPoints[$code] = round($courseTotalAccum, 2);
+                    $coursMaxima[$code] = round($courseMaxAccum, 2);
 
-                    $moitie = $maxTotal > 0 ? ($maxTotal / 2) : 0;
-                    if ($moitie > 0 && $total < $moitie) {
-                        $coursEchecs[$code] = round($moitie - $total, 2);
+                    $moitie = $courseMaxAccum > 0 ? ($courseMaxAccum / 2) : 0;
+                    if ($moitie > 0 && $courseTotalAccum < $moitie) {
+                        $coursEchecs[$code] = round($moitie - $courseTotalAccum, 2);
                     }
                 }
             }
 
             $pourcentageCours = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
 
-            $noteC = $notesConduite->where('eleve_id', $eleve->id)->first();
-            $noteConduiteValue = $noteC ? $noteC->note : $conduiteMax;
-            $appreciationConduite = ConduiteConfigService::buildAppreciation($noteConduiteValue, $conduiteMax);
+            if ($mode === 'annual') {
+                $noteConduiteValue = 0.0;
+                foreach (self::TRIMESTRES as $trimLabel) {
+                    $noteC = $notesConduite->where('eleve_id', $eleve->id)
+                        ->where('trimestre', $trimLabel)
+                        ->first();
+                    $noteConduiteValue += $noteC ? (float) $noteC->note : (float) $conduiteMax;
+                }
+                $conduiteMaxPourEleve = count(self::TRIMESTRES) * $conduiteMax;
+                $moyenneConduitePourAppreciation = count(self::TRIMESTRES) > 0
+                    ? $noteConduiteValue / count(self::TRIMESTRES)
+                    : $noteConduiteValue;
+                $appreciationConduite = ConduiteConfigService::buildAppreciation(
+                    $moyenneConduitePourAppreciation,
+                    $conduiteMax
+                );
+            } else {
+                $noteC = $notesConduite->where('eleve_id', $eleve->id)->first();
+                $noteConduiteValue = $noteC ? (float) $noteC->note : (float) $conduiteMax;
+                $conduiteMaxPourEleve = $conduiteMax;
+                $appreciationConduite = ConduiteConfigService::buildAppreciation($noteConduiteValue, $conduiteMax);
+            }
 
             $globalPoints = round($totalPoints + $noteConduiteValue, 2);
-            $globalMax = round($totalMax + $conduiteMax, 2);
+            $globalMax = round($totalMax + $conduiteMaxPourEleve, 2);
             $pourcentage = $globalMax > 0 ? round(($globalPoints / $globalMax) * 100, 1) : 0;
 
             $decision = null;
@@ -232,7 +219,7 @@ class PalmaresController extends Controller
                 'pourcentage_cours' => $pourcentageCours,
                 'conduite' => [
                     'note' => $noteConduiteValue,
-                    'max' => $conduiteMax,
+                    'max' => $conduiteMaxPourEleve,
                     'appreciation' => $appreciationConduite,
                 ],
             ];
@@ -309,5 +296,70 @@ class PalmaresController extends Controller
         $filename = 'palmares_'.($palmaresData['classe']['nom'] ?? 'classe').'.pdf';
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Points et barème pour une matière sur un sous-ensemble d'évaluations (ex. un trimestre).
+     *
+     * @return array{0: float, 1: float} [total, max_total]
+     */
+    private function matiereScoresPourEvaluations(Matiere $matiere, int $eleveId, Collection $coursEvals): array
+    {
+        $ponderationComp = Schema::hasColumn('matieres', 'ponderation_competence')
+            ? (float) ($matiere->ponderation_competence ?? 0)
+            : 0.0;
+
+        $tjEvals = $coursEvals->whereIn('type_evaluation', ['TJ', 'Interrogation', 'Devoir', 'TP']);
+        $compEvals = $ponderationComp > 0
+            ? $coursEvals->where('type_evaluation', 'Compétence')
+            : collect();
+        $examEvals = $coursEvals->where('type_evaluation', 'Examen');
+
+        $tjNote = 0.0;
+        $tjMax = 0.0;
+        foreach ($tjEvals as $eval) {
+            $note = $eval->notes->where('eleve_id', $eleveId)->first();
+            if ($note) {
+                $tjNote += $note->note;
+                $tjMax += $eval->note_maximale;
+            }
+        }
+
+        $compNote = 0.0;
+        $compMax = 0.0;
+        foreach ($compEvals as $eval) {
+            $note = $eval->notes->where('eleve_id', $eleveId)->first();
+            if ($note) {
+                $compNote += $note->note;
+                $compMax += $eval->note_maximale;
+            }
+        }
+
+        $examNote = 0.0;
+        $examMax = 0.0;
+        foreach ($examEvals as $eval) {
+            $note = $eval->notes->where('eleve_id', $eleveId)->first();
+            if ($note) {
+                $examNote += $note->note;
+                $examMax += $eval->note_maximale;
+            }
+        }
+
+        $scaledTj = $matiere->ponderation_tj > 0 && $tjMax > 0
+            ? round(($tjNote / $tjMax) * $matiere->ponderation_tj, 2)
+            : $tjNote;
+        $scaledComp = 0.0;
+        if ($ponderationComp > 0 && $compMax > 0) {
+            $scaledComp = round(($compNote / $compMax) * $ponderationComp, 2);
+        }
+        $scaledExam = $matiere->ponderation_examen > 0 && $examMax > 0
+            ? round(($examNote / $examMax) * $matiere->ponderation_examen, 2)
+            : $examNote;
+
+        $maxComp = $ponderationComp > 0 ? $ponderationComp : 0;
+        $total = $scaledTj + $scaledComp + $scaledExam;
+        $maxTotal = ($matiere->ponderation_tj ?: $tjMax) + $maxComp + ($matiere->ponderation_examen ?: $examMax);
+
+        return [(float) $total, (float) $maxTotal];
     }
 }
