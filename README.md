@@ -1,57 +1,68 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Système National de Gestion de l'Éducation (SNGE) - Backend (API)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Vue d'Ensemble
+Le module Backend du Système National de Gestion de l'Éducation (SNGE) est une API REST robuste et sécurisée propulsant l'ensemble de la plateforme. Développé avec Laravel 12, il gère la logique métier complexe, l'accès à la base de données, la sécurité et la génération de rapports pour l'ensemble du système éducatif du Burundi.
 
-## About Laravel
+## Fonctionnalités Principales
+- **API RESTful Sécurisée** : Points d'accès pour tous les modules du système (Écoles, Élèves, Professeurs, Parents, etc.).
+- **Gestion des Permissions (RBAC)** : Système granulaire de rôles (Administrateur, Agent Provincial, Directeur, Enseignant, Inspecteur) géré via Spatie Permission.
+- **Génération de Documents** : Création automatique de bulletins et rapports en PDF (via DOMPDF) et exports complexes Excel (via Maatwebsite Excel).
+- **Authentification & Sécurité** : Authentification stateless par tokens via Laravel Sanctum.
+- **Documentation API** : Génération automatique de la documentation OpenAPI via Scramble.
+- **Traçabilité** : Journalisation de toutes les activités critiques via Spatie Activitylog.
+- **Traitement Asynchrone** : Utilisation des Jobs/Queues pour les tâches lourdes (calculs de moyennes, imports massifs).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Technologies & Stack Technique
+- **Framework** : Laravel 12
+- **Langage** : PHP 8.4
+- **Base de Données** : MySQL / PostgreSQL (via Eloquent ORM)
+- **Authentification** : Laravel Sanctum
+- **Gestion des Rôles** : Spatie Laravel-Permission
+- **Génération PDF** : barryvdh/laravel-dompdf
+- **Génération Excel** : maatwebsite/excel
+- **Documentation API** : dedoc/scramble
+- **Logs d'Activité** : spatie/laravel-activitylog
+- **Tests** : Pest PHP v3
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Prérequis
+- PHP 8.4+
+- Composer
+- Base de données (MySQL/PostgreSQL)
+- Serveur Redis (pour les files d'attente et gestion du cache, optionnel mais recommandé)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Installation et Lancement
 
-## Learning Laravel
+1. Installer les dépendances PHP :
+   ```bash
+   composer install
+   ```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+2. Configurer les variables d'environnement :
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   *N'oubliez pas de configurer les accès à votre base de données dans le fichier `.env`.*
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+3. Exécuter les migrations et seeders :
+   ```bash
+   php artisan migrate --seed
+   ```
 
-## Laravel Sponsors
+4. Lancer le serveur de développement :
+   ```bash
+   php artisan serve
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Tests
+Le projet utilise Pest pour les tests automatisés (Feature et Unit tests).
+Pour lancer la suite de tests :
+```bash
+php artisan test
+```
 
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# NationalEducationManagementSystem_API
+## Architecture & Conventions
+- Suivi strict des principes et de la nouvelle structure minimaliste de Laravel 12 (configuration via `bootstrap/app.php`).
+- Utilisation des `FormRequests` pour la validation stricte des données entrantes.
+- Utilisation des `API Resources` d'Eloquent pour le formatage propre et standardisé des réponses JSON.
+- Code strictement formaté avec `Laravel Pint`.
