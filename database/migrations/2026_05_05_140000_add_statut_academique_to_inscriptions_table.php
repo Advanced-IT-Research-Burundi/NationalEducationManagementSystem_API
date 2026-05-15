@@ -24,13 +24,13 @@ return new class extends Migration
             $driver = Schema::getConnection()->getDriverName();
 
             if ($driver === 'sqlite') {
-                $rows = DB::select('PRAGMA index_list('.$table.')');
+                $rows = DB::select('PRAGMA index_list(' . $table . ')');
 
-                return collect($rows)->contains(fn ($row) => ($row->name ?? '') === $keyName);
+                return collect($rows)->contains(fn($row) => ($row->name ?? '') === $keyName);
             }
 
-            return collect(DB::select('SHOW INDEX FROM '.$table))
-                ->contains(fn ($row) => ($row->Key_name ?? '') === $keyName);
+            return collect(DB::select('SHOW INDEX FROM ' . $table))
+                ->contains(fn($row) => ($row->Key_name ?? '') === $keyName);
         };
 
         $hasStatutIndex = $indexExists('inscriptions', 'inscriptions_statut_academique_index');
@@ -91,10 +91,10 @@ return new class extends Migration
     {
         $connection = Schema::getConnection();
         $table = 'inscriptions';
-        $prefixed = $connection->getTablePrefix().$table;
+        $prefixed = $connection->getTablePrefix() . $table;
 
         return match ($connection->getDriverName()) {
-            'mysql', 'mariadb' => collect(DB::select('SHOW INDEX FROM `'.$prefixed.'`'))
+            'mysql', 'mariadb' => collect(DB::select('SHOW INDEX FROM `' . $prefixed . '`'))
                 ->pluck('Key_name')
                 ->unique()
                 ->values()
