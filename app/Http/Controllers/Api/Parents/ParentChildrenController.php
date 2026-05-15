@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Parent;
+namespace App\Http\Controllers\Api\Parents;
 
 use App\Http\Controllers\Controller;
 use App\Models\AnneeScolaire;

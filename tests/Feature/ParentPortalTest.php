@@ -158,6 +158,103 @@ it('returns empty notes list for parent with no linked children', function (): v
     $this->getJson('/api/academic/notes')->assertSuccessful();
 });
 
+it('allows parent to view notes for linked children', function (): void {
+    $school = School::withoutGlobalScopes()->create([
+        'name' => 'École Test',
+        'colline_id' => 1,
+    ]);
+
+    $eleve = Eleve::withoutGlobalScopes()->create([
+        'nom' => 'A',
+        'prenom' => 'Enfant',
+        'sexe' => 'M',
+        'date_naissance' => '2012-01-01',
+        'lieu_naissance' => 'Bujumbura',
+        'school_id' => $school->id,
+    ]);
+
+    $parent = User::factory()->create(['statut' => 'actif']);
+    $parent->assignRole(Role::PARENT);
+
+    EleveParent::create([
+        'user_id' => $parent->id,
+        'eleve_id' => $eleve->id,
+        'nom_complet' => 'Parent Test',
+        'relation' => 'Père',
+    ]);
+
+    $anneeId = DB::table('annee_scolaires')->insertGetId([
+        'code' => '2025-2026',
+        'libelle' => '2025/2026',
+        'date_debut' => now()->subMonths(6)->toDateString(),
+        'date_fin' => now()->addMonths(6)->toDateString(),
+        'est_active' => true,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $niveauId = DB::table('niveaux_scolaires')->insertGetId([
+        'nom' => 'Niveau Test',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $trimestreId = DB::table('trimestres')->insertGetId([
+        'annee_scolaire_id' => $anneeId,
+        'nom' => '1er Trimestre',
+        'date_debut' => now()->subMonth()->toDateString(),
+        'date_fin' => now()->addMonth()->toDateString(),
+        'actif' => true,
+        'verrouille' => false,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $classeId = DB::table('classes')->insertGetId([
+        'nom' => 'Classe Test',
+        'school_id' => $school->id,
+        'niveau_id' => $niveauId,
+        'annee_scolaire_id' => $anneeId,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $matiereId = DB::table('matieres')->insertGetId([
+        'nom' => 'Mathématiques',
+        'code' => 'MAT',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $evaluationId = DB::table('evaluations')->insertGetId([
+        'classe_id' => $classeId,
+        'cours_id' => $matiereId,
+        'annee_scolaire_id' => 1,
+        'trimestre' => '1er Trimestre',
+        'trimestre_id' => $trimestreId,
+        'type_evaluation' => 'TJ',
+        'date_passation' => now()->toDateString(),
+        'note_maximale' => 20,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    DB::table('notes')->insert([
+        'evaluation_id' => $evaluationId,
+        'eleve_id' => $eleve->id,
+        'note' => 18,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->actingAs($parent, 'sanctum');
+
+    $response = $this->getJson('/api/academic/notes');
+
+    $response->assertSuccessful();
+    expect($response->json('data'))->not->toBeEmpty();
+});
+
 it('requires authentication for parent children endpoint', function (): void {
     $this->getJson('/api/academic/parent/children')->assertUnauthorized();
 });

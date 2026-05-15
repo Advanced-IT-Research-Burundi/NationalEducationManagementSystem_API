@@ -13,6 +13,10 @@ class NotePolicy
      */
     public function viewAny(User $user): bool
     {
+        if ($user->hasRole(Role::PARENT)) {
+            return true;
+        }
+
         return $user->hasAnyPermissionName([
             'view_data',
             'view_note',
