@@ -15,7 +15,6 @@ use App\Services\ConduiteConfigService;
 use App\Services\CurrentAcademicContextService;
 use App\Support\AcademicCycleHelper;
 use App\Models\Role;
-use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
 use App\Support\AcademicCycleHelper;
 use App\Traits\ResolvesAnneeScolaire;
@@ -61,15 +60,15 @@ class BulletinController extends Controller
 
         $this->authorizeBulletinRequest($request, $classeId, $requestedEleveId, $anneeScolaireId);
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
         $ttl = 600;
 
-        $data = Cache::remember($cacheKey, $ttl, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $data = Cache::remember($cacheKey, $ttl, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
 
         if ($requestedEleveId) {
             $data['bulletins'] = array_values(array_filter(
                 $data['bulletins'],
-                fn ($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
+                fn($bulletin) => ($bulletin['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
 
@@ -265,7 +264,7 @@ class BulletinController extends Controller
             }
 
             $annualConduiteNote = collect($requestedTrimestres)
-                ->sum(fn ($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
+                ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
             $annualConduiteMax = count($requestedTrimestres) * $conduiteMax;
             $annualIsComplete = ! $annualHasIncomplete;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
@@ -351,12 +350,12 @@ class BulletinController extends Controller
             ];
         }
 
-        $annualRanks = $this->buildRanks($bulletins, fn ($bulletin) => $bulletin['annuel']);
+        $annualRanks = $this->buildRanks($bulletins, fn($bulletin) => $bulletin['annuel']);
         $trimestreRanks = [];
         foreach ($requestedTrimestres as $currentTrimestre) {
             $trimestreRanks[$currentTrimestre] = $this->buildRanks(
                 $bulletins,
-                fn ($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
+                fn($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
             );
         }
 
@@ -415,14 +414,14 @@ class BulletinController extends Controller
         $requestedEleveIdForAuth = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
         $this->authorizeBulletinRequest($request, $classeId, $requestedEleveIdForAuth, $anneeScolaireId);
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:".($trimestre ?? 'all');
-        $bulletinData = Cache::remember($cacheKey, 600, fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
+        $bulletinData = Cache::remember($cacheKey, 600, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
 
         if ($request->filled('eleve_id')) {
             $requestedEleveId = $request->integer('eleve_id');
             $bulletinData['bulletins'] = array_values(array_filter(
                 $bulletinData['bulletins'],
-                fn ($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
+                fn($b) => ($b['eleve']['id'] ?? null) === $requestedEleveId
             ));
         }
 
@@ -443,7 +442,7 @@ class BulletinController extends Controller
             $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
             $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
         }
-        $filename = 'bulletin_'.($bulletinData['classe']['nom'] ?? 'classe').'_'.$eleveNom.'_'.$elevePrenom.'.pdf';
+        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . $eleveNom . '_' . $elevePrenom . '.pdf';
 
         return $pdf->download($filename);
     }
@@ -668,7 +667,8 @@ class BulletinController extends Controller
             if (($summary['max_total'] ?? 0) > 0
                 || ($summary['max_tj'] ?? 0) > 0
                 || ($summary['max_competence'] ?? 0) > 0
-                || ($summary['max_examen'] ?? 0) > 0) {
+                || ($summary['max_examen'] ?? 0) > 0
+            ) {
                 return $summary;
             }
         }
