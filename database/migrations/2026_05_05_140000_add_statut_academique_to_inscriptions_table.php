@@ -42,23 +42,18 @@ return new class extends Migration
 
         // Replace the unique constraint: (eleve_id, annee_scolaire_id) -> (eleve_id, annee_scolaire_id, school_id)
 
-$hasOldUnique = $indexExists(
-    'inscriptions',
-    'inscriptions_eleve_id_annee_scolaire_id_unique'
-);
-
-if ($hasOldUnique) {
-    // MySQL requires dropping the FK before dropping the unique index it relies on
-    Schema::table('inscriptions', function (Blueprint $table) {
-        $table->dropForeign(['eleve_id']);
-    });
-}
+        $hasOldUnique = $indexExists(
+            'inscriptions',
+            'inscriptions_eleve_id_annee_scolaire_id_unique'
+        );
 
         if ($hasOldUnique) {
             // MySQL requires dropping the FK before dropping the unique index it relies on
-            Schema::table('inscriptions', function (Blueprint $table) {
-                $table->dropForeign(['eleve_id']);
-            });
+            if ($this->hasForeignKey('inscriptions', 'inscriptions_eleve_id_foreign')) {
+                Schema::table('inscriptions', function (Blueprint $table) {
+                    $table->dropForeign(['eleve_id']);
+                });
+            }
 
             Schema::table('inscriptions', function (Blueprint $table) {
                 $table->dropUnique(['eleve_id', 'annee_scolaire_id']);
@@ -114,5 +109,15 @@ if ($hasOldUnique) {
                 ->all(),
             default => [],
         };
+    }
+
+    private function hasForeignKey(string $table, string $fkName): bool
+    {
+        $connection = Schema::getConnection();
+        if ($connection->getDriverName() === 'mysql') {
+            $result = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_TYPE = 'FOREIGN KEY' AND CONSTRAINT_NAME = ?", [$table, $fkName]);
+            return !empty($result);
+        }
+        return false; // For other drivers, assume not present to avoid errors
     }
 };
