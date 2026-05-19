@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Academic\PromotionController;
 use App\Http\Controllers\Api\Academic\SectionController;
 use App\Http\Controllers\Api\Academic\TrimestreController;
 use App\Http\Controllers\Api\Academic\TypeScolaireController;
+use App\Http\Controllers\Api\Parents\ParentChildrenController;
 use App\Http\Controllers\Api\Cours\BulletinController;
 use App\Http\Controllers\Api\Cours\CategoriCoursController;
 use App\Http\Controllers\Api\Cours\ConduiteController;
