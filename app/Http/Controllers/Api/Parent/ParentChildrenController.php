@@ -22,12 +22,11 @@ class ParentChildrenController extends Controller
             abort(403);
         }
 
-        $anneeScolaireId = $request->filled('annee_scolaire_id')
-            ? $request->integer('annee_scolaire_id')
-            : AcademicYearService::currentId();
+        $anneeScolaireId = AnneeScolaire::withoutGlobalScopes()->active()->value('id')
+            ?? AcademicYearService::currentId();
 
-        if (! $anneeScolaireId) {
-            $anneeScolaireId = AnneeScolaire::withoutGlobalScopes()->active()->value('id');
+        if ($anneeScolaireId) {
+            AcademicYearService::setCurrent($anneeScolaireId);
         }
 
         $user->load([
@@ -78,6 +77,7 @@ class ParentChildrenController extends Controller
                     'id' => $inscription->anneeScolaire->id,
                     'libelle' => $inscription->anneeScolaire->libelle,
                     'code' => $inscription->anneeScolaire->code,
+                    'est_active' => (bool) $inscription->anneeScolaire->est_active,
                 ] : null,
                 'classe_id' => $classe?->id,
                 'classe' => $classe ? [

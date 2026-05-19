@@ -21,7 +21,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class BulletinController extends Controller
 {
@@ -41,6 +43,7 @@ class BulletinController extends Controller
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
+            'trimestre' => ['nullable', 'string', 'max:100'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
@@ -49,8 +52,14 @@ class BulletinController extends Controller
         $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         $requestedEleveId = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
-        $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
-        $trimestre = $currentTrimestre?->nom;
+
+        if ($request->user()?->hasRole(Role::PARENT)) {
+            $anneeScolaireId = AnneeScolaire::withoutGlobalScopes()->active()->value('id')
+                ?? $anneeScolaireId;
+            if ($anneeScolaireId) {
+                \App\Services\AcademicYearService::setCurrent($anneeScolaireId);
+            }
+        }
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
@@ -58,10 +67,17 @@ class BulletinController extends Controller
 
         $this->authorizeBulletinRequest($request, $classeId, $requestedEleveId, $anneeScolaireId);
 
+        $isParent = $request->user()?->hasRole(Role::PARENT);
+        [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode, $isParent);
+
         $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
         $ttl = 600;
 
-        $data = Cache::remember($cacheKey, $ttl, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $data = Cache::remember(
+            $cacheKey,
+            $ttl,
+            fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
+        );
 
         if ($requestedEleveId) {
             $data['bulletins'] = array_values(array_filter(
@@ -71,13 +87,13 @@ class BulletinController extends Controller
         }
 
         $data['mode'] = $mode;
-        $data['trimestre_meta'] = $currentTrimestre ? [
-            'id' => $currentTrimestre->id,
-            'nom' => $currentTrimestre->nom,
-            'date_debut' => optional($currentTrimestre->date_debut)?->toDateString(),
-            'date_fin' => optional($currentTrimestre->date_fin)?->toDateString(),
-            'actif' => (bool) $currentTrimestre->actif,
-            'verrouille' => (bool) $currentTrimestre->verrouille,
+        $data['trimestre_meta'] = $trimestreModel ? [
+            'id' => $trimestreModel->id,
+            'nom' => $trimestreModel->nom,
+            'date_debut' => optional($trimestreModel->date_debut)?->toDateString(),
+            'date_fin' => optional($trimestreModel->date_fin)?->toDateString(),
+            'actif' => (bool) $trimestreModel->actif,
+            'verrouille' => (bool) $trimestreModel->verrouille,
         ] : null;
 
         return response()->json(['data' => $data]);
@@ -392,9 +408,14 @@ class BulletinController extends Controller
      */
     public function pdf(Request $request)
     {
+        if ($request->user()?->hasRole(Role::PARENT)) {
+            abort(403, 'Le téléchargement du bulletin PDF n\'est pas disponible pour les comptes parent.');
+        }
+
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
+            'trimestre' => ['nullable', 'string', 'max:100'],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
@@ -402,8 +423,6 @@ class BulletinController extends Controller
         $classeId = $request->integer('classe_id');
         $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
-        $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
-        $trimestre = $currentTrimestre?->nom;
 
         if (! $anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
@@ -412,8 +431,14 @@ class BulletinController extends Controller
         $requestedEleveIdForAuth = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
         $this->authorizeBulletinRequest($request, $classeId, $requestedEleveIdForAuth, $anneeScolaireId);
 
+        [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode);
+
         $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
-        $bulletinData = Cache::remember($cacheKey, 600, fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId));
+        $bulletinData = Cache::remember(
+            $cacheKey,
+            600,
+            fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
+        );
 
         if ($request->filled('eleve_id')) {
             $requestedEleveId = $request->integer('eleve_id');
@@ -443,6 +468,36 @@ class BulletinController extends Controller
         $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . $eleveNom . '_' . $elevePrenom . '.pdf';
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?Trimestre}
+     */
+    private function resolveBulletinPeriod(Request $request, int $anneeScolaireId, string $mode, bool $isParent = false): array
+    {
+        if ($mode === 'annual') {
+            return [null, null];
+        }
+
+        if (! $isParent && $request->filled('trimestre')) {
+            $nom = $request->string('trimestre')->toString();
+            $model = Trimestre::query()
+                ->where('annee_scolaire_id', $anneeScolaireId)
+                ->where('nom', $nom)
+                ->first();
+
+            return [$nom, $model];
+        }
+
+        Context::add('annee_scolaire_id', $anneeScolaireId);
+
+        try {
+            $current = $this->academicContextService->requireCurrentTrimestre();
+
+            return [$current->nom, $current];
+        } catch (UnprocessableEntityHttpException) {
+            return [null, null];
+        }
     }
 
     private function authorizeBulletinRequest(Request $request, int $classeId, ?int $eleveId, int $anneeScolaireId): void

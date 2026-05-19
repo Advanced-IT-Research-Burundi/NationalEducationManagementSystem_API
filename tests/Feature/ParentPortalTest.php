@@ -161,3 +161,13 @@ it('returns empty notes list for parent with no linked children', function (): v
 it('requires authentication for parent children endpoint', function (): void {
     $this->getJson('/api/academic/parent/children')->assertUnauthorized();
 });
+
+it('forbids parent from downloading bulletin pdf', function (): void {
+    $parent = User::factory()->create(['statut' => 'actif']);
+    $parent->assignRole(Role::PARENT);
+
+    $this->actingAs($parent, 'sanctum');
+
+    $this->getJson('/api/academic/bulletins/pdf?classe_id=1&eleve_id=1')
+        ->assertForbidden();
+});

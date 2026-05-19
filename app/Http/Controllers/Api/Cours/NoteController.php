@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api\Cours;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnneeScolaire;
 use App\Models\Note;
+use App\Services\AcademicYearService;
 use App\Services\CurrentAcademicContextService;
 use App\Models\Role;
 use App\Traits\ResolvesAnneeScolaire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class NoteController extends Controller
 {
@@ -25,7 +29,6 @@ class NoteController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
         $this->authorize('viewAny', Note::class);
 
         $user = $request->user();
@@ -50,23 +53,30 @@ class NoteController extends Controller
             } else {
                 $query->whereIn('eleve_id', $linkedIds);
             }
+
+            if ($request->filled('eleve_id')) {
+                $eleveId = $request->integer('eleve_id');
+                abort_unless($user->isLinkedParentOfEleve($eleveId), 403);
+            }
         }
 
-        // Filter by classe (through evaluation)
-        if ($request->filled('classe_id')) {
-            $query->whereHas('evaluation', function ($q) use ($request) {
-                $q->where('classe_id', $request->integer('classe_id'));
-            });
-        }
+        // Parents: scope by linked élève only (inscription classe/school may differ from evaluation).
+        if (! $isParent) {
+            if ($request->filled('classe_id')) {
+                $query->whereHas('evaluation', function ($q) use ($request) {
+                    $q->where('classe_id', $request->integer('classe_id'));
+                });
+            }
 
-        if ($request->filled('school_id')) {
-            $query->whereHas('evaluation.classe', function ($q) use ($request) {
-                $q->where('school_id', $request->integer('school_id'));
-            });
-        } elseif (! $isParent && auth()->check() && auth()->user()->school_id) {
-            $query->whereHas('evaluation.classe', function ($q) {
-                $q->where('school_id', auth()->user()->school_id);
-            });
+            if ($request->filled('school_id')) {
+                $query->whereHas('evaluation.classe', function ($q) use ($request) {
+                    $q->where('school_id', $request->integer('school_id'));
+                });
+            } elseif (auth()->check() && auth()->user()->school_id) {
+                $query->whereHas('evaluation.classe', function ($q) {
+                    $q->where('school_id', auth()->user()->school_id);
+                });
+            }
         }
 
         // Filter by cours (through evaluation)
@@ -76,16 +86,26 @@ class NoteController extends Controller
             });
         }
 
-        $anneeScolaireId = $this->resolveAnneeScolaireId($request);
-        if ($anneeScolaireId) {
-            $query->whereHas('evaluation', function ($q) use ($anneeScolaireId) {
-                $q->where('annee_scolaire_id', $anneeScolaireId);
+        if ($isParent) {
+            $anneeScolaireId = $this->resolveActiveAnneeScolaireIdForParent();
+            if ($anneeScolaireId) {
+                $query->whereHas('evaluation', function ($q) use ($anneeScolaireId) {
+                    $q->where('annee_scolaire_id', $anneeScolaireId);
+                });
+            }
+            $this->applyParentNotesPeriodFilter($query, $request);
+        } else {
+            $anneeScolaireId = $this->resolveAnneeScolaireId($request);
+            if ($anneeScolaireId) {
+                $query->whereHas('evaluation', function ($q) use ($anneeScolaireId) {
+                    $q->where('annee_scolaire_id', $anneeScolaireId);
+                });
+            }
+            $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
+            $query->whereHas('evaluation', function ($q) use ($currentTrimestre) {
+                $q->matchingTrimestre($currentTrimestre);
             });
         }
-
-        $query->whereHas('evaluation', function ($q) use ($currentTrimestre) {
-            $q->where('trimestre_id', $currentTrimestre->id);
-        });
 
         // Filter by section (through evaluation.cours)
         if ($request->filled('section_id')) {
@@ -104,5 +124,37 @@ class NoteController extends Controller
         $notes = $query->latest()->paginate($request->get('per_page', 50));
 
         return response()->json($notes);
+    }
+
+    /**
+     * Parents: année active uniquement — scope=all (tous trimestres) ou trimestre courant.
+     */
+    protected function applyParentNotesPeriodFilter($query, Request $request): void
+    {
+        if ($request->string('scope')->toString() === 'all') {
+            return;
+        }
+
+        try {
+            $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
+            $query->whereHas('evaluation', function ($q) use ($currentTrimestre) {
+                $q->matchingTrimestre($currentTrimestre);
+            });
+        } catch (UnprocessableEntityHttpException) {
+            // Aucun trimestre courant configuré : toutes les notes de l'année active.
+        }
+    }
+
+    protected function resolveActiveAnneeScolaireIdForParent(): ?int
+    {
+        $id = AnneeScolaire::withoutGlobalScopes()->active()->value('id')
+            ?? AcademicYearService::currentId();
+
+        if ($id) {
+            AcademicYearService::setCurrent($id);
+            Context::add('annee_scolaire_id', $id);
+        }
+
+        return $id;
     }
 }
