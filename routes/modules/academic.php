@@ -30,7 +30,6 @@ use App\Http\Controllers\Api\Cours\EvaluationController;
 use App\Http\Controllers\Api\Cours\NoteController;
 use App\Http\Controllers\Api\Cours\PalmaresController;
 use App\Http\Controllers\Api\Cours\ReglementScolaireController;
-use App\Http\Controllers\Api\Parent\ParentChildrenController;
 use Illuminate\Support\Facades\Route;
 
 /*
