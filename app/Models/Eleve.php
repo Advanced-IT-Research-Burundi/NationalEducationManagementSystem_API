@@ -111,7 +111,7 @@ class Eleve extends Model
      */
     public function getNomCompletAttribute(): string
     {
-        return "{$this->prenom} {$this->nom}";
+        return "{$this->nom} {$this->prenom}";
     }
 
     public function getAgeAttribute(): ?int

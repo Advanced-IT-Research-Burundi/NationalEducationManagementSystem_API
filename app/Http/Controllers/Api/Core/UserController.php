@@ -438,7 +438,7 @@ class UserController extends Controller
     protected function isParentRole(array $data): bool
     {
         return ($data['role'] ?? null) === Role::PARENT ||
-               (isset($data['roles']) && is_array($data['roles']) && in_array(Role::PARENT, $data['roles']));
+            (isset($data['roles']) && is_array($data['roles']) && in_array(Role::PARENT, $data['roles']));
     }
 
     /**
@@ -469,8 +469,8 @@ class UserController extends Controller
     protected function syncParentEleveLinks(User $user, array $links): void
     {
         $normalized = collect($links)
-            ->filter(fn ($row) => is_array($row) && ! empty($row['eleve_id']))
-            ->map(fn (array $row) => [
+            ->filter(fn($row) => is_array($row) && ! empty($row['eleve_id']))
+            ->map(fn(array $row) => [
                 'eleve_id' => (int) $row['eleve_id'],
                 'relation' => isset($row['relation']) && is_string($row['relation']) && $row['relation'] !== ''
                     ? $row['relation']
@@ -513,6 +513,6 @@ class UserController extends Controller
 
     protected function generateSecurePassword(): string
     {
-        return 'Temp'.rand(100000, 999999); // Simple temporary password, can be improved
+        return 'Temp' . rand(100000, 999999); // Simple temporary password, can be improved
     }
 }
