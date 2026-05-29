@@ -15,7 +15,7 @@ class EleveResource extends JsonResource
 
         $data = [
             'id' => $this->id,
-            'matricule' => $this->matricule,
+            // 'matricule' => $this->matricule,
             'nom' => $this->nom,
             'prenom' => $this->prenom,
             'nom_complet' => $this->nom_complet,
@@ -50,13 +50,13 @@ class EleveResource extends JsonResource
             'school' => $contextualSchool ?? new SchoolResource($this->whenLoaded('ecole')),
 
             'classes' => $this->whenLoaded('classes', function () {
-                return $this->classes->map(fn ($classe) => [
+                return $this->classes->map(fn($classe) => [
                     'id' => $classe->id,
                     'nom' => $classe->nom,
                 ]);
             }),
             'parents' => $this->whenLoaded('parents', function () {
-                return $this->parents->map(fn ($parent) => [
+                return $this->parents->map(fn($parent) => [
                     'id' => $parent->id,
                     'user_id' => $parent->user_id,
                     'name' => $parent->nom_complet,
@@ -68,13 +68,13 @@ class EleveResource extends JsonResource
             }),
             'inscriptions' => $this->whenLoaded('inscriptions'),
 
-            'created_by' => $this->whenLoaded('creator', fn () => [
+            'created_by' => $this->whenLoaded('creator', fn() => [
                 'id' => $this->creator->id,
                 'name' => $this->creator->name,
             ]),
 
             'photo_url' => $this->photo_path
-                ? asset('storage/'.$this->photo_path)
+                ? asset('storage/' . $this->photo_path)
                 : null,
 
             'created_at' => $this->created_at,

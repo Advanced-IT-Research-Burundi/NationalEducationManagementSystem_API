@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAffectationEnseignantRequest;
 use App\Http\Requests\StoreEnseignantRequest;
 use App\Http\Requests\UpdateEnseignantRequest;
+use App\Http\Resources\EnseignantResource;
 use App\Models\AffectationEnseignant;
 use App\Models\Enseignant;
 use App\Models\User;
@@ -233,7 +234,7 @@ class EnseignantController extends Controller
         $enseignant = Enseignant::findOrFail($data['enseignant_id']);
         if (! $enseignant->canBeAssigned()) {
             return response()->json([
-                'message' => 'Cet enseignant ne peut pas être affecté (statut: '.$enseignant->statut.').',
+                'message' => 'Cet enseignant ne peut pas être affecté (statut: ' . $enseignant->statut . ').',
             ], 422);
         }
 

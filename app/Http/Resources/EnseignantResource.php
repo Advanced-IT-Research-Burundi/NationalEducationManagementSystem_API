@@ -11,9 +11,22 @@ class EnseignantResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'matricule' => $this->matricule,
+            // 'matricule' => $this->matricule,
+        'user_id',
+        'school_id',
+        'matricule',
+        'date_naissance',
+        'qualification',
+        'qualification_precision',
+        'domaines',
+        'annees_experience',
+        'date_embauche',
+        'telephone',
+        'statut',
+        'created_by',
+            'date_naissance' => $this->date_naissance,
             'statut' => $this->statut,
-            'user' => $this->whenLoaded('user', fn () => [
+            'user' => $this->whenLoaded('user', fn() => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'email' => $this->user->email,
