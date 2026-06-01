@@ -69,6 +69,8 @@ class ClasseController extends Controller
     public function store(StoreClasseRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $dataCode = $request->input('annee_scolaire_id');
+        $data['annee_scolaire_id'] = AnneeScolaire::where('code', $dataCode)->value('id') ?? AnneeScolaire::current()?->id;
         $data['created_by'] = Auth::id();
 
         $classe = Classe::create($data);
@@ -209,7 +211,7 @@ class ClasseController extends Controller
 
         if (! $eleve->canEnroll()) {
             return response()->json([
-                'message' => 'Cet élève ne peut pas être inscrit (statut: '.($eleve->statut_global ?? 'inconnu').').',
+                'message' => 'Cet élève ne peut pas être inscrit (statut: ' . ($eleve->statut_global ?? 'inconnu') . ').',
             ], 422);
         }
 
@@ -362,7 +364,7 @@ class ClasseController extends Controller
 
             // Désactiver les AffectationClasse liées
             AffectationClasse::where('classe_id', $classe->id)
-                ->whereHas('inscription', fn ($q) => $q->where('eleve_id', $request->eleve_id))
+                ->whereHas('inscription', fn($q) => $q->where('eleve_id', $request->eleve_id))
                 ->update(['est_active' => false]);
 
             // Recalculer l'effectif
