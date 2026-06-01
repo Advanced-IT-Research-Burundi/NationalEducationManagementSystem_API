@@ -695,10 +695,6 @@ class EleveController extends Controller
                 ->pluck('classe_id');
 
             $nouvelEtablissement = School::findOrFail($validated['ecole_destination_id']);
-            $niveauCible = null;
-            if (! empty($validated['niveau_cible_id'])) {
-                $niveauCible = Niveau::find($validated['niveau_cible_id']);
-            }
 
             $anneeActive = AnneeScolaire::current();
 
@@ -706,7 +702,23 @@ class EleveController extends Controller
                 return response()->json(['message' => 'Aucune année scolaire active.'], 422);
             }
 
-            $service->transferer($eleve, $nouvelEtablissement, $niveauCible, $anneeActive);
+            $validerAvancement = $request->boolean('validation_avancement');
+
+            $niveauCible = $service->resoudreNiveauCibleTransfert(
+                $eleve,
+                isset($validated['niveau_cible_id']) ? (int) $validated['niveau_cible_id'] : null,
+                $validated['niveau_cible'] ?? null,
+                $validerAvancement,
+            );
+
+            $service->transferer(
+                $eleve,
+                $nouvelEtablissement,
+                $niveauCible,
+                $anneeActive,
+                $validated['motif'] ?? null,
+                $validerAvancement,
+            );
 
             DB::table('eleve_class')
                 ->where('eleve_id', $eleve->id)

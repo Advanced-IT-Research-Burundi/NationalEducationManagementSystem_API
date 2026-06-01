@@ -36,20 +36,7 @@ class TransitionScolaireService
                 throw new \RuntimeException("Le niveau actuel de l'élève est introuvable.");
             }
 
-            $niveauSuperieur = Niveau::where('ordre', $niveauActuel->ordre + 1)
-                ->where('cycle_id', $niveauActuel->cycle_id)
-                ->first();
-
-            if (! $niveauSuperieur) {
-                // Try across cycles (end of cycle -> start of next)
-                $niveauSuperieur = Niveau::where('ordre', $niveauActuel->ordre + 1)->first();
-            }
-
-            if (! $niveauSuperieur) {
-                throw new \RuntimeException(
-                    "Aucun niveau supérieur trouvé après {$niveauActuel->nom} (ordre {$niveauActuel->ordre})."
-                );
-            }
+            $niveauSuperieur = $this->resoudreNiveauSuperieur($niveauActuel);
 
             $inscriptionActuelle->update(['statut_academique' => StatutAcademique::Admis]);
 
@@ -145,22 +132,84 @@ class TransitionScolaireService
     }
 
     /**
+     * Resolve the next grade level (ordre + 1) for promotion.
+     */
+    public function resoudreNiveauSuperieur(Niveau $niveauActuel): Niveau
+    {
+        $niveauSuperieur = Niveau::where('ordre', $niveauActuel->ordre + 1)
+            ->where('cycle_id', $niveauActuel->cycle_id)
+            ->first();
+
+        if (! $niveauSuperieur) {
+            $niveauSuperieur = Niveau::where('ordre', $niveauActuel->ordre + 1)->first();
+        }
+
+        if (! $niveauSuperieur) {
+            throw new \RuntimeException(
+                "Aucun niveau supérieur trouvé après {$niveauActuel->nom} (ordre {$niveauActuel->ordre})."
+            );
+        }
+
+        return $niveauSuperieur;
+    }
+
+    /**
+     * Resolve target level for an inter-school transfer from UI/API parameters.
+     *
+     * @return Niveau|null Null = keep current level (maintien)
+     */
+    public function resoudreNiveauCibleTransfert(
+        Eleve $eleve,
+        ?int $niveauCibleId = null,
+        ?string $niveauCible = null,
+        bool $validationAvancement = false,
+    ): ?Niveau {
+        $inscriptionActuelle = $this->getInscriptionActuelle($eleve);
+
+        if (! $inscriptionActuelle) {
+            throw new \RuntimeException("L'élève {$eleve->nom_complet} n'a pas d'inscription active.");
+        }
+
+        if ($niveauCibleId) {
+            return Niveau::findOrFail($niveauCibleId);
+        }
+
+        $passageNiveauSuperieur = $niveauCible === 'superieur' || $validationAvancement;
+
+        if (! $passageNiveauSuperieur) {
+            return null;
+        }
+
+        $niveauActuel = $inscriptionActuelle->niveauDemande;
+
+        if (! $niveauActuel) {
+            throw new \RuntimeException("Le niveau actuel de l'élève est introuvable.");
+        }
+
+        return $this->resoudreNiveauSuperieur($niveauActuel);
+    }
+
+    /**
      * Transfer a student to another school.
      */
     public function transferer(
         Eleve $eleve,
         School $nouvelEtablissement,
         ?Niveau $niveauCible,
-        AnneeScolaire $annee
+        AnneeScolaire $annee,
+        ?string $motif = null,
+        bool $validerAvancement = false,
     ): Inscription {
-        return DB::transaction(function () use ($eleve, $nouvelEtablissement, $niveauCible, $annee) {
+        return DB::transaction(function () use ($eleve, $nouvelEtablissement, $niveauCible, $annee, $motif, $validerAvancement) {
             $inscriptionActuelle = $this->getInscriptionActuelle($eleve);
 
             if (! $inscriptionActuelle) {
                 throw new \RuntimeException("L'élève {$eleve->nom_complet} n'a pas d'inscription active.");
             }
 
-            $niveauId = $niveauCible?->id ?? $inscriptionActuelle->niveau_demande_id;
+            $niveauOrigineId = $inscriptionActuelle->niveau_demande_id;
+            $niveauId = $niveauCible?->id ?? $niveauOrigineId;
+            $avecPromotionNiveau = $niveauCible !== null && (int) $niveauId !== (int) $niveauOrigineId;
 
             $inscriptionActuelle->update(['statut_academique' => StatutAcademique::Transfere]);
 
@@ -175,14 +224,20 @@ class TransitionScolaireService
                 false
             );
 
-            $eleve->update([
+            $eleveUpdates = [
                 'school_id' => $nouvelEtablissement->id,
                 'statut_global' => Eleve::STATUT_ACTIF,
-            ]);
+            ];
 
-            if ($niveauCible) {
-                $eleve->update(['niveau_id' => $niveauCible->id]);
+            if ($niveauCible || $avecPromotionNiveau) {
+                $eleveUpdates['niveau_id'] = $niveauId;
             }
+
+            if ($validerAvancement || $avecPromotionNiveau) {
+                $eleveUpdates['est_redoublant'] = false;
+            }
+
+            $eleve->update($eleveUpdates);
 
             MouvementEleve::create([
                 'eleve_id' => $eleve->id,
@@ -194,10 +249,15 @@ class TransitionScolaireService
                 'classe_origine_id' => $inscriptionActuelle->affectation?->classe_id,
                 'inscription_origine_id' => $inscriptionActuelle->id,
                 'inscription_destination_id' => $nouvelleInscription->id,
-                'niveau_origine_id' => $inscriptionActuelle->niveau_demande_id,
+                'niveau_origine_id' => $niveauOrigineId,
                 'niveau_destination_id' => $niveauId,
                 'annee_scolaire_destination_id' => $annee->id,
-                'motif' => 'Transfert vers ' . $nouvelEtablissement->name,
+                'motif' => $this->construireMotifTransfert(
+                    $nouvelEtablissement,
+                    $motif,
+                    $validerAvancement,
+                    $avecPromotionNiveau,
+                ),
                 'statut' => StatutMouvement::EnAttente->value,
                 'created_by' => Auth::id(),
             ]);
@@ -273,6 +333,35 @@ class TransitionScolaireService
                 'est_active' => false,
                 'date_fin' => now(),
             ]);
+    }
+
+    private function construireMotifTransfert(
+        School $nouvelEtablissement,
+        ?string $motifUtilisateur,
+        bool $validerAvancement,
+        bool $avecPromotionNiveau,
+    ): string {
+        $segments = [];
+
+        if ($validerAvancement) {
+            $segments[] = 'Avancement académique validé';
+        }
+
+        if ($avecPromotionNiveau) {
+            $segments[] = 'Passage au niveau supérieur';
+        }
+
+        if ($motifUtilisateur !== null && trim($motifUtilisateur) !== '') {
+            $segments[] = trim($motifUtilisateur);
+        }
+
+        $base = 'Transfert vers '.$nouvelEtablissement->name;
+
+        if ($segments === []) {
+            return $base;
+        }
+
+        return implode('. ', $segments).' — '.$base;
     }
 
     private function creerInscription(
