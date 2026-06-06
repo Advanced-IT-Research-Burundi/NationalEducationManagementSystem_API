@@ -176,7 +176,7 @@ it('scopes dashboard data for a provincial user to their province', function () 
         'updated_at' => now(),
     ]);
     $schoolOutside = School::create([
-        'name' => 'École Gitega',
+        'name' => 'Ecole Gitega',
         'statut' => 'ACTIVE',
         'type_ecole' => 'PUBLIQUE',
         'niveau' => 'FONDAMENTAL',
@@ -210,8 +210,8 @@ it('scopes dashboard data for a school user to their school', function () {
     $this->seed(RolesAndPermissionsSeeder::class);
 
     $geo = createGeoHierarchy();
-    $mySchool = createSchool($geo, ['name' => 'Mon École']);
-    $otherSchool = createSchool($geo, ['name' => 'Autre École']);
+    $mySchool = createSchool($geo, ['name' => 'Mon Ecole']);
+    $otherSchool = createSchool($geo, ['name' => 'Autre Ecole']);
     AnneeScolaire::factory()->active()->create();
 
     $schoolUser = User::factory()->create([
@@ -236,9 +236,9 @@ it('returns all schools for super admin regardless of geography', function () {
     $this->seed(RolesAndPermissionsSeeder::class);
 
     $geo = createGeoHierarchy();
-    createSchool($geo, ['name' => 'École A']);
-    createSchool($geo, ['name' => 'École B']);
-    createSchool($geo, ['name' => 'École C']);
+    createSchool($geo, ['name' => 'Ecole A']);
+    createSchool($geo, ['name' => 'Ecole B']);
+    createSchool($geo, ['name' => 'Ecole C']);
     AnneeScolaire::factory()->active()->create();
 
     $superAdmin = User::query()->where('is_super_admin', true)->firstOrFail();

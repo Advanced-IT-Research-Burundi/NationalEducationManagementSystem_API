@@ -48,7 +48,7 @@ beforeEach(function () {
     ]);
 
     $this->schoolA = DB::table('schools')->insertGetId([
-        'name' => 'École A',
+        'name' => 'Ecole A',
         'code_ecole' => 'ECOLE-A',
         'type_ecole' => 'PUBLIQUE',
         'niveau' => 'FONDAMENTAL',
@@ -64,7 +64,7 @@ beforeEach(function () {
     ]);
 
     $this->schoolB = DB::table('schools')->insertGetId([
-        'name' => 'École B',
+        'name' => 'Ecole B',
         'code_ecole' => 'ECOLE-B',
         'type_ecole' => 'PUBLIQUE',
         'niveau' => 'FONDAMENTAL',
@@ -275,7 +275,7 @@ it('returns students and contextual school and level for the consulted academic 
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.id', $studentHistory)
         ->assertJsonPath('data.0.school.id', $this->schoolA)
-        ->assertJsonPath('data.0.school.name', 'École A')
+        ->assertJsonPath('data.0.school.name', 'Ecole A')
         ->assertJsonPath('data.0.niveau.id', $this->niveau7)
         ->assertJsonPath('data.0.niveau.nom', '7ème')
         ->assertJsonPath('data.0.inscription_courante.annee_scolaire_id', $this->year2024->id);

@@ -22,7 +22,7 @@
         <div class="content">
             <p>Bonjour {{ $user->name }},</p>
             
-            <p>Votre compte sur le Système National de Gestion de l'Éducation (NEMS) a été créé avec succès.</p>
+            <p>Votre compte sur le Système  de Gestion de l'Éducation (NEMS) a été créé avec succès.</p>
             
             @if($password)
             <div class="credentials">
@@ -42,7 +42,7 @@
         </div>
         
         <div class="footer">
-            <p>&copy; {{ date('Y') }} NEMS - Ministère de l'Éducation Nationale. Tous droits réservés.</p>
+            <p>&copy; {{ date('Y') }} NEMS - Ministère de l'Éducation . Tous droits réservés.</p>
         </div>
     </div>
 </body>

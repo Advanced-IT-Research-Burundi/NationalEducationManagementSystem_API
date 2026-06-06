@@ -28,7 +28,7 @@ it('creates a parent user and syncs parent_eleves', function (): void {
     Mail::fake();
 
     $school = School::withoutGlobalScopes()->create([
-        'name' => 'École Test',
+        'name' => 'Ecole Test',
         'colline_id' => 1,
     ]);
 
@@ -76,7 +76,7 @@ it('updates parent_eleves for an existing parent user', function (): void {
     Mail::fake();
 
     $school = School::withoutGlobalScopes()->create([
-        'name' => 'École Test',
+        'name' => 'Ecole Test',
         'colline_id' => 1,
     ]);
 
@@ -134,7 +134,7 @@ it('removes parent links when role is no longer parent', function (): void {
     Mail::fake();
 
     $school = School::withoutGlobalScopes()->create([
-        'name' => 'École Test',
+        'name' => 'Ecole Test',
         'colline_id' => 1,
     ]);
 
@@ -179,11 +179,11 @@ it('forbids assigning an eleve the admin cannot view', function (): void {
     Mail::fake();
 
     $schoolA = School::withoutGlobalScopes()->create([
-        'name' => 'École A',
+        'name' => 'Ecole A',
         'colline_id' => 1,
     ]);
     $schoolB = School::withoutGlobalScopes()->create([
-        'name' => 'École B',
+        'name' => 'Ecole B',
         'colline_id' => 1,
     ]);
 

@@ -1,6 +1,6 @@
 {
   "name": "NEMS - School Module Tests",
-  "description": "Collection de tests pour le module École avec workflow de validation",
+  "description": "Collection de tests pour le module Ecole avec workflow de validation",
   "requests": [
     {
       "name": "1. Login as Admin National",
@@ -34,7 +34,7 @@
         "Authorization": "Bearer {{auth_token}}"
       },
       "body": {
-        "name": "École Primaire de Gitega",
+        "name": "Ecole Primaire de Gitega",
         "code_ecole": "EPG2026001",
         "type_ecole": "PUBLIQUE",
         "niveau": "FONDAMENTAL",
@@ -80,7 +80,7 @@
         "Authorization": "Bearer {{auth_token}}"
       },
       "body": {
-        "name": "École Primaire Catholique de Gitega",
+        "name": "Ecole Primaire Catholique de Gitega",
         "type_ecole": "ECC",
         "latitude": -3.427500,
         "longitude": 29.925500
@@ -105,7 +105,7 @@
         "Authorization": "Bearer {{auth_token}}"
       },
       "body": {
-        "notes": "École inspectée et validée le 21/01/2026"
+        "notes": "Ecole inspectée et validée le 21/01/2026"
       },
       "description": "Transition: EN_ATTENTE_VALIDATION → ACTIVE. Nécessite géolocalisation et permission validate_data."
     },

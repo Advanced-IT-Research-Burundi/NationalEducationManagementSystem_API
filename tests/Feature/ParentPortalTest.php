@@ -25,7 +25,7 @@ beforeEach(function (): void {
 
 it('forbids parent from listing all eleves', function (): void {
     $schoolA = School::withoutGlobalScopes()->create([
-        'name' => 'École A',
+        'name' => 'Ecole A',
         'colline_id' => 1,
     ]);
 
@@ -55,11 +55,11 @@ it('forbids parent from listing all eleves', function (): void {
 
 it('returns linked children for parent role', function (): void {
     $schoolA = School::withoutGlobalScopes()->create([
-        'name' => 'École A',
+        'name' => 'Ecole A',
         'colline_id' => 1,
     ]);
     $schoolB = School::withoutGlobalScopes()->create([
-        'name' => 'École B',
+        'name' => 'Ecole B',
         'colline_id' => 1,
     ]);
 
@@ -121,7 +121,7 @@ it('forbids parent children endpoint for users without parent role', function ()
 
 it('allows parent to view linked eleve only', function (): void {
     $schoolA = School::withoutGlobalScopes()->create([
-        'name' => 'École A',
+        'name' => 'Ecole A',
         'colline_id' => 1,
     ]);
 
@@ -160,7 +160,7 @@ it('returns empty notes list for parent with no linked children', function (): v
 
 it('allows parent to view notes for linked children', function (): void {
     $school = School::withoutGlobalScopes()->create([
-        'name' => 'École Test',
+        'name' => 'Ecole Test',
         'colline_id' => 1,
     ]);
 

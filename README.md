@@ -1,7 +1,7 @@
-# Système National de Gestion de l'Éducation (SNGE) - Backend (API)
+# Système National de Gestion de l'Éducation (SGE) - Backend (API)
 
 ## Vue d'Ensemble
-Le module Backend du Système National de Gestion de l'Éducation (SNGE) est une API REST robuste et sécurisée propulsant l'ensemble de la plateforme. Développé avec Laravel 12, il gère la logique métier complexe, l'accès à la base de données, la sécurité et la génération de rapports pour l'ensemble du système éducatif du Burundi.
+Le module Backend du Système National de Gestion de l'Éducation (SGE) est une API REST robuste et sécurisée propulsant l'ensemble de la plateforme. Développé avec Laravel 12, il gère la logique métier complexe, l'accès à la base de données, la sécurité et la génération de rapports pour l'ensemble du système éducatif du Burundi.
 
 ## Fonctionnalités Principales
 - **API RESTful Sécurisée** : Points d'accès pour tous les modules du système (Écoles, Élèves, Professeurs, Parents, etc.).

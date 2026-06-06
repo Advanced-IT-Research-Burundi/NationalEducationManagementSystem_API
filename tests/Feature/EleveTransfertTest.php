@@ -44,7 +44,7 @@ beforeEach(function () {
     ]);
 
     $this->schoolA = DB::table('schools')->insertGetId([
-        'name' => 'École A',
+        'name' => 'Ecole A',
         'code_ecole' => 'ECOLE-A',
         'type_ecole' => 'PUBLIQUE',
         'niveau' => 'FONDAMENTAL',
@@ -60,7 +60,7 @@ beforeEach(function () {
     ]);
 
     $this->schoolB = DB::table('schools')->insertGetId([
-        'name' => 'École B',
+        'name' => 'Ecole B',
         'code_ecole' => 'ECOLE-B',
         'type_ecole' => 'PUBLIQUE',
         'niveau' => 'FONDAMENTAL',

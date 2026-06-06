@@ -28,7 +28,7 @@ beforeEach(function () {
 
 it('returns school and province d\'origine in the show response', function () {
     $currentSchool = School::withoutGlobalScopes()->create([
-        'name' => 'École Primaire Kamenge',
+        'name' => 'Ecole Primaire Kamenge',
         'colline_id' => 1,
     ]);
 
@@ -46,7 +46,7 @@ it('returns school and province d\'origine in the show response', function () {
     $response = $this->getJson("/api/academic/eleves/{$eleve->id}");
 
     $response->assertSuccessful()
-        ->assertJsonPath('data.school.name', 'École Primaire Kamenge')
+        ->assertJsonPath('data.school.name', 'École Fondamental Kamenge')
         ->assertJsonPath('data.school.id', $currentSchool->id)
         ->assertJsonPath('data.province_origine.name', 'Province Test')
         ->assertJsonPath('data.province_origine.id', 1);

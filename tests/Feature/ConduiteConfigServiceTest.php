@@ -64,7 +64,7 @@ beforeEach(function () {
     $collineId = DB::table('collines')->insertGetId(['name' => 'Colline Test', 'zone_id' => $zoneId, 'created_at' => now(), 'updated_at' => now()]);
 
     $schoolId = DB::table('schools')->insertGetId([
-        'name' => 'École Test Conduite',
+        'name' => 'Ecole Test Conduite',
         'colline_id' => $collineId,
         'statut' => 'ACTIVE',
         'type_ecole' => 'PUBLIQUE',
