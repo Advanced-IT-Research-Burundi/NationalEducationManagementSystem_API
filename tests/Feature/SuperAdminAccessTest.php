@@ -44,7 +44,8 @@ class SuperAdminAccessTest extends TestCase
         $response = $this
             ->actingAs($superAdmin, 'sanctum')
             ->postJson('/api/users', [
-                'name' => 'Second Super Admin',
+                'nom' => 'Super',
+                'prenom' => 'Admin',
                 'email' => 'second-superadmin@example.com',
                 'password' => 'password123',
                 'password_confirmation' => 'password123',
@@ -76,7 +77,8 @@ class SuperAdminAccessTest extends TestCase
         $response = $this
             ->actingAs($adminNational, 'sanctum')
             ->postJson('/api/users', [
-                'name' => 'Blocked Super Admin',
+                'nom' => 'Blocked',
+                'prenom' => 'Super Admin',
                 'email' => 'blocked-superadmin@example.com',
                 'password' => 'password123',
                 'password_confirmation' => 'password123',

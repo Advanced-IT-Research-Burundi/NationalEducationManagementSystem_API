@@ -49,7 +49,8 @@ it('creates a parent user and syncs parent_eleves', function (): void {
     $admin->assignRole(Role::ADMIN_NATIONAL);
 
     $payload = [
-        'name' => 'Parent API',
+        'nom' => 'Parent',
+        'prenom' => 'API',
         'email' => 'parent-api-'.uniqid('', true).'@example.test',
         'role' => Role::PARENT,
         'admin_level' => 'PAYS',
@@ -211,7 +212,8 @@ it('forbids assigning an eleve the admin cannot view', function (): void {
     $director->givePermissionTo(['manage_users', 'create_user', 'update_user', 'view_user', 'view_any_user']);
 
     $payload = [
-        'name' => 'Parent hors scope',
+        'nom' => 'Parent',
+        'prenom' => 'Hors scope',
         'email' => 'parent-scope-'.uniqid('', true).'@example.test',
         'role' => Role::PARENT,
         'admin_level' => 'ECOLE',

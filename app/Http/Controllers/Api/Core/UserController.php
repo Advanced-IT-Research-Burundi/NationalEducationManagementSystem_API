@@ -42,6 +42,8 @@ class UserController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('nom', 'like', "%{$search}%")
+                    ->orWhere('prenom', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
             });
         }
@@ -503,7 +505,7 @@ class UserController extends Controller
                     'eleve_id' => $row['eleve_id'],
                 ],
                 [
-                    'nom_complet' => $user->name,
+                    'nom_complet' => trim("{$user->nom} {$user->prenom}") ?: $user->name,
                     'relation' => $row['relation'],
                     'email' => $user->email,
                 ]

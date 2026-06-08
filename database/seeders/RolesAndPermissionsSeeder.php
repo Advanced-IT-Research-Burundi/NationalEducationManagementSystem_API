@@ -29,7 +29,7 @@ class RolesAndPermissionsSeeder extends Seeder
                     'guard_name' => self::GUARD,
                 ],
                 [
-                    'description' => $permission['description'] ?? null,
+                    // 'description' => $permission['description'] ?? null,
                     'group_name' => $permission['group_name'] ?? null,
                     'is_system' => $permission['is_system'] ?? true,
                     'sort_order' => $permission['sort_order'] ?? 0,

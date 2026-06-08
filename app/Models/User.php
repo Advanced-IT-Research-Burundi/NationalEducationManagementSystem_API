@@ -35,6 +35,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'nom',
+        'prenom',
         'email',
         'password',
         'statut',
@@ -74,6 +76,30 @@ class User extends Authenticatable
             'is_super_admin' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->isDirty(['nom', 'prenom']) || ($user->nom || $user->prenom)) {
+                $user->syncFullNameFromParts();
+            }
+        });
+    }
+
+    /**
+     * Build the legacy `name` column from nom + prénom (same order as élèves).
+     */
+    public function syncFullNameFromParts(): void
+    {
+        $nom = trim((string) ($this->nom ?? ''));
+        $prenom = trim((string) ($this->prenom ?? ''));
+
+        if ($nom === '' && $prenom === '') {
+            return;
+        }
+
+        $this->name = trim("{$nom} {$prenom}");
     }
 
     public function getActivitylogOptions(): LogOptions

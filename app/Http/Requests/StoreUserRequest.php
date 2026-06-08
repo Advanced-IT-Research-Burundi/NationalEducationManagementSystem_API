@@ -27,7 +27,9 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'nom' => ['required', 'string', 'max:100'],
+            'prenom' => ['required', 'string', 'max:100'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => [
                 Rule::requiredIf(fn () => $this->input('role') !== Role::PARENT),
@@ -121,10 +123,20 @@ class StoreUserRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $mergeData = [];
+
         if ($this->admin_level === 'ECOLE' && $this->school_id) {
-            $this->merge([
-                'admin_entity_id' => $this->school_id,
-            ]);
+            $mergeData['admin_entity_id'] = $this->school_id;
+        }
+
+        $nom = trim((string) ($this->nom ?? ''));
+        $prenom = trim((string) ($this->prenom ?? ''));
+        if ($nom !== '' || $prenom !== '') {
+            $mergeData['name'] = trim("{$nom} {$prenom}");
+        }
+
+        if ($mergeData !== []) {
+            $this->merge($mergeData);
         }
     }
 }

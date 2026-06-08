@@ -31,7 +31,9 @@ class UpdateUserRequest extends FormRequest
         $userId = $this->route('user') ? $this->route('user')->id : null;
 
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
+            'nom' => ['sometimes', 'required', 'string', 'max:100'],
+            'prenom' => ['sometimes', 'required', 'string', 'max:100'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($userId)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'], // Optional on update
             'role' => ['sometimes', 'string', Rule::exists('roles', 'name')->where('guard_name', 'api')],
@@ -103,10 +105,20 @@ class UpdateUserRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $mergeData = [];
+
         if ($this->admin_level === 'ECOLE' && $this->school_id) {
-            $this->merge([
-                'admin_entity_id' => $this->school_id,
-            ]);
+            $mergeData['admin_entity_id'] = $this->school_id;
+        }
+
+        $nom = trim((string) ($this->nom ?? ''));
+        $prenom = trim((string) ($this->prenom ?? ''));
+        if ($nom !== '' || $prenom !== '') {
+            $mergeData['name'] = trim("{$nom} {$prenom}");
+        }
+
+        if ($mergeData !== []) {
+            $this->merge($mergeData);
         }
     }
 }
