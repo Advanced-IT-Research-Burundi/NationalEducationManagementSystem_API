@@ -102,7 +102,7 @@
   <div class="entete">
     <div class="entete-row">
       <span class="entete-label">Ecole :</span>
-      <span class="entete-value">{{ $data['classe']['school']['nom'] ?? '—' }}</span>
+      <span class="entete-value">{{ $data['classe']['school']['name'] ?? '—' }}</span>
       &nbsp;&nbsp;&nbsp;&nbsp;
       <span class="entete-label">Classe :</span>
       <span class="entete-value">{{ $data['classe']['nom'] }}</span>
