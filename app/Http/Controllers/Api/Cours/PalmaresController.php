@@ -97,12 +97,7 @@ class PalmaresController extends Controller
 
         $evaluations = $evaluationsQuery->get();
 
-        $cours = Matiere::where('actif', true)
-            ->where(function ($q) use ($classe) {
-                $q->where('niveau_id', $classe->niveau_id)
-                    ->orWhereNull('niveau_id');
-            })
-            ->get();
+        $cours = Matiere::query()->forClasse($classe)->get();
 
         $coursMeta = $cours->map(function ($matiere) {
             $code = self::palmaresCoursCode($matiere);

@@ -15,6 +15,7 @@ use App\Services\CurrentAcademicContextService;
 use App\Models\Role;
 use App\Services\ConduiteConfigService;
 use App\Support\AcademicCycleHelper;
+use App\Support\BulletinCourseLayout;
 use App\Traits\ResolvesAnneeScolaire;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -114,25 +115,15 @@ class BulletinController extends Controller
         $eleves = $classe->eleves()->orderBy('nom')->orderBy('prenom')->get();
 
         $hasCategorieCours = Schema::hasColumn('matieres', 'categorie_cours_id');
-        $hasNiveauId = Schema::hasColumn('matieres', 'niveau_id');
         $hasPonderationTj = Schema::hasColumn('matieres', 'ponderation_tj');
         $hasPonderationComp = Schema::hasColumn('matieres', 'ponderation_competence');
         $hasPonderationExam = Schema::hasColumn('matieres', 'ponderation_examen');
 
-        $coursQuery = Matiere::query()->where('actif', true);
+        $coursQuery = Matiere::query()->forClasse($classe);
         if ($hasCategorieCours) {
             $coursQuery->with('categorieCours');
         }
-        if ($hasNiveauId) {
-            $coursQuery->where(function ($q) use ($classe) {
-                $q->where('niveau_id', $classe->niveau_id)
-                    ->orWhereNull('niveau_id');
-            });
-        }
-        if ($hasCategorieCours) {
-            $coursQuery->orderBy('categorie_cours_id');
-        }
-        $cours = $coursQuery->orderBy('nom')->get();
+        $cours = $coursQuery->get();
 
         // Get evaluations for this class/year
         $evaluationsQuery = Evaluation::with('notes')
@@ -210,6 +201,9 @@ class BulletinController extends Controller
                     'nom' => $matiere->nom,
                     'categorie' => $hasCategorieCours ? $matiere->categorieCours?->nom : null,
                     'categorie_ordre' => $hasCategorieCours ? ($matiere->categorieCours?->ordre ?? 99) : 99,
+                    'display_group' => BulletinCourseLayout::isStandaloneCategory(
+                        $hasCategorieCours ? $matiere->categorieCours?->nom : null
+                    ) ? 'standalone' : 'grouped',
                     'max_tj' => $baseSummary['max_tj'],
                     'max_competence' => $baseSummary['max_competence'],
                     'has_competence_track' => $baseSummary['has_competence_track'],
@@ -262,6 +256,7 @@ class BulletinController extends Controller
                     'total_max_global' => $globalMaxTrimestre,
                     'pourcentage_global' => $globalPourcentage,
                     'is_complete' => $isComplete,
+                    'classement' => $isComplete ? 'classé' : 'non_classe',
                     'conduite' => [
                         'note' => $conduiteValue,
                         'max' => $conduiteMax,
@@ -324,6 +319,9 @@ class BulletinController extends Controller
                 'is_complete' => $trimestre
                     ? ($displayBulletin['is_complete'] ?? false)
                     : $annualIsComplete,
+                'classement' => ($trimestre
+                    ? ($displayBulletin['is_complete'] ?? false)
+                    : $annualIsComplete) ? 'classé' : 'non_classe',
                 'conduite' => [
                     'note' => $trimestre
                         ? ($displayBulletin['conduite']['note'] ?? $conduiteMax)
@@ -352,6 +350,7 @@ class BulletinController extends Controller
                     'total_max_global' => $annualGlobalMax,
                     'pourcentage_global' => $annualGlobalPourcentage,
                     'is_complete' => $annualIsComplete,
+                    'classement' => $annualIsComplete ? 'classé' : 'non_classe',
                     'conduite' => [
                         'note' => $annualConduiteNote,
                         'max' => $annualConduiteMax,
@@ -621,6 +620,16 @@ class BulletinController extends Controller
         $isTjExpected = ($ponderationTj > 0 || $tjMax > 0);
         $isCompExpected = $trackCompetence && ($ponderationComp > 0 || $compMax > 0);
         $isExamExpected = ($ponderationExam > 0 || $examMax > 0);
+
+        if ($isTjExpected && $tjMax === 0) {
+            $scaledTj = null;
+        }
+        if ($isExamExpected && $examMax === 0) {
+            $scaledExam = null;
+        }
+        if ($isCompExpected && $compMax === 0 && $compEvals->isEmpty()) {
+            $scaledComp = null;
+        }
 
         $total = null;
         $tjIncomplete = $isTjExpected && is_null($scaledTj);

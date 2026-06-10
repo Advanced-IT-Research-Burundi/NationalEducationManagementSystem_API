@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
 
 class Matiere extends Model
 {
@@ -130,6 +132,53 @@ class Matiere extends Model
                 $sq->where('schools.id', $schoolId);
             });
         });
+    }
+
+    /**
+     * Cours actifs pertinents pour une classe (niveau, section, école, catégorie bulletin).
+     */
+    public function scopeForClasse(Builder $query, Classe $classe): Builder
+    {
+        $query->where('actif', true);
+
+        if (Schema::hasColumn('matieres', 'niveau_id') && $classe->niveau_id) {
+            $query->byNiveau($classe->niveau_id);
+        }
+
+        if (Schema::hasColumn('matieres', 'section_id') && $classe->section_id) {
+            $sectionId = $classe->section_id;
+            $query->where(function ($q) use ($sectionId) {
+                $q->where(function ($inner) {
+                    $inner->whereNull('section_id')
+                        ->whereDoesntHave('sections');
+                })
+                    ->orWhere('section_id', $sectionId)
+                    ->orWhereHas('sections', function ($sq) use ($sectionId) {
+                        $sq->where('sections.id', $sectionId);
+                    });
+            });
+        }
+
+        if ($classe->school_id) {
+            $query->forSchool($classe->school_id);
+        }
+
+        if (Schema::hasColumn('matieres', 'categorie_cours_id')) {
+            $query->where(function ($q) {
+                $q->whereNull('categorie_cours_id')
+                    ->orWhereHas('categorieCours', function ($cq) {
+                        $cq->where('afficher_bulletin', true);
+                    });
+            });
+        }
+
+        if (Schema::hasColumn('matieres', 'categorie_cours_id')) {
+            $query->leftJoin('categories_cours as cc_bulletin_ord', 'matieres.categorie_cours_id', '=', 'cc_bulletin_ord.id')
+                ->orderByRaw('cc_bulletin_ord.ordre IS NULL, cc_bulletin_ord.ordre ASC')
+                ->select('matieres.*');
+        }
+
+        return $query->orderBy('matieres.nom');
     }
 
     /**
