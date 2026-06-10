@@ -32,7 +32,8 @@ class BulletinController extends Controller
 
     public function __construct(
         private readonly CurrentAcademicContextService $academicContextService
-    ) {}
+    ) {
+    }
 
     private const TRIMESTRES = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
 
@@ -62,7 +63,7 @@ class BulletinController extends Controller
             }
         }
 
-        if (! $anneeScolaireId) {
+        if (!$anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
@@ -77,7 +78,7 @@ class BulletinController extends Controller
         $data = Cache::remember(
             $cacheKey,
             $ttl,
-            fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
+            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
         );
 
         if ($requestedEleveId) {
@@ -181,11 +182,11 @@ class BulletinController extends Controller
                     $coursTrimestres[$currentTrimestre] = $summary;
                     $trimestreSummaries[$currentTrimestre]['total_max'] += $summary['max_total'];
 
-                    if (! is_null($summary['note_total'])) {
+                    if (!is_null($summary['note_total'])) {
                         $trimestreSummaries[$currentTrimestre]['total_points'] += $summary['note_total'];
                     }
 
-                    if ($summary['has_expected_notes'] && ! $summary['is_complete']) {
+                    if ($summary['has_expected_notes'] && !$summary['is_complete']) {
                         $trimestreSummaries[$currentTrimestre]['has_incomplete'] = true;
                     }
                 }
@@ -229,7 +230,7 @@ class BulletinController extends Controller
 
             foreach ($requestedTrimestres as $currentTrimestre) {
                 $summary = $trimestreSummaries[$currentTrimestre];
-                $isComplete = ! $summary['has_incomplete'];
+                $isComplete = !$summary['has_incomplete'];
                 $noteConduite = $notesConduiteByTrimestre->get($currentTrimestre);
                 $conduiteValue = $noteConduite ? $noteConduite->note : $conduiteMax;
 
@@ -265,7 +266,7 @@ class BulletinController extends Controller
                 ];
 
                 $annualTotalMax += $summary['total_max'];
-                $annualHasIncomplete = $annualHasIncomplete || ! $isComplete;
+                $annualHasIncomplete = $annualHasIncomplete || !$isComplete;
 
                 if ($isComplete) {
                     $annualTotalPoints += $summary['total_points'];
@@ -275,7 +276,7 @@ class BulletinController extends Controller
             $annualConduiteNote = collect($requestedTrimestres)
                 ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
             $annualConduiteMax = count($requestedTrimestres) * $conduiteMax;
-            $annualIsComplete = ! $annualHasIncomplete;
+            $annualIsComplete = !$annualHasIncomplete;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
             $annualGlobalPoints = $annualIsComplete
                 ? round($annualTotalPoints + $annualConduiteNote, 2)
@@ -423,7 +424,7 @@ class BulletinController extends Controller
         $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
 
-        if (! $anneeScolaireId) {
+        if (!$anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
@@ -436,7 +437,7 @@ class BulletinController extends Controller
         $bulletinData = Cache::remember(
             $cacheKey,
             600,
-            fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
+            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
         );
 
         if ($request->filled('eleve_id')) {
@@ -460,7 +461,7 @@ class BulletinController extends Controller
 
         $eleveNom = 'eleve';
         $elevePrenom = 'eleve';
-        if ($request->filled('eleve_id') && ! empty($bulletinData['bulletins'])) {
+        if ($request->filled('eleve_id') && !empty($bulletinData['bulletins'])) {
             $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
             $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
         }
@@ -478,7 +479,7 @@ class BulletinController extends Controller
             return [null, null];
         }
 
-        if (! $isParent && $request->filled('trimestre')) {
+        if (!$isParent && $request->filled('trimestre')) {
             $nom = $request->string('trimestre')->toString();
             $model = Trimestre::query()
                 ->where('annee_scolaire_id', $anneeScolaireId)
@@ -558,7 +559,7 @@ class BulletinController extends Controller
                 $tjNote += (float) $note->note;
             }
         }
-        if (! $tjComplete) {
+        if (!$tjComplete) {
             $tjNote = null;
         }
 
@@ -574,7 +575,7 @@ class BulletinController extends Controller
                 $compNote += (float) $note->note;
             }
         }
-        if ($trackCompetence && ! $compEvals->isEmpty() && ! $compComplete) {
+        if ($trackCompetence && !$compEvals->isEmpty() && !$compComplete) {
             $compNote = null;
         }
 
@@ -590,17 +591,17 @@ class BulletinController extends Controller
                 $examNote += (float) $note->note;
             }
         }
-        if (! $examComplete) {
+        if (!$examComplete) {
             $examNote = null;
         }
 
-        $scaledTj = ($ponderationTj > 0 && $tjMax > 0 && ! is_null($tjNote))
+        $scaledTj = ($ponderationTj > 0 && $tjMax > 0 && !is_null($tjNote))
             ? round(($tjNote / $tjMax) * $ponderationTj, 2)
             : (($ponderationTj <= 0 && $tjMax > 0) ? $tjNote : $tjNote);
 
         $scaledComp = null;
         if ($trackCompetence) {
-            $scaledComp = ($ponderationComp > 0 && $compMax > 0 && ! is_null($compNote))
+            $scaledComp = ($ponderationComp > 0 && $compMax > 0 && !is_null($compNote))
                 ? round(($compNote / $compMax) * $ponderationComp, 2)
                 : (($ponderationComp <= 0 && $compMax > 0) ? $compNote : $compNote);
             if ($compEvals->isEmpty()) {
@@ -608,7 +609,7 @@ class BulletinController extends Controller
             }
         }
 
-        $scaledExam = ($ponderationExam > 0 && $examMax > 0 && ! is_null($examNote))
+        $scaledExam = ($ponderationExam > 0 && $examMax > 0 && !is_null($examNote))
             ? round(($examNote / $examMax) * $ponderationExam, 2)
             : (($ponderationExam <= 0 && $examMax > 0) ? $examNote : $examNote);
 
@@ -652,7 +653,7 @@ class BulletinController extends Controller
             'note_competence' => $trackCompetence ? $scaledComp : null,
             'note_examen' => $scaledExam,
             'note_total' => $total,
-            'is_complete' => ! $tjIncomplete && ! $compIncomplete && ! $examIncomplete,
+            'is_complete' => !$tjIncomplete && !$compIncomplete && !$examIncomplete,
             'has_expected_notes' => $isTjExpected || $isCompExpected || $isExamExpected,
         ];
     }
@@ -679,44 +680,44 @@ class BulletinController extends Controller
         foreach ($trimestreSummaries as $summary) {
             $annual['has_expected_notes'] = $annual['has_expected_notes'] || ($summary['has_expected_notes'] ?? false);
 
-            if (! is_null($summary['note_tj'])) {
+            if (!is_null($summary['note_tj'])) {
                 $annual['note_tj'] += $summary['note_tj'];
             } elseif (($summary['has_expected_notes'] ?? false) && ($summary['max_tj'] ?? 0) > 0) {
                 $annual['note_tj'] = null;
             }
 
             if ($annual['has_competence_track'] && ($summary['has_competence_track'] ?? false)) {
-                if (! is_null($summary['note_competence'] ?? null)) {
+                if (!is_null($summary['note_competence'] ?? null)) {
                     $annual['note_competence'] += $summary['note_competence'];
                 } elseif (($summary['has_expected_notes'] ?? false) && ($summary['max_competence'] ?? 0) > 0) {
                     $annual['note_competence'] = null;
                 }
             }
 
-            if (! is_null($summary['note_examen'])) {
+            if (!is_null($summary['note_examen'])) {
                 $annual['note_examen'] += $summary['note_examen'];
             } elseif (($summary['has_expected_notes'] ?? false) && ($summary['max_examen'] ?? 0) > 0) {
                 $annual['note_examen'] = null;
             }
 
-            if (! is_null($summary['note_total'])) {
+            if (!is_null($summary['note_total'])) {
                 $annual['note_total'] += $summary['note_total'];
             } elseif ($summary['has_expected_notes'] ?? false) {
                 $annual['note_total'] = null;
                 $annual['is_complete'] = false;
             }
 
-            if (($summary['has_expected_notes'] ?? false) && ! ($summary['is_complete'] ?? false)) {
+            if (($summary['has_expected_notes'] ?? false) && !($summary['is_complete'] ?? false)) {
                 $annual['is_complete'] = false;
             }
         }
 
-        if (! $annual['has_expected_notes']) {
+        if (!$annual['has_expected_notes']) {
             $annual['note_tj'] = null;
             $annual['note_competence'] = null;
             $annual['note_examen'] = null;
             $annual['note_total'] = null;
-        } elseif (! $annual['has_competence_track']) {
+        } elseif (!$annual['has_competence_track']) {
             $annual['note_competence'] = null;
         }
 
@@ -726,7 +727,8 @@ class BulletinController extends Controller
     private function resolveBaseCourseSummary(array $trimestreSummaries): array
     {
         foreach ($trimestreSummaries as $summary) {
-            if (($summary['max_total'] ?? 0) > 0
+            if (
+                ($summary['max_total'] ?? 0) > 0
                 || ($summary['max_tj'] ?? 0) > 0
                 || ($summary['max_competence'] ?? 0) > 0
                 || ($summary['max_examen'] ?? 0) > 0
@@ -741,7 +743,7 @@ class BulletinController extends Controller
     private function buildRanks(array $bulletins, callable $extractor): array
     {
         $extractRankPoints = static function (?array $summary): ?float {
-            if (! $summary) {
+            if (!$summary) {
                 return null;
             }
 
@@ -755,7 +757,7 @@ class BulletinController extends Controller
 
             return $summary
                 && ($summary['is_complete'] ?? false)
-                && ! is_null($extractRankPoints($summary));
+                && !is_null($extractRankPoints($summary));
         }));
 
         usort($rankable, function ($a, $b) use ($extractor, $extractRankPoints) {
