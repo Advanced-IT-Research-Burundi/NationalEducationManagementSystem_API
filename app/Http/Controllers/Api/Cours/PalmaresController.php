@@ -27,7 +27,8 @@ class PalmaresController extends Controller
 
     public function __construct(
         private readonly CurrentAcademicContextService $academicContextService
-    ) {}
+    ) {
+    }
     private function authorizePalmaresAccess(Request $request, bool $forPdf = false): void
     {
         $user = $request->user();
@@ -48,7 +49,7 @@ class PalmaresController extends Controller
         $raw = preg_replace('/\d+/', '', $raw);        // remove numbers
         $raw = preg_replace('/[^A-Z]/', '', $raw);     // keep letters only
 
-        if (! empty($raw)) {
+        if (!empty($raw)) {
             return Str::substr($raw, 0, 6);
         }
 
@@ -75,7 +76,7 @@ class PalmaresController extends Controller
         $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
         $trimestre = $currentTrimestre?->nom;
 
-        if (! $anneeScolaireId) {
+        if (!$anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
         }
 
@@ -97,12 +98,7 @@ class PalmaresController extends Controller
 
         $evaluations = $evaluationsQuery->get();
 
-        $cours = Matiere::where('actif', true)
-            ->where(function ($q) use ($classe) {
-                $q->where('niveau_id', $classe->niveau_id)
-                    ->orWhereNull('niveau_id');
-            })
-            ->get();
+        $cours = Matiere::query()->forClasse($classe)->get();
 
         $coursMeta = $cours->map(function ($matiere) {
             $code = self::palmaresCoursCode($matiere);
@@ -250,7 +246,7 @@ class PalmaresController extends Controller
         }
 
         // Sort by total descending
-        usort($classement, fn ($a, $b) => $b['total_points'] <=> $a['total_points']);
+        usort($classement, fn($a, $b) => $b['total_points'] <=> $a['total_points']);
 
         // Assign ranks
         $rank = 1;
@@ -309,7 +305,7 @@ class PalmaresController extends Controller
 
         $pdf->setPaper('A4', 'portrait');
 
-        $filename = 'palmares_'.($palmaresData['classe']['nom'] ?? 'classe').'.pdf';
+        $filename = 'palmares_' . ($palmaresData['classe']['nom'] ?? 'classe') . '.pdf';
 
         return $pdf->download($filename);
     }

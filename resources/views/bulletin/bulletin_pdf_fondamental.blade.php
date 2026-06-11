@@ -100,357 +100,211 @@
 
 <body>
     @foreach ($data['bulletins'] as $bulletin)
-        <div class="page">
-            <div class="header-titles">
-                <h1>BULLETIN SCOLAIRE DE L'ENSEIGNEMENT FONDAMENTAL</h1>
-                <h2>{{ $data['classe']['school']['name'] ?? '—' }}</h2>
-            </div>
-
-            <table>
-                <tr>
-                    <td colspan="20"
-                        style="text-align: left; font-weight: bold; border-bottom: 1px solid #000; border-top: 3px solid #000; padding: 4px;">
-                        Nom et prénom : {{ $bulletin['eleve']['prenom'] }} {{ $bulletin['eleve']['nom'] }}
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="4" style="text-align: left; font-weight: bold; padding: 4px;">
-                        Classe : {{ $data['classe']['nom'] }}<br>
-                        Nombre d'élèves : {{ $data['nombre_eleves'] }}<br>
-                        Année scolaire :
-                        {{ $data['annee_scolaire']['libelle'] ?? ($data['annee_scolaire']['code'] ?? '—') }}
-                    </td>
-                    <th colspan="3">MAXIMA</th>
-                    <th colspan="3">Premier Trimestre</th>
-                    <th colspan="3">Deuxième Trimestre</th>
-                    <th colspan="3">Troisième Trimestre</th>
-                    <th colspan="4">Résultats annuels</th>
-                </tr>
-                <tr>
-                    <th style="width: 20px;">N°</th>
-                    <th colspan="2">Domaines/Disciplines</th>
-                    <th style="width: 20px;">H/S</th>
-                    <th>TJ</th>
-                    <th>Examen</th>
-                    <th>TOT</th>
-                    <th>TJ</th>
-                    <th>Examen</th>
-                    <th>TOT</th>
-                    <th>TJ</th>
-                    <th>Examen</th>
-                    <th>TOT</th>
-                    <th>TJ</th>
-                    <th>Examen</th>
-                    <th>TOT</th>
-                    <th>MAX</th>
-                    <th>TOT.</th>
-                    <th></th>
-                    <th>A.P</th>
-                </tr>
-
-                @php
-                    $trimestreLabels = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
-                    $catCounts = [];
-                    $catTotals = [];
-
-                    foreach ($bulletin['cours'] as $cours) {
-                        $cat = $cours['categorie'] ?: 'Autres';
-                        $catCounts[$cat] = ($catCounts[$cat] ?? 0) + 1;
-
-                        if (!isset($catTotals[$cat])) {
-                            $catTotals[$cat] = [
-                                'max_tj' => 0,
-                                'max_res' => 0,
-                                'max_tot' => 0,
-                                'annuel' => ['max_tot' => 0, 'tot' => 0, 'has_tot' => false, 'is_complete' => true],
-                                'trimestres' => [],
-                            ];
-
-                            foreach ($trimestreLabels as $label) {
-                                $catTotals[$cat]['trimestres'][$label] = [
-                                    'tj' => 0,
-                                    'res' => 0,
-                                    'tot' => 0,
-                                    'has_tj' => false,
-                                    'has_res' => false,
-                                    'has_tot' => false,
-                                    'tj_complete' => true,
-                                    'res_complete' => true,
-                                    'tot_complete' => true,
-                                ];
-                            }
-                        }
-
-                        $catTotals[$cat]['max_tj'] += $cours['max_tj'] ?? 0;
-                        $catTotals[$cat]['max_res'] += $cours['max_examen'] ?? 0;
-                        $catTotals[$cat]['max_tot'] += $cours['max_total'] ?? 0;
-                        $catTotals[$cat]['annuel']['max_tot'] += $cours['annuel']['max_total'] ?? 0;
-                        if (($cours['annuel']['note_total'] ?? null) !== null) {
-                            $catTotals[$cat]['annuel']['tot'] += $cours['annuel']['note_total'];
-                            $catTotals[$cat]['annuel']['has_tot'] = true;
-                        } elseif (($cours['annuel']['max_total'] ?? 0) > 0) {
-                            $catTotals[$cat]['annuel']['is_complete'] = false;
-                        }
-
-                        foreach ($trimestreLabels as $label) {
-                            $summary = $cours['trimestres'][$label] ?? null;
-                            if (($summary['note_tj'] ?? null) !== null) {
-                                $catTotals[$cat]['trimestres'][$label]['tj'] += $summary['note_tj'];
-                                $catTotals[$cat]['trimestres'][$label]['has_tj'] = true;
-                            } elseif (($summary['max_tj'] ?? 0) > 0) {
-                                $catTotals[$cat]['trimestres'][$label]['tj_complete'] = false;
-                            }
-
-                            if (($summary['note_examen'] ?? null) !== null) {
-                                $catTotals[$cat]['trimestres'][$label]['res'] += $summary['note_examen'];
-                                $catTotals[$cat]['trimestres'][$label]['has_res'] = true;
-                            } elseif (($summary['max_examen'] ?? 0) > 0) {
-                                $catTotals[$cat]['trimestres'][$label]['res_complete'] = false;
-                            }
-
-                            if (($summary['note_total'] ?? null) !== null) {
-                                $catTotals[$cat]['trimestres'][$label]['tot'] += $summary['note_total'];
-                                $catTotals[$cat]['trimestres'][$label]['has_tot'] = true;
-                            } elseif (($summary['max_total'] ?? 0) > 0) {
-                                $catTotals[$cat]['trimestres'][$label]['tot_complete'] = false;
-                            }
-                        }
-                    }
-
-                    $currentCat = null;
-                    $catIndex = 1;
-
-                    $fmt = function ($value) {
-                        return $value !== null && $value !== '' ? round($value) : '';
-                    };
-                @endphp
-
-                @foreach ($bulletin['cours'] as $cours)
-                    @php
-                        $cat = $cours['categorie'] ?: 'Autres';
-                        $t1 = $cours['trimestres']['1er Trimestre'] ?? null;
-                        $t2 = $cours['trimestres']['2e Trimestre'] ?? null;
-                        $t3 = $cours['trimestres']['3e Trimestre'] ?? null;
-                        $annuel = $cours['annuel'] ?? null;
-                    @endphp
-                    <tr>
-                        @if ($currentCat !== $cat)
-                            <td rowspan="{{ $catCounts[$cat] + 1 }}">{{ $catIndex++ }}</td>
-                            <td rowspan="{{ $catCounts[$cat] + 1 }}">{{ $cat }}</td>
-                            @php $currentCat = $cat; @endphp
-                        @endif
-
-                        <td class="td-name">{{ $cours['nom'] }}</td>
-                        <td>{{ $cours['credit_heures'] }}</td>
-                        <td>{{ $fmt($cours['max_tj'] ?? null) }}</td>
-                        <td>{{ $fmt($cours['max_examen'] ?? null) }}</td>
-                        <td><strong>{{ $fmt($cours['max_total'] ?? null) }}</strong></td>
-
-                        <td>{{ $fmt($t1['note_tj'] ?? null) }}</td>
-                        <td>{{ $fmt($t1['note_examen'] ?? null) }}</td>
-                        <td><strong>{{ $fmt($t1['note_total'] ?? null) }}</strong></td>
-
-                        <td>{{ $fmt($t2['note_tj'] ?? null) }}</td>
-                        <td>{{ $fmt($t2['note_examen'] ?? null) }}</td>
-                        <td><strong>{{ $fmt($t2['note_total'] ?? null) }}</strong></td>
-
-                        <td>{{ $fmt($t3['note_tj'] ?? null) }}</td>
-                        <td>{{ $fmt($t3['note_examen'] ?? null) }}</td>
-                        <td><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
-
-                        <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
-                        <td>{{ $fmt($annuel['note_total'] ?? null) }}</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    @if (array_search($cours, $bulletin['cours']) ===
-                            array_sum(array_slice($catCounts, 0, array_search($cat, array_keys($catCounts)) + 1)) - 1)
-                        <tr style="font-weight: bold; background-color: #f5f5f5;">
-                            <td style="text-align: left; padding-left: 5px;">Total</td>
-                            <td>-</td>
-                            <td>{{ $fmt($catTotals[$cat]['max_tj']) }}</td>
-                            <td>{{ $fmt($catTotals[$cat]['max_res']) }}</td>
-                            <td>{{ $fmt($catTotals[$cat]['max_tot']) }}</td>
-
-                            <td>{{ $catTotals[$cat]['trimestres']['1er Trimestre']['has_tj'] && $catTotals[$cat]['trimestres']['1er Trimestre']['tj_complete'] ? $fmt($catTotals[$cat]['trimestres']['1er Trimestre']['tj']) : '' }}
-                            </td>
-                            <td>{{ $catTotals[$cat]['trimestres']['1er Trimestre']['has_res'] && $catTotals[$cat]['trimestres']['1er Trimestre']['res_complete'] ? $fmt($catTotals[$cat]['trimestres']['1er Trimestre']['res']) : '' }}
-                            </td>
-                            <td>{{ $catTotals[$cat]['trimestres']['1er Trimestre']['has_tot'] && $catTotals[$cat]['trimestres']['1er Trimestre']['tot_complete'] ? $fmt($catTotals[$cat]['trimestres']['1er Trimestre']['tot']) : '' }}
-                            </td>
-
-                            <td>{{ $catTotals[$cat]['trimestres']['2e Trimestre']['has_tj'] && $catTotals[$cat]['trimestres']['2e Trimestre']['tj_complete'] ? $fmt($catTotals[$cat]['trimestres']['2e Trimestre']['tj']) : '' }}
-                            </td>
-                            <td>{{ $catTotals[$cat]['trimestres']['2e Trimestre']['has_res'] && $catTotals[$cat]['trimestres']['2e Trimestre']['res_complete'] ? $fmt($catTotals[$cat]['trimestres']['2e Trimestre']['res']) : '' }}
-                            </td>
-                            <td>{{ $catTotals[$cat]['trimestres']['2e Trimestre']['has_tot'] && $catTotals[$cat]['trimestres']['2e Trimestre']['tot_complete'] ? $fmt($catTotals[$cat]['trimestres']['2e Trimestre']['tot']) : '' }}
-                            </td>
-
-                            <td>{{ $catTotals[$cat]['trimestres']['3e Trimestre']['has_tj'] && $catTotals[$cat]['trimestres']['3e Trimestre']['tj_complete'] ? $fmt($catTotals[$cat]['trimestres']['3e Trimestre']['tj']) : '' }}
-                            </td>
-                            <td>{{ $catTotals[$cat]['trimestres']['3e Trimestre']['has_res'] && $catTotals[$cat]['trimestres']['3e Trimestre']['res_complete'] ? $fmt($catTotals[$cat]['trimestres']['3e Trimestre']['res']) : '' }}
-                            </td>
-                            <td>{{ $catTotals[$cat]['trimestres']['3e Trimestre']['has_tot'] && $catTotals[$cat]['trimestres']['3e Trimestre']['tot_complete'] ? $fmt($catTotals[$cat]['trimestres']['3e Trimestre']['tot']) : '' }}
-                            </td>
-
-                            <td>{{ $fmt($catTotals[$cat]['annuel']['max_tot']) }}</td>
-                            <td>{{ $catTotals[$cat]['annuel']['has_tot'] && $catTotals[$cat]['annuel']['is_complete'] ? $fmt($catTotals[$cat]['annuel']['tot']) : '' }}
-                            </td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                    @endif
-                @endforeach
-
-                @php
-                    $conduiteT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['conduite'] ?? null;
-                    $conduiteT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['conduite'] ?? null;
-                    $conduiteT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['conduite'] ?? null;
-                    $conduiteAnnuel = $bulletin['annuel']['conduite'] ?? $bulletin['conduite'];
-
-                    $grandT1Points =
-                        isset($bulletin['trimestres']['1er Trimestre']) &&
-                        $bulletin['trimestres']['1er Trimestre']['total_points'] !== null
-                            ? $bulletin['trimestres']['1er Trimestre']['total_points'] + ($conduiteT1['note'] ?? 0)
-                            : null;
-                    $grandT2Points =
-                        isset($bulletin['trimestres']['2e Trimestre']) &&
-                        $bulletin['trimestres']['2e Trimestre']['total_points'] !== null
-                            ? $bulletin['trimestres']['2e Trimestre']['total_points'] + ($conduiteT2['note'] ?? 0)
-                            : null;
-                    $grandT3Points =
-                        isset($bulletin['trimestres']['3e Trimestre']) &&
-                        $bulletin['trimestres']['3e Trimestre']['total_points'] !== null
-                            ? $bulletin['trimestres']['3e Trimestre']['total_points'] + ($conduiteT3['note'] ?? 0)
-                            : null;
-                    $grandAnnuelPoints =
-                        $bulletin['annuel']['total_points'] !== null
-                            ? $bulletin['annuel']['total_points'] + ($conduiteAnnuel['note'] ?? 0)
-                            : null;
-
-                    $grandT1Max = isset($bulletin['trimestres']['1er Trimestre'])
-                        ? ($bulletin['trimestres']['1er Trimestre']['total_max'] ?? 0) + ($conduiteT1['max'] ?? 0)
-                        : null;
-                    $grandT2Max = isset($bulletin['trimestres']['2e Trimestre'])
-                        ? ($bulletin['trimestres']['2e Trimestre']['total_max'] ?? 0) + ($conduiteT2['max'] ?? 0)
-                        : null;
-                    $grandT3Max = isset($bulletin['trimestres']['3e Trimestre'])
-                        ? ($bulletin['trimestres']['3e Trimestre']['total_max'] ?? 0) + ($conduiteT3['max'] ?? 0)
-                        : null;
-                    $grandAnnuelMax = ($bulletin['annuel']['total_max'] ?? 0) + ($conduiteAnnuel['max'] ?? 0);
-                    $annualPercentage =
-                        $grandAnnuelPoints !== null && $grandAnnuelMax > 0
-                            ? round(($grandAnnuelPoints / $grandAnnuelMax) * 100, 1)
-                            : null;
-                @endphp
-
-                <tr>
-                    <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE /
-                        DISCIPLINE</td>
-                    <td>-</td>
-                    <td>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</td>
-                    <td></td>
-                    <td><strong>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</strong></td>
-
-                    <td>{{ $fmt(($conduiteT1 ?? [])['note'] ?? null) }}</td>
-                    <td></td>
-                    <td><strong>{{ $fmt(($conduiteT1 ?? [])['note'] ?? null) }}</strong></td>
-
-                    <td>{{ $fmt(($conduiteT2 ?? [])['note'] ?? null) }}</td>
-                    <td></td>
-                    <td><strong>{{ $fmt(($conduiteT2 ?? [])['note'] ?? null) }}</strong></td>
-
-                    <td>{{ $fmt(($conduiteT3 ?? [])['note'] ?? null) }}</td>
-                    <td></td>
-                    <td><strong>{{ $fmt(($conduiteT3 ?? [])['note'] ?? null) }}</strong></td>
-
-                    <td>{{ $fmt($conduiteAnnuel['max'] ?? null) }}</td>
-                    <td>{{ $fmt($conduiteAnnuel['note'] ?? null) }}</td>
-                    <td></td>
-                    <td></td>
-                </tr>
-
-                <tr class="total-row" style="border-top: 3px solid #000;">
-                    <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL</td>
-                    <td></td>
-                    <td colspan="2"></td>
-                    <td>{{ $fmt($grandT1Max) }}</td>
-
-                    <td colspan="2"></td>
-                    <td>{{ $fmt($grandT1Points) }}</td>
-
-                    <td colspan="2"></td>
-                    <td>{{ $fmt($grandT2Points) }}</td>
-
-                    <td colspan="2"></td>
-                    <td>{{ $fmt($grandT3Points) }}</td>
-
-                    <td>{{ $fmt($grandAnnuelMax) }}</td>
-                    <td>{{ $fmt($grandAnnuelPoints) }}</td>
-                    <td></td>
-                    <td></td>
-                </tr>
-
-                <tr class="total-row">
-                    <td colspan="3" style="text-align: left; padding-left: 5px;">Pourcentage</td>
-                    <td colspan="4"></td>
-
-                    <td colspan="2"></td>
-                    <td>{{ isset($bulletin['trimestres']['1er Trimestre']) && $grandT1Points !== null && $grandT1Max > 0 ? round(($grandT1Points / $grandT1Max) * 100, 1) : '' }}
-                    </td>
-
-                    <td colspan="2"></td>
-                    <td>{{ isset($bulletin['trimestres']['2e Trimestre']) && $grandT2Points !== null && $grandT2Max > 0 ? round(($grandT2Points / $grandT2Max) * 100, 1) : '' }}
-                    </td>
-
-                    <td colspan="2"></td>
-                    <td>{{ isset($bulletin['trimestres']['3e Trimestre']) && $grandT3Points !== null && $grandT3Max > 0 ? round(($grandT3Points / $grandT3Max) * 100, 1) : '' }}
-                    </td>
-
-                    <td colspan="3"></td>
-                    <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
-                </tr>
-
-                <tr class="total-row" style="border-bottom: 2px solid #000;">
-                    <td colspan="3" style="text-align: left; padding-left: 5px;">Place</td>
-                    <td colspan="4"></td>
-
-                    <td colspan="2"></td>
-                    <td>@php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ $rT1 !== null ? ($rT1 === 1 ? '1er' : $rT1 . ' eme') : '' }}
-                    </td>
-
-                    <td colspan="2"></td>
-                    <td>@php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ $rT2 !== null ? ($rT2 === 1 ? '1er' : $rT2 . ' eme') : '' }}
-                    </td>
-
-                    <td colspan="2"></td>
-                    <td>@php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ $rT3 !== null ? ($rT3 === 1 ? '1er' : $rT3 . ' eme') : '' }}
-                    </td>
-
-                    <td colspan="3"></td>
-                    <td>@php($rAn = $bulletin['annuel']['rang'] ?? null){{ $rAn !== null ? ($rAn === 1 ? '1er' : $rAn . ' eme') : '' }}</td>
-                </tr>
-
-                <!-- Signatures -->
-                <tr class="total-row" style="border-bottom: 2px solid #000;">
-                    <td colspan="3" rowspan="2" class="sig-cell sig-cell-first">Signatures</td>
-                    <td colspan="4" class="sig-cell">Titulaire</td>
-                    <td colspan="3" class="sig-cell"></td>
-                    <td colspan="3" class="sig-cell"></td>
-                    <td colspan="3" class="sig-cell"></td>
-                    <td colspan="4" class="sig-cell sig-cell-last"></td>
-                </tr>
-                <tr>
-                    <td colspan="4" class="sig-cell">Parent</td>
-                    <td colspan="3" class="sig-cell"></td>
-                    <td colspan="3" class="sig-cell"></td>
-                    <td colspan="3" class="sig-cell "></td>
-                    <td colspan="4" class="sig-cell sig-cell-last"></td>
-                </tr>
-
-            </table>
-
+    <div class="page">
+        <div class="header-titles">
+            <h1>BULLETIN SCOLAIRE DE L'ENSEIGNEMENT FONDAMENTAL</h1>
+            <h2>{{ $data['classe']['school']['name'] ?? '—' }}</h2>
         </div>
+
+        <table>
+            <tr>
+                <td colspan="20"
+                    style="text-align: left; font-weight: bold; border-bottom: 1px solid #000; border-top: 3px solid #000; padding: 4px;">
+                    Nom et prénom : {{ $bulletin['eleve']['nom'] }} {{ $bulletin['eleve']['prenom'] }}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4" style="text-align: left; font-weight: bold; padding: 4px;">
+                    Classe : {{ $data['classe']['nom'] }}<br>
+                    Nombre d'élèves : {{ $data['nombre_eleves'] }}<br>
+                    Année scolaire :
+                    {{ $data['annee_scolaire']['libelle'] ?? ($data['annee_scolaire']['code'] ?? '—') }}
+                </td>
+                <th colspan="3">MAXIMA</th>
+                <th colspan="3">Premier Trimestre</th>
+                <th colspan="3">Deuxième Trimestre</th>
+                <th colspan="3">Troisième Trimestre</th>
+                <th colspan="4">Résultats annuels</th>
+            </tr>
+            <tr>
+                <th style="width: 20px;">N°</th>
+                <th colspan="2">Domaines/Disciplines</th>
+                <th style="width: 20px;">H/S</th>
+                <th>TJ</th>
+                <th>Examen</th>
+                <th>TOT</th>
+                <th>TJ</th>
+                <th>Examen</th>
+                <th>TOT</th>
+                <th>TJ</th>
+                <th>Examen</th>
+                <th>TOT</th>
+                <th>TJ</th>
+                <th>Examen</th>
+                <th>TOT</th>
+                <th>MAX</th>
+                <th>TOT.</th>
+                <th>%</th>
+                <th>A.P</th>
+            </tr>
+
+            @include('bulletin.partials.courses_fondamental', ['bulletin' => $bulletin])
+
+            @php
+                $fmt = fn($value) => \App\Support\BulletinCourseLayout::formatNote($value);
+                $conduiteT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['conduite'] ?? null;
+                $conduiteT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['conduite'] ?? null;
+                $conduiteT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['conduite'] ?? null;
+                $conduiteAnnuel = $bulletin['annuel']['conduite'] ?? $bulletin['conduite'];
+
+                $grandT1Points =
+                    isset($bulletin['trimestres']['1er Trimestre']) &&
+                    $bulletin['trimestres']['1er Trimestre']['total_points'] !== null
+                    ? $bulletin['trimestres']['1er Trimestre']['total_points'] + ($conduiteT1['note'] ?? 0)
+                    : null;
+                $grandT2Points =
+                    isset($bulletin['trimestres']['2e Trimestre']) &&
+                    $bulletin['trimestres']['2e Trimestre']['total_points'] !== null
+                    ? $bulletin['trimestres']['2e Trimestre']['total_points'] + ($conduiteT2['note'] ?? 0)
+                    : null;
+                $grandT3Points =
+                    isset($bulletin['trimestres']['3e Trimestre']) &&
+                    $bulletin['trimestres']['3e Trimestre']['total_points'] !== null
+                    ? $bulletin['trimestres']['3e Trimestre']['total_points'] + ($conduiteT3['note'] ?? 0)
+                    : null;
+                $grandAnnuelPoints =
+                    $bulletin['annuel']['total_points'] !== null
+                    ? $bulletin['annuel']['total_points'] + ($conduiteAnnuel['note'] ?? 0)
+                    : null;
+
+                $grandT1Max = isset($bulletin['trimestres']['1er Trimestre'])
+                    ? ($bulletin['trimestres']['1er Trimestre']['total_max'] ?? 0) + ($conduiteT1['max'] ?? 0)
+                    : null;
+                $grandT2Max = isset($bulletin['trimestres']['2e Trimestre'])
+                    ? ($bulletin['trimestres']['2e Trimestre']['total_max'] ?? 0) + ($conduiteT2['max'] ?? 0)
+                    : null;
+                $grandT3Max = isset($bulletin['trimestres']['3e Trimestre'])
+                    ? ($bulletin['trimestres']['3e Trimestre']['total_max'] ?? 0) + ($conduiteT3['max'] ?? 0)
+                    : null;
+                $grandAnnuelMax = ($bulletin['annuel']['total_max'] ?? 0) + ($conduiteAnnuel['max'] ?? 0);
+                $annualIsComplete = (bool) ($bulletin['annuel']['is_complete'] ?? false);
+                $annualPercentage = $annualIsComplete && $grandAnnuelPoints !== null && $grandAnnuelMax > 0
+                    ? round(($grandAnnuelPoints / $grandAnnuelMax) * 100, 1)
+                    : null;
+
+                $t1Complete = (bool) (($bulletin['trimestres']['1er Trimestre'] ?? [])['is_complete'] ?? false);
+                $t2Complete = (bool) (($bulletin['trimestres']['2e Trimestre'] ?? [])['is_complete'] ?? false);
+                $t3Complete = (bool) (($bulletin['trimestres']['3e Trimestre'] ?? [])['is_complete'] ?? false);
+            @endphp
+
+            <tr>
+                <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE /
+                    DISCIPLINE</td>
+                <td>-</td>
+                <td>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</td>
+                <td></td>
+                <td><strong>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</strong></td>
+
+                <td>{{ $fmt(($conduiteT1 ?? [])['note'] ?? null) }}</td>
+                <td></td>
+                <td><strong>{{ $fmt(($conduiteT1 ?? [])['note'] ?? null) }}</strong></td>
+
+                <td>{{ $fmt(($conduiteT2 ?? [])['note'] ?? null) }}</td>
+                <td></td>
+                <td><strong>{{ $fmt(($conduiteT2 ?? [])['note'] ?? null) }}</strong></td>
+
+                <td>{{ $fmt(($conduiteT3 ?? [])['note'] ?? null) }}</td>
+                <td></td>
+                <td><strong>{{ $fmt(($conduiteT3 ?? [])['note'] ?? null) }}</strong></td>
+
+                <td>{{ $fmt($conduiteAnnuel['max'] ?? null) }}</td>
+                <td>{{ $fmt($conduiteAnnuel['note'] ?? null) }}</td>
+                <td></td>
+                <td></td>
+            </tr>
+
+            <tr class="total-row" style="border-top: 3px solid #000;">
+                <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL</td>
+                <td></td>
+                <td colspan="2"></td>
+                <td>{{ $fmt($grandT1Max) }}</td>
+
+                <td colspan="2"></td>
+                <td>{{ $fmt($grandT1Points) }}</td>
+
+                <td colspan="2"></td>
+                <td>{{ $fmt($grandT2Points) }}</td>
+
+                <td colspan="2"></td>
+                <td>{{ $fmt($grandT3Points) }}</td>
+
+                <td>{{ $fmt($grandAnnuelMax) }}</td>
+                <td>{{ $fmt($grandAnnuelPoints) }}</td>
+                <td></td>
+                <td></td>
+            </tr>
+
+            <tr class="total-row">
+                <td colspan="3" style="text-align: left; padding-left: 5px;">Pourcentage</td>
+                <td colspan="4"></td>
+
+                <td colspan="2"></td>
+                <td>{{ $t1Complete && $grandT1Points !== null && $grandT1Max > 0 ? round(($grandT1Points / $grandT1Max) * 100, 1) : '' }}
+                </td>
+
+                <td colspan="2"></td>
+                <td>{{ $t2Complete && $grandT2Points !== null && $grandT2Max > 0 ? round(($grandT2Points / $grandT2Max) * 100, 1) : '' }}
+                </td>
+
+                <td colspan="2"></td>
+                <td>{{ $t3Complete && $grandT3Points !== null && $grandT3Max > 0 ? round(($grandT3Points / $grandT3Max) * 100, 1) : '' }}
+                </td>
+
+                <td colspan="3"></td>
+                <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
+            </tr>
+
+            <tr class="total-row" style="border-bottom: 2px solid #000;">
+                <td colspan="3" style="text-align: left; padding-left: 5px;">Place</td>
+                <td colspan="4"></td>
+
+                <td colspan="2"></td>
+                <td>@php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rT1, $t1Complete) }}
+                </td>
+
+                <td colspan="2"></td>
+                <td>@php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rT2, $t2Complete) }}
+                </td>
+
+                <td colspan="2"></td>
+                <td>@php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rT3, $t3Complete) }}
+                </td>
+
+                <td colspan="3"></td>
+                <td>@php($rAn = $bulletin['annuel']['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rAn, $annualIsComplete) }}
+                </td>
+            </tr>
+
+            <!-- Signatures -->
+            <tr class="total-row" style="border-bottom: 2px solid #000;">
+                <td colspan="3" rowspan="2" class="sig-cell sig-cell-first">Signatures</td>
+                <td colspan="4" class="sig-cell">Titulaire</td>
+                <td colspan="3" class="sig-cell"></td>
+                <td colspan="3" class="sig-cell"></td>
+                <td colspan="3" class="sig-cell"></td>
+                <td colspan="4" class="sig-cell sig-cell-last"></td>
+            </tr>
+            <tr>
+                <td colspan="4" class="sig-cell">Parent</td>
+                <td colspan="3" class="sig-cell"></td>
+                <td colspan="3" class="sig-cell"></td>
+                <td colspan="3" class="sig-cell "></td>
+                <td colspan="4" class="sig-cell sig-cell-last"></td>
+            </tr>
+
+        </table>
+
+    </div>
     @endforeach
 </body>
 

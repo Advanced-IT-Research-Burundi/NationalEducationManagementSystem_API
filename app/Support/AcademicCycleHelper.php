@@ -11,7 +11,7 @@ class AcademicCycleHelper
      */
     public static function isPostFondamental(?Niveau $niveau): bool
     {
-        if (! $niveau) {
+        if (!$niveau) {
             return false;
         }
 
@@ -19,7 +19,7 @@ class AcademicCycleHelper
             ? $niveau->getRelation('cycleScolaire')
             : $niveau->cycleScolaire)->nom;
 
-        if (in_array($cycleNom, ['Cycle 5', 'POST_FONDAMENTAL'], true)) {
+        if (in_array($cycleNom, ['Cycle 5', 'Post_Fondamental'], true)) {
             return true;
         }
 
@@ -30,9 +30,9 @@ class AcademicCycleHelper
         return $typeNom === 'Post-Fondamental';
     }
 
-    public static function usesPostFondamentalBulletinLayout(?Niveau $niveau):bool
+    public static function usesPostFondamentalBulletinLayout(?Niveau $niveau): bool
     {
-        if (! $niveau) {
+        if (!$niveau) {
             return false;
         }
 
@@ -41,6 +41,6 @@ class AcademicCycleHelper
             : $niveau->cycleScolaire)->nom;
 
 
-        return in_array($cycleNom, ['cycle 5', 'POST_FONDAMENTAL', 'SECONDAIRE'], true);
+        return in_array($cycleNom, ['Cycle 5', 'Post_Fondamental', 'Secondaire'], true);
     }
 }

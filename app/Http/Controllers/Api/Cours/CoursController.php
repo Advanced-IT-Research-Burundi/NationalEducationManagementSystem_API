@@ -53,7 +53,7 @@ class CoursController extends Controller
 
         if ($request->filled('niveau_id')) {
             if (Schema::hasColumn('matieres', 'niveau_id')) {
-                $query->where('niveau_id', $request->integer('niveau_id'));
+                $query->byNiveau($request->integer('niveau_id'));
             }
         }
 

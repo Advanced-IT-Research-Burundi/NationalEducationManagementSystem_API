@@ -19,7 +19,7 @@ class ConduiteConfigService
     {
         if (is_int($classe)) {
             $classe = Classe::with('niveau')->findOrFail($classe);
-        } elseif (! $classe->relationLoaded('niveau')) {
+        } elseif (!$classe->relationLoaded('niveau')) {
             $classe->load('niveau');
         }
 
@@ -33,7 +33,7 @@ class ConduiteConfigService
 
     public static function getMaxNote(Classe $classe): int
     {
-        if (! $classe->relationLoaded('niveau')) {
+        if (!$classe->relationLoaded('niveau')) {
             $classe->load('niveau');
         }
 
@@ -46,7 +46,7 @@ class ConduiteConfigService
 
     public static function isSecondary(Classe $classe): bool
     {
-        if (! $classe->relationLoaded('niveau')) {
+        if (!$classe->relationLoaded('niveau')) {
             $classe->load('niveau');
         }
 
