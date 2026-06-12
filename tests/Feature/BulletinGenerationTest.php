@@ -294,6 +294,55 @@ it('marks incomplete students as non classé without rank or percentage', functi
     expect($complete['rang'])->toBe(1);
 });
 
+it('uses the three-trimester maximum in annual result columns when generating a trimester bulletin', function (): void {
+    $fixture = createBulletinFixture();
+    $matiere = createMatiereForSchool($fixture, [
+        'nom' => 'Mathématiques',
+        'code' => 'MATH_BUL',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 40,
+    ]);
+
+    foreach ([
+        ['type' => 'TJ', 'max' => 40, 'note' => 32],
+        ['type' => 'Examen', 'max' => 40, 'note' => 30],
+    ] as $evaluationData) {
+        $evaluation = Evaluation::withoutGlobalScopes()->create([
+            'classe_id' => $fixture['classe']->id,
+            'cours_id' => $matiere->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'trimestre' => '1er Trimestre',
+            'type_evaluation' => $evaluationData['type'],
+            'date_passation' => now(),
+            'note_maximale' => $evaluationData['max'],
+        ]);
+
+        Note::create([
+            'evaluation_id' => $evaluation->id,
+            'eleve_id' => $fixture['eleve']->id,
+            'note' => $evaluationData['note'],
+        ]);
+    }
+
+    $response = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '1er Trimestre',
+        ]));
+
+    $response->assertSuccessful();
+    $bulletin = $response->json('data.bulletins.0');
+    $course = collect($bulletin['cours'])
+        ->first(fn (array $item) => $item['nom'] === 'Mathématiques');
+
+    expect($course['max_total'])->toBe(80);
+    expect($course['annuel']['max_total'])->toBe(240);
+    expect($bulletin['total_max'])->toBe(80);
+    expect($bulletin['annuel']['total_max'])->toBe(240);
+});
+
 it('keeps a real zero score distinct from missing notes', function (): void {
     $fixture = createBulletinFixture();
     $matiere = createMatiereForSchool($fixture, ['nom' => 'EPS', 'code' => 'EPS_BUL']);

@@ -150,12 +150,14 @@ class BulletinController extends Controller
         $notesConduite = $notesConduiteQuery->get();
 
         $requestedTrimestres = $trimestre ? [$trimestre] : self::TRIMESTRES;
+        $annualTrimestreCount = count(self::TRIMESTRES);
 
         // Build bulletin data per student
         $bulletins = [];
         foreach ($eleves as $eleve) {
             $coursData = [];
             $trimestreSummaries = [];
+            $annualCourseTotalMax = 0;
 
             foreach ($requestedTrimestres as $currentTrimestre) {
                 $trimestreSummaries[$currentTrimestre] = [
@@ -192,7 +194,8 @@ class BulletinController extends Controller
                 }
 
                 $baseSummary = $this->resolveBaseCourseSummary($coursTrimestres);
-                $annualSummary = $this->buildAnnualCourseSummary($coursTrimestres, $baseSummary, count($requestedTrimestres));
+                $annualSummary = $this->buildAnnualCourseSummary($coursTrimestres, $baseSummary, $annualTrimestreCount);
+                $annualCourseTotalMax += $annualSummary['max_total'] ?? 0;
                 $displayNotesSummary = $trimestre
                     ? ($coursTrimestres[$trimestre] ?? $this->emptySummary())
                     : $annualSummary;
@@ -222,7 +225,7 @@ class BulletinController extends Controller
 
             $bulletinTrimestres = [];
             $annualTotalPoints = 0;
-            $annualTotalMax = 0;
+            $annualTotalMax = $annualCourseTotalMax;
             $annualHasIncomplete = false;
             $notesConduiteByTrimestre = $notesConduite
                 ->where('eleve_id', $eleve->id)
@@ -265,7 +268,6 @@ class BulletinController extends Controller
                     ],
                 ];
 
-                $annualTotalMax += $summary['total_max'];
                 $annualHasIncomplete = $annualHasIncomplete || !$isComplete;
 
                 if ($isComplete) {
@@ -275,8 +277,8 @@ class BulletinController extends Controller
 
             $annualConduiteNote = collect($requestedTrimestres)
                 ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
-            $annualConduiteMax = count($requestedTrimestres) * $conduiteMax;
-            $annualIsComplete = !$annualHasIncomplete;
+            $annualConduiteMax = $annualTrimestreCount * $conduiteMax;
+            $annualIsComplete = !$annualHasIncomplete && count($requestedTrimestres) === $annualTrimestreCount;
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
             $annualGlobalPoints = $annualIsComplete
                 ? round($annualTotalPoints + $annualConduiteNote, 2)
