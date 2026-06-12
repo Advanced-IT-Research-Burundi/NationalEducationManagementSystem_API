@@ -10,6 +10,7 @@ use App\Models\Niveau;
 use App\Models\Note;
 use App\Models\Pays;
 use App\Models\Role;
+use App\Models\Trimestre;
 use App\Models\User;
 use App\Support\BulletinCourseLayout;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -341,6 +342,82 @@ it('uses the three-trimester maximum in annual result columns when generating a 
     expect($course['annuel']['max_total'])->toBe(240);
     expect($bulletin['total_max'])->toBe(80);
     expect($bulletin['annuel']['total_max'])->toBe(240);
+});
+
+it('prints current trimester with previous locked trimesters only', function (): void {
+    $fixture = createBulletinFixture();
+    $matiere = createMatiereForSchool($fixture, [
+        'nom' => 'Sciences',
+        'code' => 'SCI_LOCKED_BUL',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 0,
+    ]);
+
+    $trimestre1 = Trimestre::create([
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'nom' => '1er Trimestre',
+        'date_debut' => '2025-09-01',
+        'date_fin' => '2025-12-20',
+        'actif' => false,
+        'verrouille' => true,
+    ]);
+    $trimestre2 = Trimestre::create([
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'nom' => '2e Trimestre',
+        'date_debut' => '2026-01-05',
+        'date_fin' => '2026-03-31',
+        'actif' => true,
+        'verrouille' => false,
+    ]);
+    $trimestre3 = Trimestre::create([
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'nom' => '3e Trimestre',
+        'date_debut' => '2026-04-01',
+        'date_fin' => '2026-06-30',
+        'actif' => false,
+        'verrouille' => false,
+    ]);
+
+    foreach ([
+        [$trimestre1, 31],
+        [$trimestre2, 34],
+        [$trimestre3, 36],
+    ] as [$trimestre, $note]) {
+        $evaluation = Evaluation::withoutGlobalScopes()->create([
+            'classe_id' => $fixture['classe']->id,
+            'cours_id' => $matiere->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'trimestre_id' => $trimestre->id,
+            'trimestre' => $trimestre->nom,
+            'type_evaluation' => 'TJ',
+            'date_passation' => now(),
+            'note_maximale' => 40,
+        ]);
+
+        Note::create([
+            'evaluation_id' => $evaluation->id,
+            'eleve_id' => $fixture['eleve']->id,
+            'note' => $note,
+        ]);
+    }
+
+    $response = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '2e Trimestre',
+        ]));
+
+    $response->assertSuccessful();
+    $bulletin = $response->json('data.bulletins.0');
+    $course = collect($bulletin['cours'])
+        ->first(fn (array $item) => $item['nom'] === 'Sciences');
+
+    expect(array_keys($bulletin['trimestres']))->toBe(['1er Trimestre', '2e Trimestre']);
+    expect($course['trimestres']['1er Trimestre']['note_tj'])->toBe(31);
+    expect($course['trimestres']['2e Trimestre']['note_tj'])->toBe(34);
+    expect($course['trimestres'])->not->toHaveKey('3e Trimestre');
 });
 
 it('keeps a real zero score distinct from missing notes', function (): void {

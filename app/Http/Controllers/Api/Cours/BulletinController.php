@@ -72,13 +72,15 @@ class BulletinController extends Controller
         $isParent = $request->user()?->hasRole(Role::PARENT);
         [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode, $isParent);
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
+        $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
+        $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:" . implode(',', $displayTrimestres);
         $ttl = 600;
 
         $data = Cache::remember(
             $cacheKey,
             $ttl,
-            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
+            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel, $displayTrimestres)
         );
 
         if ($requestedEleveId) {
@@ -104,7 +106,13 @@ class BulletinController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildBulletinData(int $classeId, ?string $trimestre, int $anneeScolaireId, ?Trimestre $trimestreModel = null): array
+    private function buildBulletinData(
+        int $classeId,
+        ?string $trimestre,
+        int $anneeScolaireId,
+        ?Trimestre $trimestreModel = null,
+        ?array $displayTrimestres = null
+    ): array
     {
         $classe = Classe::withoutGlobalScope(AcademicYearScope::class)
             ->with(['school:id,name', 'niveau:id,nom,ordre', 'section:id,nom'])
@@ -127,29 +135,20 @@ class BulletinController extends Controller
         $cours = $coursQuery->get();
 
         // Get evaluations for this class/year
-        $evaluationsQuery = Evaluation::with('notes')
+        $evaluationsQuery = Evaluation::with(['notes', 'trimestreModel:id,nom'])
             ->where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
-
-        if ($trimestreModel) {
-            $evaluationsQuery->matchingTrimestre($trimestreModel);
-        } elseif ($trimestre) {
-            $evaluationsQuery->where('trimestre', $trimestre);
-        }
 
         $evaluations = $evaluationsQuery->get();
 
         // Get notes conduite
-        $notesConduiteQuery = NoteConduite::where('classe_id', $classeId)
+        $notesConduiteQuery = NoteConduite::with('trimestreModel:id,nom')
+            ->where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
-        if ($trimestreModel) {
-            $notesConduiteQuery->matchingTrimestre($trimestreModel);
-        } elseif ($trimestre) {
-            $notesConduiteQuery->where('trimestre', $trimestre);
-        }
         $notesConduite = $notesConduiteQuery->get();
 
-        $requestedTrimestres = $trimestre ? [$trimestre] : self::TRIMESTRES;
+        $requestedTrimestres = $displayTrimestres
+            ?: $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
         $annualTrimestreCount = count(self::TRIMESTRES);
 
         // Build bulletin data per student
@@ -173,7 +172,7 @@ class BulletinController extends Controller
 
                 foreach ($requestedTrimestres as $currentTrimestre) {
                     $summary = $this->buildCourseSummary(
-                        $coursEvals->where('trimestre', $currentTrimestre),
+                        $this->filterByTrimestreLabel($coursEvals, $currentTrimestre),
                         $eleve->id,
                         $matiere,
                         $hasPonderationTj,
@@ -227,9 +226,9 @@ class BulletinController extends Controller
             $annualTotalPoints = 0;
             $annualTotalMax = $annualCourseTotalMax;
             $annualHasIncomplete = false;
-            $notesConduiteByTrimestre = $notesConduite
-                ->where('eleve_id', $eleve->id)
-                ->keyBy('trimestre');
+            $notesConduiteByTrimestre = $this->keyNotesConduiteByTrimestreLabel(
+                $notesConduite->where('eleve_id', $eleve->id)
+            );
 
             foreach ($requestedTrimestres as $currentTrimestre) {
                 $summary = $trimestreSummaries[$currentTrimestre];
@@ -435,11 +434,13 @@ class BulletinController extends Controller
 
         [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode);
 
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:" . ($trimestre ?? 'all');
+        $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
+        $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:" . implode(',', $displayTrimestres);
         $bulletinData = Cache::remember(
             $cacheKey,
             600,
-            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel)
+            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel, $displayTrimestres)
         );
 
         if ($request->filled('eleve_id')) {
@@ -774,6 +775,71 @@ class BulletinController extends Controller
         }
 
         return $ranks;
+    }
+
+    /**
+     * En bulletin courant, on imprime le trimestre demandé/actuel et les trimestres
+     * précédents déjà verrouillés. Les autres restent absents pour que le PDF garde
+     * les colonnes vides au lieu de les marquer "Non classé".
+     *
+     * @return list<string>
+     */
+    private function resolveBulletinTrimestres(?string $trimestre, ?Trimestre $trimestreModel, int $anneeScolaireId): array
+    {
+        if ($trimestre === null) {
+            return self::TRIMESTRES;
+        }
+
+        $currentIndex = array_search($trimestre, self::TRIMESTRES, true);
+        if ($currentIndex === false) {
+            return [$trimestre];
+        }
+
+        if (! $trimestreModel) {
+            return [$trimestre];
+        }
+
+        $lockedTrimestres = Trimestre::query()
+            ->where('annee_scolaire_id', $anneeScolaireId)
+            ->where('verrouille', true)
+            ->pluck('nom')
+            ->all();
+
+        return array_values(array_filter(
+            self::TRIMESTRES,
+            fn (string $label, int $index) => $label === $trimestre
+                || ($index < $currentIndex && in_array($label, $lockedTrimestres, true)),
+            ARRAY_FILTER_USE_BOTH
+        ));
+    }
+
+    private function filterByTrimestreLabel(Collection $items, string $trimestre): Collection
+    {
+        return $items
+            ->filter(fn ($item) => $this->getTrimestreLabel($item) === $trimestre)
+            ->values();
+    }
+
+    private function keyNotesConduiteByTrimestreLabel(Collection $notesConduite): Collection
+    {
+        $keyed = collect();
+
+        foreach ($notesConduite as $noteConduite) {
+            $label = $this->getTrimestreLabel($noteConduite);
+            if ($label) {
+                $keyed->put($label, $noteConduite);
+            }
+        }
+
+        return $keyed;
+    }
+
+    private function getTrimestreLabel($item): ?string
+    {
+        return $item->trimestreModel?->nom
+            ?? $item->trimestre_label
+            ?? $item->trimestre
+            ?? null;
     }
 
     private function emptySummary(): array

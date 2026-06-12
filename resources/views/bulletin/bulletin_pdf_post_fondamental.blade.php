@@ -191,9 +191,13 @@
           ? round(($grandAnnuelPoints / $grandAnnuelMax) * 100, 1)
           : null;
 
+        $hasT1 = isset($bulletin['trimestres']['1er Trimestre']);
+        $hasT2 = isset($bulletin['trimestres']['2e Trimestre']);
+        $hasT3 = isset($bulletin['trimestres']['3e Trimestre']);
         $t1Complete = (bool) (($bulletin['trimestres']['1er Trimestre'] ?? [])['is_complete'] ?? false);
         $t2Complete = (bool) (($bulletin['trimestres']['2e Trimestre'] ?? [])['is_complete'] ?? false);
         $t3Complete = (bool) (($bulletin['trimestres']['3e Trimestre'] ?? [])['is_complete'] ?? false);
+        $isAnnualBulletin = empty($data['trimestre']);
       @endphp
       <tr>
         <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE / DISCIPLINE</td>
@@ -275,22 +279,22 @@
 
         <td colspan="3"></td>
         <td>
-          @php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rT1, $t1Complete) }}
+          @php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ $hasT1 ? \App\Support\BulletinCourseLayout::formatPlace($rT1, $t1Complete) : '' }}
         </td>
 
         <td colspan="3"></td>
         <td>
-          @php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rT2, $t2Complete) }}
+          @php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ $hasT2 ? \App\Support\BulletinCourseLayout::formatPlace($rT2, $t2Complete) : '' }}
         </td>
 
         <td colspan="3"></td>
         <td>
-          @php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rT3, $t3Complete) }}
+          @php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ $hasT3 ? \App\Support\BulletinCourseLayout::formatPlace($rT3, $t3Complete) : '' }}
         </td>
 
         <td colspan="2"></td>
         <td>
-          @php($rAn = $bulletin['annuel']['rang'] ?? null){{ \App\Support\BulletinCourseLayout::formatPlace($rAn, $annualIsComplete) }}
+          @php($rAn = $bulletin['annuel']['rang'] ?? null){{ $isAnnualBulletin ? \App\Support\BulletinCourseLayout::formatPlace($rAn, $annualIsComplete) : '' }}
         </td>
         <td></td>
       </tr>
