@@ -215,8 +215,10 @@
         $grandT3Max = isset($bulletin['trimestres']['3e Trimestre'])
           ? ($bulletin['trimestres']['3e Trimestre']['total_max'] ?? 0) + ($conduiteT3['max'] ?? 0)
           : null;
-        $grandAnnuelMax = ($bulletin['annuel']['total_max'] ?? 0) + ($conduiteAnnuel['max'] ?? 0);
         $annualIsComplete = (bool) ($bulletin['annuel']['is_complete'] ?? false);
+        $grandAnnuelMax = $annualIsComplete
+          ? (($bulletin['annuel']['total_max'] ?? 0) + ($conduiteAnnuel['max'] ?? 0))
+          : null;
         $annualPercentage = $annualIsComplete && $grandAnnuelPoints !== null && $grandAnnuelMax > 0
           ? round(($grandAnnuelPoints / $grandAnnuelMax) * 100, 1)
           : null;
@@ -290,8 +292,8 @@
         <td></td>
         <td><strong>{{ $fmt(($conduiteT3 ?? [])['note'] ?? null) }}</strong></td>
 
-        <td>{{ $fmt($conduiteAnnuel['max'] ?? null) }}</td>
-        <td>{{ $fmt($conduiteAnnuel['note'] ?? null) }}</td>
+        <td>{{ $annualIsComplete ? $fmt($conduiteAnnuel['max'] ?? null) : '' }}</td>
+        <td>{{ $annualIsComplete ? $fmt($conduiteAnnuel['note'] ?? null) : '' }}</td>
         <td></td>
         <td></td>
       </tr>

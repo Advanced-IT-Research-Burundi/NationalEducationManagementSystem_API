@@ -287,10 +287,10 @@ class BulletinController extends Controller
                 }
             }
 
-            $annualConduiteNote = collect($requestedTrimestres)
-                ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
             $annualConduiteMax = $annualTrimestreCount * $conduiteMax;
             $annualIsComplete = !$annualHasIncomplete && count($requestedTrimestres) === $annualTrimestreCount;
+            $annualConduiteNote = collect($requestedTrimestres)
+                ->sum(fn($currentTrimestre) => $bulletinTrimestres[$currentTrimestre]['conduite']['note'] ?? $conduiteMax);
             $annualDisplayPoints = $annualIsComplete ? round($annualTotalPoints, 2) : null;
             $annualGlobalPoints = $annualIsComplete
                 ? round($annualTotalPoints + $annualConduiteNote, 2)
@@ -368,12 +368,12 @@ class BulletinController extends Controller
                     'is_complete' => $annualIsComplete,
                     'classement' => $annualIsComplete ? 'classé' : 'non_classe',
                     'conduite' => [
-                        'note' => $annualConduiteNote,
+                        'note' => $annualIsComplete ? $annualConduiteNote : null,
                         'max' => $annualConduiteMax,
-                        'appreciation' => ConduiteConfigService::buildAppreciation(
+                        'appreciation' => $annualIsComplete ? ConduiteConfigService::buildAppreciation(
                             count($requestedTrimestres) > 0 ? ($annualConduiteNote / count($requestedTrimestres)) : $conduiteMax,
                             $conduiteMax
-                        ),
+                        ) : '',
                     ],
                 ],
             ];
@@ -717,7 +717,7 @@ class BulletinController extends Controller
             'note_tj' => 0,
             'note_examen' => 0,
             'note_total' => 0,
-            'is_complete' => true,
+            'is_complete' => count($trimestreSummaries) === $trimestreCount,
             'has_expected_notes' => false,
             'has_competence_track' => $baseSummary['has_competence_track'] ?? false,
         ];
@@ -836,7 +836,13 @@ class BulletinController extends Controller
             return self::TRIMESTRES;
         }
 
-        return [$trimestre];
+        $index = array_search($trimestre, self::TRIMESTRES, true);
+
+        if ($index === false) {
+            return [$trimestre];
+        }
+
+        return array_slice(self::TRIMESTRES, 0, $index + 1);
     }
 
     private function filterByTrimestreLabel(Collection $items, string $trimestre): Collection

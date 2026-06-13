@@ -163,6 +163,47 @@ it('formats place as Non classé when incomplete and unranked', function (): voi
     expect(BulletinCourseLayout::formatPlace(null, true))->toBe('');
 });
 
+it('does not expose annual category totals before all trimesters are complete', function (): void {
+    $totals = BulletinCourseLayout::computeGroupTotals([
+        [
+            'max_tj' => 40,
+            'max_examen' => 0,
+            'max_total' => 40,
+            'annuel' => [
+                'max_total' => 120,
+                'note_total' => 65,
+                'is_complete' => false,
+            ],
+            'trimestres' => [
+                '1er Trimestre' => [
+                    'max_tj' => 40,
+                    'max_examen' => 0,
+                    'max_total' => 40,
+                    'note_tj' => 31,
+                    'note_examen' => null,
+                    'note_total' => 31,
+                    'has_expected_notes' => true,
+                    'is_complete' => true,
+                ],
+                '2e Trimestre' => [
+                    'max_tj' => 40,
+                    'max_examen' => 0,
+                    'max_total' => 40,
+                    'note_tj' => 34,
+                    'note_examen' => null,
+                    'note_total' => 34,
+                    'has_expected_notes' => true,
+                    'is_complete' => true,
+                ],
+            ],
+        ],
+    ]);
+
+    expect($totals['annuel']['is_complete'])->toBeFalse();
+    expect($totals['annuel']['has_tot'])->toBeFalse();
+    expect($totals['annuel']['tot'])->toBe(0);
+});
+
 it('excludes courses from other levels and null niveau on bulletin', function (): void {
     $fixture = createBulletinFixture();
 
@@ -468,6 +509,9 @@ it('prints current trimester with previous locked trimesters only', function ():
     expect($course['trimestres']['1er Trimestre']['note_tj'])->toBe(31);
     expect($course['trimestres']['2e Trimestre']['note_tj'])->toBe(34);
     expect($course['trimestres'])->not->toHaveKey('3e Trimestre');
+    expect($course['annuel']['is_complete'])->toBeFalse();
+    expect($bulletin['annuel']['is_complete'])->toBeFalse();
+    expect($bulletin['annuel']['conduite']['note'])->toBeNull();
 });
 
 it('keeps a real zero score distinct from missing notes', function (): void {

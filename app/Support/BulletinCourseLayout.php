@@ -96,7 +96,8 @@ final class BulletinCourseLayout
             $totals['max_tot'] += $cours['max_total'] ?? 0;
             $totals['annuel']['max_tot'] += $cours['annuel']['max_total'] ?? 0;
 
-            if (($cours['annuel']['note_total'] ?? null) !== null) {
+            $courseAnnualComplete = self::isCourseAnnualComplete($cours);
+            if ($courseAnnualComplete) {
                 $totals['annuel']['tot'] += $cours['annuel']['note_total'];
                 $totals['annuel']['has_tot'] = true;
             } elseif (($cours['annuel']['max_total'] ?? 0) > 0) {
@@ -138,6 +139,21 @@ final class BulletinCourseLayout
         }
 
         return $totals;
+    }
+
+    /**
+     * @param array<string, mixed> $cours
+     */
+    public static function isCourseAnnualComplete(array $cours): bool
+    {
+        foreach (self::TRIMESTRE_LABELS as $label) {
+            $summary = $cours['trimestres'][$label] ?? null;
+            if (!$summary || !($summary['has_expected_notes'] ?? false) || !($summary['is_complete'] ?? false)) {
+                return false;
+            }
+        }
+
+        return ($cours['annuel']['is_complete'] ?? false) && ($cours['annuel']['note_total'] ?? null) !== null;
     }
 
     public static function formatNote(mixed $value): string
