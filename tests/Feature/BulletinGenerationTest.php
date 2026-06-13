@@ -295,6 +295,56 @@ it('marks incomplete students as non classé without rank or percentage', functi
     expect($complete['rang'])->toBe(1);
 });
 
+it('keeps complete trimester students ranked in palmares', function (): void {
+    $fixture = createBulletinFixture();
+    $trimestre = Trimestre::create([
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'nom' => '1er Trimestre',
+        'date_debut' => now()->subMonth(),
+        'date_fin' => now()->addMonth(),
+        'actif' => true,
+    ]);
+    $matiere = createMatiereForSchool($fixture, [
+        'nom' => 'Kirundi',
+        'code' => 'KIR_PAL',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 0,
+    ]);
+
+    $evaluation = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $matiere->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre_id' => $trimestre->id,
+        'trimestre' => $trimestre->nom,
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => 40,
+    ]);
+
+    Note::create([
+        'evaluation_id' => $evaluation->id,
+        'eleve_id' => $fixture['eleve']->id,
+        'note' => 30,
+    ]);
+
+    $response = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/palmares?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '1er Trimestre',
+        ]));
+
+    $response->assertSuccessful();
+
+    expect($response->json('data.classement'))->toHaveCount(1);
+    expect($response->json('data.non_classes'))->toHaveCount(0);
+    expect($response->json('data.classement.0.is_complete'))->toBeTrue();
+    expect($response->json('data.classement.0.classement'))->toBe('classé');
+    expect($response->json('data.classement.0.rang'))->toBe(1);
+});
+
 it('uses the three-trimester maximum in annual result columns when generating a trimester bulletin', function (): void {
     $fixture = createBulletinFixture();
     $matiere = createMatiereForSchool($fixture, [

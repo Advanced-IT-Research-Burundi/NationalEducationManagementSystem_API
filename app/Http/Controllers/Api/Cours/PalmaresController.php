@@ -106,7 +106,7 @@ class PalmaresController extends Controller
         }
 
         // Get evaluations
-        $evaluationsQuery = Evaluation::with('notes')
+        $evaluationsQuery = Evaluation::with(['notes', 'trimestreModel:id,nom'])
             ->where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
 
@@ -135,7 +135,8 @@ class PalmaresController extends Controller
         })->values();
 
         // Get notes conduite
-        $notesConduiteQuery = NoteConduite::where('classe_id', $classeId)
+        $notesConduiteQuery = NoteConduite::with('trimestreModel:id,nom')
+            ->where('classe_id', $classeId)
             ->where('annee_scolaire_id', $anneeScolaireId);
         if ($currentTrimestre) {
             $notesConduiteQuery->matchingTrimestre($currentTrimestre);
@@ -154,6 +155,7 @@ class PalmaresController extends Controller
             $coursPoints = [];
             $coursMaxima = [];
             $coursEchecs = [];
+            $hasIncomplete = false;
 
             foreach ($cours as $matiere) {
                 $coursEvals = $evaluations->where('cours_id', $matiere->id);
@@ -162,14 +164,19 @@ class PalmaresController extends Controller
                 $courseMaxAccum = 0.0;
 
                 foreach ($trimestreLabels as $trimLabel) {
-                    $trimEvals = $coursEvals->where('trimestre', $trimLabel);
-                    [$totalTrim, $maxTotalTrim] = $this->matiereScoresPourEvaluations(
+                    $trimEvals = $this->filterByTrimestreLabel($coursEvals, $trimLabel);
+                    [$totalTrim, $maxTotalTrim, $trimIsComplete, $trimHasExpectedNotes] = $this->matiereScoresPourEvaluations(
                         $matiere,
                         $eleve->id,
                         $trimEvals
                     );
-                    $courseTotalAccum += $totalTrim;
+                    if ($trimIsComplete) {
+                        $courseTotalAccum += $totalTrim;
+                    }
                     $courseMaxAccum += $maxTotalTrim;
+                    if ($trimHasExpectedNotes && !$trimIsComplete) {
+                        $hasIncomplete = true;
+                    }
                 }
 
                 $totalPoints += $courseTotalAccum;
@@ -188,14 +195,14 @@ class PalmaresController extends Controller
                 }
             }
 
-            $pourcentageCours = $totalMax > 0 ? round(($totalPoints / $totalMax) * 100, 1) : 0;
+            $isComplete = !$hasIncomplete;
+            $pourcentageCours = ($isComplete && $totalMax > 0) ? round(($totalPoints / $totalMax) * 100, 1) : null;
 
             if ($mode === 'annual') {
                 $noteConduiteValue = 0.0;
                 foreach (self::TRIMESTRES as $trimLabel) {
                     $noteC = $notesConduite->where('eleve_id', $eleve->id)
-                        ->where('trimestre', $trimLabel)
-                        ->first();
+                        ->first(fn ($note) => $this->getTrimestreLabel($note) === $trimLabel);
                     $noteConduiteValue += $noteC ? (float) $noteC->note : (float) $conduiteMax;
                 }
                 $conduiteMaxPourEleve = count(self::TRIMESTRES) * $conduiteMax;
@@ -213,12 +220,12 @@ class PalmaresController extends Controller
                 $appreciationConduite = ConduiteConfigService::buildAppreciation($noteConduiteValue, $conduiteMax);
             }
 
-            $globalPoints = round($totalPoints + $noteConduiteValue, 2);
+            $globalPoints = $isComplete ? round($totalPoints + $noteConduiteValue, 2) : null;
             $globalMax = round($totalMax + $conduiteMaxPourEleve, 2);
-            $pourcentage = $globalMax > 0 ? round(($globalPoints / $globalMax) * 100, 1) : 0;
+            $pourcentage = ($isComplete && $globalMax > 0) ? round(($globalPoints / $globalMax) * 100, 1) : null;
 
             $decision = null;
-            if ($type === 'detaille') {
+            if ($type === 'detaille' && $isComplete) {
                 $nbEchecs = count($coursEchecs);
                 if ($pourcentage >= 50 && $nbEchecs === 0) {
                     $decision = 'Admis';
@@ -245,6 +252,8 @@ class PalmaresController extends Controller
                 'total_points_cours' => round($totalPoints, 2),
                 'total_max_cours' => round($totalMax, 2),
                 'pourcentage_cours' => $pourcentageCours,
+                'is_complete' => $isComplete,
+                'classement' => $isComplete ? 'classé' : 'non_classe',
                 'conduite' => [
                     'note' => $noteConduiteValue,
                     'max' => $conduiteMaxPourEleve,
@@ -264,7 +273,7 @@ class PalmaresController extends Controller
         }
 
         // Sort by total descending
-        usort($classement, fn($a, $b) => $b['total_points'] <=> $a['total_points']);
+        usort($classement, fn($a, $b) => ($b['total_points'] ?? -INF) <=> ($a['total_points'] ?? -INF));
 
         // Assign ranks
         $rank = 1;
@@ -380,7 +389,7 @@ class PalmaresController extends Controller
     /**
      * Points et barème pour une matière sur un sous-ensemble d'évaluations (ex. un trimestre).
      *
-     * @return array{0: float, 1: float} [total, max_total]
+     * @return array{0: float, 1: float, 2: bool, 3: bool} [total, max_total, is_complete, has_expected_notes]
      */
     private function matiereScoresPourEvaluations(Matiere $matiere, int $eleveId, Collection $coursEvals): array
     {
@@ -396,35 +405,56 @@ class PalmaresController extends Controller
 
         $tjNote = 0.0;
         $tjMax = 0.0;
+        $tjComplete = true;
         foreach ($tjEvals as $eval) {
+            $tjMax += (float) $eval->note_maximale;
             $note = $eval->notes->where('eleve_id', $eleveId)->first();
             if ($note) {
-                $tjNote += $note->note;
-                $tjMax += $eval->note_maximale;
+                $tjNote += (float) $note->note;
+            } else {
+                $tjComplete = false;
             }
         }
 
         $compNote = 0.0;
         $compMax = 0.0;
+        $compComplete = true;
         foreach ($compEvals as $eval) {
+            $compMax += (float) $eval->note_maximale;
             $note = $eval->notes->where('eleve_id', $eleveId)->first();
             if ($note) {
-                $compNote += $note->note;
-                $compMax += $eval->note_maximale;
+                $compNote += (float) $note->note;
+            } else {
+                $compComplete = false;
             }
         }
 
         $examNote = 0.0;
         $examMax = 0.0;
+        $examComplete = true;
         foreach ($examEvals as $eval) {
+            $examMax += (float) $eval->note_maximale;
             $note = $eval->notes->where('eleve_id', $eleveId)->first();
             if ($note) {
-                $examNote += $note->note;
-                $examMax += $eval->note_maximale;
+                $examNote += (float) $note->note;
+            } else {
+                $examComplete = false;
             }
         }
 
-        $scaledTj = $matiere->ponderation_tj > 0 && $tjMax > 0
+        $ponderationTj = (float) ($matiere->ponderation_tj ?? 0);
+        $ponderationExam = (float) ($matiere->ponderation_examen ?? 0);
+
+        $isTjExpected = $ponderationTj > 0 || $tjMax > 0;
+        $isCompExpected = $ponderationComp > 0 || $compMax > 0;
+        $isExamExpected = $ponderationExam > 0 || $examMax > 0;
+
+        $tjIncomplete = $isTjExpected && (!$tjComplete || $tjMax <= 0);
+        $compIncomplete = $isCompExpected && (!$compComplete || $compMax <= 0);
+        $examIncomplete = $isExamExpected && (!$examComplete || $examMax <= 0);
+        $isComplete = !$tjIncomplete && !$compIncomplete && !$examIncomplete;
+
+        $scaledTj = $ponderationTj > 0 && $tjMax > 0
             ? round(($tjNote / $tjMax) * $matiere->ponderation_tj, 2)
             : $tjNote;
         $scaledComp = 0.0;
@@ -436,9 +466,25 @@ class PalmaresController extends Controller
             : $examNote;
 
         $maxComp = $ponderationComp > 0 ? $ponderationComp : 0;
-        $total = $scaledTj + $scaledComp + $scaledExam;
+        $total = $isComplete ? $scaledTj + $scaledComp + $scaledExam : 0.0;
         $maxTotal = ($matiere->ponderation_tj ?: $tjMax) + $maxComp + ($matiere->ponderation_examen ?: $examMax);
+        $hasExpectedNotes = $isTjExpected || $isCompExpected || $isExamExpected;
 
-        return [(float) $total, (float) $maxTotal];
+        return [(float) $total, (float) $maxTotal, $isComplete, $hasExpectedNotes];
+    }
+
+    private function filterByTrimestreLabel(Collection $items, string $trimestre): Collection
+    {
+        return $items
+            ->filter(fn ($item) => $this->getTrimestreLabel($item) === $trimestre)
+            ->values();
+    }
+
+    private function getTrimestreLabel($item): ?string
+    {
+        return $item->trimestreModel?->nom
+            ?? $item->trimestre_label
+            ?? $item->trimestre
+            ?? null;
     }
 }
