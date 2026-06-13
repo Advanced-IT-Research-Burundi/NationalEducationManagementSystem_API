@@ -148,9 +148,6 @@
     $classement = $data['classement'] ?? [];
     $tauxReussite = $data['taux_reussite'] ?? null;
     $nonClasses = $data['non_classes'] ?? [];
-    $nonClassesLabel = collect($nonClasses)->map(function ($entry) {
-      return trim(($entry['eleve']['nom'] ?? '') . ' ' . ($entry['eleve']['prenom'] ?? ''));
-    })->filter()->implode(', ');
   @endphp
 
   <table>
@@ -204,9 +201,19 @@
     </div>
   @endif
 
-  @if($nonClassesLabel !== '')
+  @if(!empty($nonClasses))
     <div style="margin-top: 8px;">
-      <strong>Non classés :</strong> {{ $nonClassesLabel }}
+      <strong>Non classés :</strong>
+      <ol style="margin: 6px 0 0 18px; padding-left: 18px;">
+        @foreach($nonClasses as $entry)
+          @php
+            $nomComplet = trim(($entry['eleve']['nom'] ?? '') . ' ' . ($entry['eleve']['prenom'] ?? ''));
+          @endphp
+          @if($nomComplet !== '')
+            <li style="margin-bottom: 2px;">{{ $nomComplet }}</li>
+          @endif
+        @endforeach
+      </ol>
     </div>
   @endif
 </body>
