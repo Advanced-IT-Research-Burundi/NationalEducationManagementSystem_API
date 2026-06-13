@@ -7,12 +7,15 @@
   <style>
     @page {
       margin: 20mm 15mm;
+      size: A4 landscape;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
     body {
@@ -62,11 +65,12 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
+      border: 1.4pt solid #000;
     }
 
     th,
     td {
-      border: 1px solid #333;
+      border: 0.8pt solid #000;
       text-align: center;
       padding: 6px;
       vertical-align: middle;
@@ -92,6 +96,29 @@
     .td-small {
       font-size: 9px;
       padding: 4px;
+    }
+
+    @media print {
+      html,
+      body {
+        width: 100%;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      table {
+        border: 1.4pt solid #000 !important;
+      }
+
+      th,
+      td {
+        border: 0.8pt solid #000 !important;
+      }
+
+      tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>

@@ -1,6 +1,16 @@
 @php
     $layout = \App\Support\BulletinCourseLayout::partitionForPdf($bulletin['cours']);
     $fmt = fn ($value) => \App\Support\BulletinCourseLayout::formatNote($value);
+    $totalClass = function ($note, $max) {
+        if ($note === null || $note === '' || $max === null || $max === '') {
+            return '';
+        }
+
+        $noteValue = (float) $note;
+        $maxValue = (float) $max;
+
+        return $maxValue > 0 && $noteValue < ($maxValue / 2) ? 'failed-total' : '';
+    };
 @endphp
 
 @foreach ($layout['groups'] as $groupIndex => $group)
@@ -29,20 +39,20 @@
             <td>{{ $fmt($t1['note_tj'] ?? null) }}</td>
             <td>{{ $hasComp ? $fmt($t1['note_competence'] ?? null) : '—' }}</td>
             <td>{{ $fmt($t1['note_examen'] ?? null) }}</td>
-            <td><strong>{{ $fmt($t1['note_total'] ?? null) }}</strong></td>
+            <td class="{{ $totalClass($t1['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t1['note_total'] ?? null) }}</strong></td>
 
             <td>{{ $fmt($t2['note_tj'] ?? null) }}</td>
             <td>{{ $hasComp ? $fmt($t2['note_competence'] ?? null) : '—' }}</td>
             <td>{{ $fmt($t2['note_examen'] ?? null) }}</td>
-            <td><strong>{{ $fmt($t2['note_total'] ?? null) }}</strong></td>
+            <td class="{{ $totalClass($t2['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t2['note_total'] ?? null) }}</strong></td>
 
             <td>{{ $fmt($t3['note_tj'] ?? null) }}</td>
             <td>{{ $hasComp ? $fmt($t3['note_competence'] ?? null) : '—' }}</td>
             <td>{{ $fmt($t3['note_examen'] ?? null) }}</td>
-            <td><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
+            <td class="{{ $totalClass($t3['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
 
             <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
-            <td>{{ $fmt($annuel['note_total'] ?? null) }}</td>
+            <td class="{{ $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) }}">{{ $fmt($annuel['note_total'] ?? null) }}</td>
             <td></td>
             <td></td>
         </tr>
@@ -96,20 +106,20 @@
         <td>{{ $fmt($t1['note_tj'] ?? null) }}</td>
         <td>{{ $hasComp ? $fmt($t1['note_competence'] ?? null) : '—' }}</td>
         <td>{{ $fmt($t1['note_examen'] ?? null) }}</td>
-        <td><strong>{{ $fmt($t1['note_total'] ?? null) }}</strong></td>
+        <td class="{{ $totalClass($t1['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t1['note_total'] ?? null) }}</strong></td>
 
         <td>{{ $fmt($t2['note_tj'] ?? null) }}</td>
         <td>{{ $hasComp ? $fmt($t2['note_competence'] ?? null) : '—' }}</td>
         <td>{{ $fmt($t2['note_examen'] ?? null) }}</td>
-        <td><strong>{{ $fmt($t2['note_total'] ?? null) }}</strong></td>
+        <td class="{{ $totalClass($t2['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t2['note_total'] ?? null) }}</strong></td>
 
         <td>{{ $fmt($t3['note_tj'] ?? null) }}</td>
         <td>{{ $hasComp ? $fmt($t3['note_competence'] ?? null) : '—' }}</td>
         <td>{{ $fmt($t3['note_examen'] ?? null) }}</td>
-        <td><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
+        <td class="{{ $totalClass($t3['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
 
         <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
-        <td>{{ $fmt($annuel['note_total'] ?? null) }}</td>
+        <td class="{{ $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) }}">{{ $fmt($annuel['note_total'] ?? null) }}</td>
         <td></td>
         <td></td>
     </tr>

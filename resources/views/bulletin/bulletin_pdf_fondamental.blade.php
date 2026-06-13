@@ -14,6 +14,8 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         body {
@@ -53,12 +55,12 @@
             border-collapse: collapse;
             margin-top: 5px;
             font-size: 9px;
-            border: 3px solid #000;
+            border: 2pt solid #000;
         }
 
         th,
         td {
-            border: 1px solid #000;
+            border: 0.8pt solid #000;
             text-align: center;
             padding: 3px 2px;
             vertical-align: middle;
@@ -77,6 +79,12 @@
             font-weight: bold;
         }
 
+        .failed-total {
+            color: #c00000;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
         .sig-cell {
             text-align: left;
             padding-left: 5px;
@@ -93,7 +101,30 @@
         }
 
         .sig-cell-last {
-            border-bottom: 3px solid #000;
+            border-bottom: 2pt solid #000;
+        }
+
+        @media print {
+            html,
+            body {
+                width: 100%;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            table {
+                border: 2pt solid #000 !important;
+            }
+
+            th,
+            td {
+                border: 0.8pt solid #000 !important;
+            }
+
+            tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
         }
     </style>
 </head>
