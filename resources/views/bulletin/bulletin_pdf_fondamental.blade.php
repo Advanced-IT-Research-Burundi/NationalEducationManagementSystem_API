@@ -229,6 +229,38 @@
                 $t2Complete = (bool) (($bulletin['trimestres']['2e Trimestre'] ?? [])['is_complete'] ?? false);
                 $t3Complete = (bool) (($bulletin['trimestres']['3e Trimestre'] ?? [])['is_complete'] ?? false);
                 $isAnnualBulletin = empty($data['trimestre']);
+                $globalTotals = \App\Support\BulletinCourseLayout::computeGroupTotals($bulletin['cours'], false);
+                $trimTotal = fn($label) => $globalTotals['trimestres'][$label] ?? [];
+                $pct = fn($points, $max, $complete = true) => $complete && $points !== null && $max > 0
+                    ? round(($points / $max) * 100, 1) . '%'
+                    : '';
+                $rankLabel = fn($rank) => $rank !== null ? \App\Support\BulletinCourseLayout::formatRang((int) $rank) : '';
+
+                $t1Totals = $trimTotal('1er Trimestre');
+                $t2Totals = $trimTotal('2e Trimestre');
+                $t3Totals = $trimTotal('3e Trimestre');
+
+                $maxTjWithConduite = ($globalTotals['max_tj'] ?? 0) + (($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60));
+                $maxRes = $globalTotals['max_res'] ?? 0;
+
+                $t1Tj = ($t1Totals['has_tj'] ?? false) && ($t1Totals['tj_complete'] ?? false)
+                    ? ($t1Totals['tj'] ?? 0) + (($conduiteT1 ?? [])['note'] ?? 0)
+                    : null;
+                $t2Tj = ($t2Totals['has_tj'] ?? false) && ($t2Totals['tj_complete'] ?? false)
+                    ? ($t2Totals['tj'] ?? 0) + (($conduiteT2 ?? [])['note'] ?? 0)
+                    : null;
+                $t3Tj = ($t3Totals['has_tj'] ?? false) && ($t3Totals['tj_complete'] ?? false)
+                    ? ($t3Totals['tj'] ?? 0) + (($conduiteT3 ?? [])['note'] ?? 0)
+                    : null;
+
+                $t1Res = ($t1Totals['has_res'] ?? false) && ($t1Totals['res_complete'] ?? false) ? ($t1Totals['res'] ?? 0) : null;
+                $t2Res = ($t2Totals['has_res'] ?? false) && ($t2Totals['res_complete'] ?? false) ? ($t2Totals['res'] ?? 0) : null;
+                $t3Res = ($t3Totals['has_res'] ?? false) && ($t3Totals['res_complete'] ?? false) ? ($t3Totals['res'] ?? 0) : null;
+
+                $rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null;
+                $rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null;
+                $rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null;
+                $rAn = $bulletin['annuel']['rang'] ?? null;
             @endphp
 
             <tr>
@@ -259,16 +291,20 @@
             <tr class="total-row" style="border-top: 3px solid #000;">
                 <td colspan="2" style="text-align: left; padding-left: 5px;">TOTAL</td>
                 <td></td>
-                <td colspan="2"></td>
+                <td>{{ $fmt($maxTjWithConduite) }}</td>
+                <td>{{ $fmt($maxRes) }}</td>
                 <td>{{ $fmt($grandT1Max) }}</td>
 
-                <td colspan="2"></td>
+                <td>{{ $fmt($t1Tj) }}</td>
+                <td>{{ $fmt($t1Res) }}</td>
                 <td>{{ $fmt($grandT1Points) }}</td>
 
-                <td colspan="2"></td>
+                <td>{{ $fmt($t2Tj) }}</td>
+                <td>{{ $fmt($t2Res) }}</td>
                 <td>{{ $fmt($grandT2Points) }}</td>
 
-                <td colspan="2"></td>
+                <td>{{ $fmt($t3Tj) }}</td>
+                <td>{{ $fmt($t3Res) }}</td>
                 <td>{{ $fmt($grandT3Points) }}</td>
 
                 <td>{{ $fmt($grandAnnuelMax) }}</td>
@@ -281,17 +317,17 @@
                 <td colspan="2" style="text-align: left; padding-left: 5px;">Pourcentage</td>
                 <td colspan="4"></td>
 
-                <td colspan="2"></td>
-                <td>{{ $t1Complete && $grandT1Points !== null && $grandT1Max > 0 ? round(($grandT1Points / $grandT1Max) * 100, 1) : '' }}
-                </td>
+                <td>{{ $pct($t1Tj, $maxTjWithConduite, ($t1Totals['tj_complete'] ?? false)) }}</td>
+                <td>{{ $pct($t1Res, $maxRes, ($t1Totals['res_complete'] ?? false)) }}</td>
+                <td>{{ $pct($grandT1Points, $grandT1Max, $t1Complete) }}</td>
 
-                <td colspan="2"></td>
-                <td>{{ $t2Complete && $grandT2Points !== null && $grandT2Max > 0 ? round(($grandT2Points / $grandT2Max) * 100, 1) : '' }}
-                </td>
+                <td>{{ $pct($t2Tj, $maxTjWithConduite, ($t2Totals['tj_complete'] ?? false)) }}</td>
+                <td>{{ $pct($t2Res, $maxRes, ($t2Totals['res_complete'] ?? false)) }}</td>
+                <td>{{ $pct($grandT2Points, $grandT2Max, $t2Complete) }}</td>
 
-                <td colspan="2"></td>
-                <td>{{ $t3Complete && $grandT3Points !== null && $grandT3Max > 0 ? round(($grandT3Points / $grandT3Max) * 100, 1) : '' }}
-                </td>
+                <td>{{ $pct($t3Tj, $maxTjWithConduite, ($t3Totals['tj_complete'] ?? false)) }}</td>
+                <td>{{ $pct($t3Res, $maxRes, ($t3Totals['res_complete'] ?? false)) }}</td>
+                <td>{{ $pct($grandT3Points, $grandT3Max, $t3Complete) }}</td>
 
                 <td colspan="3"></td>
                 <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
@@ -301,21 +337,20 @@
                 <td colspan="2" style="text-align: left; padding-left: 5px;">Place</td>
                 <td colspan="4"></td>
 
-                <td colspan="2"></td>
-                <td>@php($rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null){{ $hasT1 ? \App\Support\BulletinCourseLayout::formatPlace($rT1, $t1Complete) : '' }}
-                </td>
+                <td>{{ $hasT1 ? $rankLabel($rT1) : '' }}</td>
+                <td>{{ $hasT1 ? $rankLabel($rT1) : '' }}</td>
+                <td>{{ $hasT1 ? $rankLabel($rT1) : '' }}</td>
 
-                <td colspan="2"></td>
-                <td>@php($rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null){{ $hasT2 ? \App\Support\BulletinCourseLayout::formatPlace($rT2, $t2Complete) : '' }}
-                </td>
+                <td>{{ $hasT2 ? $rankLabel($rT2) : '' }}</td>
+                <td>{{ $hasT2 ? $rankLabel($rT2) : '' }}</td>
+                <td>{{ $hasT2 ? $rankLabel($rT2) : '' }}</td>
 
-                <td colspan="2"></td>
-                <td>@php($rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null){{ $hasT3 ? \App\Support\BulletinCourseLayout::formatPlace($rT3, $t3Complete) : '' }}
-                </td>
+                <td>{{ $hasT3 ? $rankLabel($rT3) : '' }}</td>
+                <td>{{ $hasT3 ? $rankLabel($rT3) : '' }}</td>
+                <td>{{ $hasT3 ? $rankLabel($rT3) : '' }}</td>
 
                 <td colspan="3"></td>
-                <td>@php($rAn = $bulletin['annuel']['rang'] ?? null){{ $isAnnualBulletin ? \App\Support\BulletinCourseLayout::formatPlace($rAn, $annualIsComplete) : '' }}
-                </td>
+                <td>{{ $isAnnualBulletin ? $rankLabel($rAn) : '' }}</td>
             </tr>
 
             <!-- Signatures -->
