@@ -296,8 +296,12 @@ class PalmaresController extends Controller
                 <=> [$b['eleve']['nom'] ?? '', $b['eleve']['prenom'] ?? ''];
         });
 
+        $nombreElevesReussis = count(array_filter(
+            $classement,
+            fn(array $entry) => ($entry['pourcentage'] ?? 0) >= 50
+        ));
         $tauxReussite = count($eleves) > 0
-            ? round((count($classement) / count($eleves)) * 100, 1)
+            ? round(($nombreElevesReussis / count($eleves)) * 100, 1)
             : null;
 
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
@@ -316,6 +320,7 @@ class PalmaresController extends Controller
                     'verrouille' => (bool) $currentTrimestre->verrouille,
                 ] : null,
                 'nombre_eleves' => count($eleves),
+                'nombre_eleves_reussis' => $nombreElevesReussis,
                 'taux_reussite' => $tauxReussite,
                 'mode' => $mode,
                 'type' => $type,
