@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class BulletinController extends Controller
@@ -46,7 +47,7 @@ class BulletinController extends Controller
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
-            'trimestre' => ['nullable', 'string', 'max:100'],
+            'trimestre' => ['nullable', Rule::in(self::TRIMESTRES)],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
@@ -429,7 +430,7 @@ class BulletinController extends Controller
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
-            'trimestre' => ['nullable', 'string', 'max:100'],
+            'trimestre' => ['nullable', Rule::in(self::TRIMESTRES)],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
@@ -458,7 +459,7 @@ class BulletinController extends Controller
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
-            'trimestre' => ['nullable', 'string', 'max:100'],
+            'trimestre' => ['nullable', Rule::in(self::TRIMESTRES)],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
@@ -486,8 +487,7 @@ class BulletinController extends Controller
         $requestedEleveIdForAuth = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
         $this->authorizeBulletinRequest($request, $classeId, $requestedEleveIdForAuth, $anneeScolaireId);
 
-        $isParent = $request->user()?->hasRole(Role::PARENT);
-        [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode, $isParent);
+        [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode);
 
         $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
         $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
@@ -520,18 +520,20 @@ class BulletinController extends Controller
     /**
      * @return array{0: ?string, 1: ?Trimestre}
      */
-    private function resolveBulletinPeriod(Request $request, int $anneeScolaireId, string $mode, bool $isParent = false): array
+    private function resolveBulletinPeriod(Request $request, int $anneeScolaireId, string $mode): array
     {
         if ($mode === 'annual') {
             return [null, null];
         }
 
-        if (!$isParent && $request->filled('trimestre')) {
+        if ($request->filled('trimestre')) {
             $nom = $request->string('trimestre')->toString();
             $model = Trimestre::query()
                 ->where('annee_scolaire_id', $anneeScolaireId)
                 ->where('nom', $nom)
                 ->first();
+
+            abort_unless($model, 422, 'Le trimestre demandé n\'existe pas pour cette année scolaire.');
 
             return [$nom, $model];
         }
@@ -834,27 +836,7 @@ class BulletinController extends Controller
             return self::TRIMESTRES;
         }
 
-        $currentIndex = array_search($trimestre, self::TRIMESTRES, true);
-        if ($currentIndex === false) {
-            return [$trimestre];
-        }
-
-        if (! $trimestreModel) {
-            return [$trimestre];
-        }
-
-        $lockedTrimestres = Trimestre::query()
-            ->where('annee_scolaire_id', $anneeScolaireId)
-            ->where('verrouille', true)
-            ->pluck('nom')
-            ->all();
-
-        return array_values(array_filter(
-            self::TRIMESTRES,
-            fn (string $label, int $index) => $label === $trimestre
-                || ($index < $currentIndex && in_array($label, $lockedTrimestres, true)),
-            ARRAY_FILTER_USE_BOTH
-        ));
+        return [$trimestre];
     }
 
     private function filterByTrimestreLabel(Collection $items, string $trimestre): Collection

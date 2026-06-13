@@ -8,6 +8,7 @@ use App\Models\Classe;
 use App\Models\Evaluation;
 use App\Models\Matiere;
 use App\Models\NoteConduite;
+use App\Models\Trimestre;
 use App\Scopes\AcademicYearScope;
 use App\Services\ConduiteConfigService;
 use App\Services\CurrentAcademicContextService;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class PalmaresController extends Controller
 {
@@ -65,6 +67,7 @@ class PalmaresController extends Controller
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
+            'trimestre' => ['nullable', Rule::in(self::TRIMESTRES)],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'type' => ['nullable', 'in:simple,detaille'],
         ]);
@@ -72,9 +75,10 @@ class PalmaresController extends Controller
         $classeId = $request->integer('classe_id');
         $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
+        $requestedTrimestre = $request->filled('trimestre') ? $request->string('trimestre')->toString() : null;
         $type = $request->string('type')->toString() ?: 'simple';
-        $currentTrimestre = $mode === 'annual' ? null : $this->academicContextService->requireCurrentTrimestre();
-        $trimestre = $currentTrimestre?->nom;
+        $currentTrimestre = null;
+        $trimestre = null;
 
         if (!$anneeScolaireId) {
             return response()->json(['message' => 'Aucune année scolaire active.'], 422);
@@ -86,6 +90,20 @@ class PalmaresController extends Controller
         $conduiteConfig = ConduiteConfigService::resolveForClasse($classe);
         $conduiteMax = $conduiteConfig['max_note'];
         $eleves = $classe->eleves()->orderBy('nom')->orderBy('prenom')->get();
+
+        if ($mode !== 'annual') {
+            if ($requestedTrimestre) {
+                $currentTrimestre = Trimestre::query()
+                    ->where('annee_scolaire_id', $anneeScolaireId)
+                    ->where('nom', $requestedTrimestre)
+                    ->first();
+                abort_unless($currentTrimestre, 422, 'Le trimestre demandé n\'existe pas pour cette année scolaire.');
+            } else {
+                $currentTrimestre = $this->academicContextService->requireCurrentTrimestre();
+            }
+
+            $trimestre = $currentTrimestre?->nom;
+        }
 
         // Get evaluations
         $evaluationsQuery = Evaluation::with('notes')
@@ -288,6 +306,7 @@ class PalmaresController extends Controller
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
+            'trimestre' => ['nullable', Rule::in(self::TRIMESTRES)],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'type' => ['nullable', 'in:simple,detaille'],
         ]);
@@ -320,6 +339,7 @@ class PalmaresController extends Controller
         $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'mode' => ['nullable', 'in:current,annual'],
+            'trimestre' => ['nullable', Rule::in(self::TRIMESTRES)],
             'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
             'type' => ['nullable', 'in:simple,detaille'],
         ]);
