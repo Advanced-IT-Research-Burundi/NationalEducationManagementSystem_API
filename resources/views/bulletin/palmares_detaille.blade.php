@@ -146,28 +146,11 @@
   @php
     $cours = $data['cours'] ?? [];
     $classement = $data['classement'] ?? [];
-    $failurePercent = function ($missing, $max) {
-      if ($missing === null || $missing === '' || $max === null || $max === '' || (float) $max <= 0) {
-        return '';
-      }
-
-      $half = ((float) $max) / 2;
-      if ($half <= 0) {
-        return '';
-      }
-
-      return round(((float) $missing / $half) * 100, 1);  //.'%';
-    };
-    $totalEleves = is_array($classement) ? count($classement) : 0;
-    $admisCount = 0;
-    if (is_array($classement)) {
-      foreach ($classement as $e) {
-        $dec = strtolower((string) ($e['decision_jury'] ?? ''));
-        if (str_starts_with($dec, 'admis'))
-          $admisCount++;
-      }
-    }
-    $tauxReussite = $totalEleves > 0 ? round(($admisCount / $totalEleves) * 100, 1) : null;
+    $tauxReussite = $data['taux_reussite'] ?? null;
+    $nonClasses = $data['non_classes'] ?? [];
+    $nonClassesLabel = collect($nonClasses)->map(function ($entry) {
+      return trim(($entry['eleve']['nom'] ?? '') . ' ' . ($entry['eleve']['prenom'] ?? ''));
+    })->filter()->implode(', ');
   @endphp
 
   <table>
@@ -203,7 +186,7 @@
             $def = $entry['echecs'][$code] ?? null; @endphp
             <td class="td-small">
               @if(!is_null($def) && $def !== '')
-                -{{ $failurePercent($def, $entry['cours_max'][$code] ?? null) }}
+                -{{ $def }}
               @endif
             </td>
           @endforeach
@@ -218,6 +201,12 @@
   @if(!is_null($tauxReussite))
     <div style="margin-top: 14px; font-weight: bold;">
       Le taux de réussite de la classe : {{ $tauxReussite }}%
+    </div>
+  @endif
+
+  @if($nonClassesLabel !== '')
+    <div style="margin-top: 8px;">
+      <strong>Non classés :</strong> {{ $nonClassesLabel }}
     </div>
   @endif
 </body>

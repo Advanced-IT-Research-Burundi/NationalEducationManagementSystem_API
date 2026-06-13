@@ -132,6 +132,14 @@
     </div>
   </div>
 
+  @php
+    $tauxReussite = $data['taux_reussite'] ?? null;
+    $nonClasses = $data['non_classes'] ?? [];
+    $nonClassesLabel = collect($nonClasses)->map(function ($entry) {
+      return trim(($entry['eleve']['nom'] ?? '') . ' ' . ($entry['eleve']['prenom'] ?? ''));
+    })->filter()->implode(', ');
+  @endphp
+
   <table>
     <thead>
       <tr>
@@ -156,6 +164,18 @@
       @endforeach
     </tbody>
   </table>
+
+  @if(!is_null($tauxReussite))
+    <div style="margin-top: 14px; font-weight: bold;">
+      Le taux de réussite de la classe : {{ $tauxReussite }}%
+    </div>
+  @endif
+
+  @if($nonClassesLabel !== '')
+    <div style="margin-top: 8px;">
+      <strong>Non classés :</strong> {{ $nonClassesLabel }}
+    </div>
+  @endif
 </body>
 
 </html>

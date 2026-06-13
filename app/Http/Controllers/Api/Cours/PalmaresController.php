@@ -271,6 +271,25 @@ class PalmaresController extends Controller
         foreach ($classement as &$entry) {
             $entry['rang'] = $rank++;
         }
+        unset($entry);
+
+        $nonClasses = array_values(array_filter(
+            $classement,
+            fn(array $entry) => !($entry['is_complete'] ?? false)
+        ));
+        $classement = array_values(array_filter(
+            $classement,
+            fn(array $entry) => ($entry['is_complete'] ?? false)
+        ));
+
+        usort($nonClasses, function (array $a, array $b) {
+            return [$a['eleve']['nom'] ?? '', $a['eleve']['prenom'] ?? '']
+                <=> [$b['eleve']['nom'] ?? '', $b['eleve']['prenom'] ?? ''];
+        });
+
+        $tauxReussite = count($eleves) > 0
+            ? round((count($classement) / count($eleves)) * 100, 1)
+            : null;
 
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
@@ -288,10 +307,12 @@ class PalmaresController extends Controller
                     'verrouille' => (bool) $currentTrimestre->verrouille,
                 ] : null,
                 'nombre_eleves' => count($eleves),
+                'taux_reussite' => $tauxReussite,
                 'mode' => $mode,
                 'type' => $type,
                 'cours' => $type === 'detaille' ? $coursMeta : null,
                 'classement' => $classement,
+                'non_classes' => $nonClasses,
             ],
         ]);
     }
