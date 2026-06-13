@@ -228,6 +228,7 @@
         $t2Complete = (bool) (($bulletin['trimestres']['2e Trimestre'] ?? [])['is_complete'] ?? false);
         $t3Complete = (bool) (($bulletin['trimestres']['3e Trimestre'] ?? [])['is_complete'] ?? false);
         $isAnnualBulletin = empty($data['trimestre']);
+        $educationMorale = $bulletin['education_morale'] ?? null;
         $globalTotals = \App\Support\BulletinCourseLayout::computeGroupTotals($bulletin['cours'], true);
         $trimTotal = fn($label) => $globalTotals['trimestres'][$label] ?? [];
         $pct = fn($points, $max, $complete = true) => $complete && $points !== null && $max > 0
@@ -371,6 +372,43 @@
         <td>{{ $isAnnualBulletin ? $rankLabel($rAn) : '' }}</td>
         <td></td>
       </tr>
+
+      @if ($educationMorale)
+      @php
+        $emT1 = $educationMorale['trimestres']['1er Trimestre'] ?? null;
+        $emT2 = $educationMorale['trimestres']['2e Trimestre'] ?? null;
+        $emT3 = $educationMorale['trimestres']['3e Trimestre'] ?? null;
+        $emHasComp = ($educationMorale['has_competence_track'] ?? false) && ($educationMorale['max_competence'] ?? 0) > 0;
+      @endphp
+      <tr>
+        <td colspan="2" style="text-align: left; padding-left: 5px; font-weight: bold;">Education Morale</td>
+        <td>{{ $educationMorale['credit_heures'] ?? '' }}</td>
+        <td>{{ $fmt($educationMorale['max_tj'] ?? null) }}</td>
+        <td>{{ $emHasComp ? $fmt($educationMorale['max_competence']) : '—' }}</td>
+        <td>{{ $fmt($educationMorale['max_examen'] ?? null) }}</td>
+        <td><strong>{{ $fmt($educationMorale['max_total'] ?? null) }}</strong></td>
+
+        <td>{{ $fmt($emT1['note_tj'] ?? null) }}</td>
+        <td>{{ $emHasComp ? $fmt($emT1['note_competence'] ?? null) : '—' }}</td>
+        <td>{{ $fmt($emT1['note_examen'] ?? null) }}</td>
+        <td><strong>{{ $fmt($emT1['note_total'] ?? null) }}</strong></td>
+
+        <td>{{ $fmt($emT2['note_tj'] ?? null) }}</td>
+        <td>{{ $emHasComp ? $fmt($emT2['note_competence'] ?? null) : '—' }}</td>
+        <td>{{ $fmt($emT2['note_examen'] ?? null) }}</td>
+        <td><strong>{{ $fmt($emT2['note_total'] ?? null) }}</strong></td>
+
+        <td>{{ $fmt($emT3['note_tj'] ?? null) }}</td>
+        <td>{{ $emHasComp ? $fmt($emT3['note_competence'] ?? null) : '—' }}</td>
+        <td>{{ $fmt($emT3['note_examen'] ?? null) }}</td>
+        <td><strong>{{ $fmt($emT3['note_total'] ?? null) }}</strong></td>
+
+        <td>{{ $fmt($educationMorale['annuel']['max_total'] ?? null) }}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+      @endif
 
       <!-- Signatures à l'intérieur du tableau -->
       <tr class="total-row" style="border-bottom: 2px solid #000;">

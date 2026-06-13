@@ -24,6 +24,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class BulletinController extends Controller
@@ -155,6 +156,7 @@ class BulletinController extends Controller
         $bulletins = [];
         foreach ($eleves as $eleve) {
             $coursData = [];
+            $educationMoraleData = null;
             $trimestreSummaries = [];
             $annualCourseTotalMax = 0;
 
@@ -169,6 +171,7 @@ class BulletinController extends Controller
             foreach ($cours as $matiere) {
                 $coursEvals = $evaluations->where('cours_id', $matiere->id);
                 $coursTrimestres = [];
+                $isEducationMorale = $this->isEducationMoraleCourse($matiere);
 
                 foreach ($requestedTrimestres as $currentTrimestre) {
                     $summary = $this->buildCourseSummary(
@@ -181,25 +184,26 @@ class BulletinController extends Controller
                     );
 
                     $coursTrimestres[$currentTrimestre] = $summary;
-                    $trimestreSummaries[$currentTrimestre]['total_max'] += $summary['max_total'];
+                    if (!$isEducationMorale) {
+                        $trimestreSummaries[$currentTrimestre]['total_max'] += $summary['max_total'];
 
-                    if (!is_null($summary['note_total'])) {
-                        $trimestreSummaries[$currentTrimestre]['total_points'] += $summary['note_total'];
-                    }
+                        if (!is_null($summary['note_total'])) {
+                            $trimestreSummaries[$currentTrimestre]['total_points'] += $summary['note_total'];
+                        }
 
-                    if ($summary['has_expected_notes'] && !$summary['is_complete']) {
-                        $trimestreSummaries[$currentTrimestre]['has_incomplete'] = true;
+                        if ($summary['has_expected_notes'] && !$summary['is_complete']) {
+                            $trimestreSummaries[$currentTrimestre]['has_incomplete'] = true;
+                        }
                     }
                 }
 
                 $baseSummary = $this->resolveBaseCourseSummary($coursTrimestres);
                 $annualSummary = $this->buildAnnualCourseSummary($coursTrimestres, $baseSummary, $annualTrimestreCount);
-                $annualCourseTotalMax += $annualSummary['max_total'] ?? 0;
                 $displayNotesSummary = $trimestre
                     ? ($coursTrimestres[$trimestre] ?? $this->emptySummary())
                     : $annualSummary;
 
-                $coursData[] = [
+                $coursePayload = [
                     'cours_id' => $matiere->id,
                     'nom' => $matiere->nom,
                     'categorie' => $hasCategorieCours ? $matiere->categorieCours?->nom : null,
@@ -220,6 +224,14 @@ class BulletinController extends Controller
                     'trimestres' => $coursTrimestres,
                     'annuel' => $annualSummary,
                 ];
+
+                if ($isEducationMorale) {
+                    $educationMoraleData = $coursePayload;
+                    continue;
+                }
+
+                $annualCourseTotalMax += $annualSummary['max_total'] ?? 0;
+                $coursData[] = $coursePayload;
             }
 
             $bulletinTrimestres = [];
@@ -298,6 +310,7 @@ class BulletinController extends Controller
                     'matricule' => $eleve->matricule,
                 ],
                 'cours' => $coursData,
+                'education_morale' => $educationMoraleData,
                 // Cours seuls (sans conduite) — conservés pour rétrocompatibilité PDF
                 'total_points' => $trimestre
                     ? ($displayBulletin['total_points'] ?? null)
@@ -871,6 +884,17 @@ class BulletinController extends Controller
             ?? $item->trimestre_label
             ?? $item->trimestre
             ?? null;
+    }
+
+    private function isEducationMoraleCourse(Matiere $matiere): bool
+    {
+        $name = Str::of((string) ($matiere->nom ?? ''))
+            ->ascii()
+            ->lower()
+            ->squish()
+            ->toString();
+
+        return $name === 'education morale';
     }
 
     private function emptySummary(): array
