@@ -436,6 +436,85 @@ it('uses the three-trimester maximum in annual result columns when generating a 
     expect($bulletin['annuel']['total_max'])->toBe(240);
 });
 
+it('calculates separate trimester ranks for tj exam and total columns', function (): void {
+    $fixture = createBulletinFixture();
+    $matiere = createMatiereForSchool($fixture, [
+        'nom' => 'Mathématiques',
+        'code' => 'MATH_RANK_BUL',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 40,
+    ]);
+    $secondEleve = Eleve::withoutGlobalScopes()->create([
+        'nom' => 'Second',
+        'prenom' => 'Eleve',
+        'sexe' => 'F',
+        'date_naissance' => '2012-02-02',
+        'lieu_naissance' => 'Bujumbura',
+        'school_id' => $fixture['schoolId'],
+    ]);
+
+    DB::table('eleve_class')->insert([
+        'eleve_id' => $secondEleve->id,
+        'classe_id' => $fixture['classe']->id,
+        'annee_scolaire' => $fixture['annee']->code,
+        'statut' => 'ACTIVE',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $tjEvaluation = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $matiere->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre' => '1er Trimestre',
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => 40,
+    ]);
+    $examEvaluation = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $matiere->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre' => '1er Trimestre',
+        'type_evaluation' => 'Examen',
+        'date_passation' => now(),
+        'note_maximale' => 40,
+    ]);
+
+    foreach ([
+        [$tjEvaluation->id, $fixture['eleve']->id, 30],
+        [$tjEvaluation->id, $secondEleve->id, 10],
+        [$examEvaluation->id, $fixture['eleve']->id, 10],
+        [$examEvaluation->id, $secondEleve->id, 35],
+    ] as [$evaluationId, $eleveId, $note]) {
+        Note::create([
+            'evaluation_id' => $evaluationId,
+            'eleve_id' => $eleveId,
+            'note' => $note,
+        ]);
+    }
+
+    $response = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '1er Trimestre',
+        ]));
+
+    $response->assertSuccessful();
+    $bulletins = collect($response->json('data.bulletins'));
+    $first = $bulletins->first(fn (array $bulletin) => $bulletin['eleve']['id'] === $fixture['eleve']->id);
+    $second = $bulletins->first(fn (array $bulletin) => $bulletin['eleve']['id'] === $secondEleve->id);
+
+    expect($first['trimestres']['1er Trimestre']['rangs']['tj'])->toBe(1);
+    expect($first['trimestres']['1er Trimestre']['rangs']['examen'])->toBe(2);
+    expect($first['trimestres']['1er Trimestre']['rangs']['total'])->toBe(2);
+    expect($second['trimestres']['1er Trimestre']['rangs']['tj'])->toBe(2);
+    expect($second['trimestres']['1er Trimestre']['rangs']['examen'])->toBe(1);
+    expect($second['trimestres']['1er Trimestre']['rangs']['total'])->toBe(1);
+});
+
 it('prints current trimester with previous locked trimesters only', function (): void {
     $fixture = createBulletinFixture();
     $matiere = createMatiereForSchool($fixture, [

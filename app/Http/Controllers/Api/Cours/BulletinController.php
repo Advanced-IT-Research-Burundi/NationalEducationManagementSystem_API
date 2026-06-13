@@ -248,6 +248,12 @@ class BulletinController extends Controller
                 $isComplete = !$summary['has_incomplete'];
                 $noteConduite = $notesConduiteByTrimestre->get($currentTrimestre);
                 $conduiteValue = $noteConduite ? $noteConduite->note : $conduiteMax;
+                $componentTotals = $this->buildTrimestreComponentTotals(
+                    $coursData,
+                    $currentTrimestre,
+                    (float) $conduiteValue,
+                    (float) $conduiteMax
+                );
 
                 $globalPoints = $isComplete
                     ? round($summary['total_points'] + $conduiteValue, 2)
@@ -273,6 +279,7 @@ class BulletinController extends Controller
                     'pourcentage_global' => $globalPourcentage,
                     'is_complete' => $isComplete,
                     'classement' => $isComplete ? 'classé' : 'non_classe',
+                    'component_totals' => $componentTotals,
                     'conduite' => [
                         'note' => $conduiteValue,
                         'max' => $conduiteMax,
@@ -381,11 +388,19 @@ class BulletinController extends Controller
 
         $annualRanks = $this->buildRanks($bulletins, fn($bulletin) => $bulletin['annuel']);
         $trimestreRanks = [];
+        $trimestreComponentRanks = [];
         foreach ($requestedTrimestres as $currentTrimestre) {
             $trimestreRanks[$currentTrimestre] = $this->buildRanks(
                 $bulletins,
                 fn($bulletin) => $bulletin['trimestres'][$currentTrimestre] ?? null
             );
+            foreach (['tj', 'competence', 'examen'] as $component) {
+                $trimestreComponentRanks[$currentTrimestre][$component] = $this->buildComponentRanks(
+                    $bulletins,
+                    $currentTrimestre,
+                    $component
+                );
+            }
         }
 
         foreach ($bulletins as &$bulletin) {
@@ -393,6 +408,12 @@ class BulletinController extends Controller
                 if (isset($bulletin['trimestres'][$currentTrimestre])) {
                     $bulletin['trimestres'][$currentTrimestre]['rang'] =
                         $trimestreRanks[$currentTrimestre][$bulletin['eleve']['id']] ?? null;
+                    $bulletin['trimestres'][$currentTrimestre]['rangs'] = [
+                        'tj' => $trimestreComponentRanks[$currentTrimestre]['tj'][$bulletin['eleve']['id']] ?? null,
+                        'competence' => $trimestreComponentRanks[$currentTrimestre]['competence'][$bulletin['eleve']['id']] ?? null,
+                        'examen' => $trimestreComponentRanks[$currentTrimestre]['examen'][$bulletin['eleve']['id']] ?? null,
+                        'total' => $trimestreRanks[$currentTrimestre][$bulletin['eleve']['id']] ?? null,
+                    ];
                 }
             }
 
@@ -821,6 +842,110 @@ class BulletinController extends Controller
         }
 
         return $ranks;
+    }
+
+    private function buildComponentRanks(array $bulletins, string $trimestre, string $component): array
+    {
+        $rankable = array_values(array_filter($bulletins, function (array $bulletin) use ($trimestre, $component) {
+            $summary = $bulletin['trimestres'][$trimestre]['component_totals'][$component] ?? null;
+
+            return $summary
+                && ($summary['is_complete'] ?? false)
+                && ($summary['points'] ?? null) !== null;
+        }));
+
+        usort($rankable, function (array $a, array $b) use ($trimestre, $component) {
+            $aPoints = $a['trimestres'][$trimestre]['component_totals'][$component]['points'] ?? 0;
+            $bPoints = $b['trimestres'][$trimestre]['component_totals'][$component]['points'] ?? 0;
+
+            return $bPoints <=> $aPoints;
+        });
+
+        $ranks = [];
+        $rank = 1;
+        foreach ($rankable as $bulletin) {
+            $ranks[$bulletin['eleve']['id']] = $rank++;
+        }
+
+        return $ranks;
+    }
+
+    private function buildTrimestreComponentTotals(
+        array $coursData,
+        string $trimestre,
+        float $conduiteValue,
+        float $conduiteMax
+    ): array {
+        $totals = [
+            'tj' => $this->emptyComponentTotal(),
+            'competence' => $this->emptyComponentTotal(),
+            'examen' => $this->emptyComponentTotal(),
+        ];
+
+        foreach ($coursData as $cours) {
+            $summary = $cours['trimestres'][$trimestre] ?? null;
+            if (!$summary) {
+                continue;
+            }
+
+            $this->addComponentTotal($totals['tj'], $summary['note_tj'] ?? null, (float) ($summary['max_tj'] ?? 0));
+            if (($summary['has_competence_track'] ?? false) || ($summary['max_competence'] ?? 0) > 0) {
+                $this->addComponentTotal(
+                    $totals['competence'],
+                    $summary['note_competence'] ?? null,
+                    (float) ($summary['max_competence'] ?? 0)
+                );
+            }
+            $this->addComponentTotal(
+                $totals['examen'],
+                $summary['note_examen'] ?? null,
+                (float) ($summary['max_examen'] ?? 0)
+            );
+        }
+
+        if ($totals['tj']['max'] > 0) {
+            $totals['tj']['points'] += $conduiteValue;
+            $totals['tj']['max'] += $conduiteMax;
+            $totals['tj']['has_points'] = true;
+        }
+
+        foreach ($totals as &$total) {
+            $total['points'] = $total['is_complete'] && $total['max'] > 0
+                ? round($total['points'], 2)
+                : null;
+            $total['max'] = round($total['max'], 2);
+            $total['is_complete'] = $total['is_complete'] && $total['max'] > 0;
+        }
+        unset($total);
+
+        return $totals;
+    }
+
+    private function addComponentTotal(array &$total, ?float $points, float $max): void
+    {
+        if ($max <= 0) {
+            return;
+        }
+
+        $total['max'] += $max;
+        if ($points === null) {
+            $total['is_complete'] = false;
+
+            return;
+        }
+
+        $total['points'] += $points;
+        $total['has_points'] = true;
+    }
+
+    private function emptyComponentTotal(): array
+    {
+        return [
+            'points' => 0.0,
+            'max' => 0.0,
+            'has_points' => false,
+            'is_complete' => true,
+        ];
     }
 
     /**

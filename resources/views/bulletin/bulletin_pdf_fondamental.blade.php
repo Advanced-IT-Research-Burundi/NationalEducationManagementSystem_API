@@ -258,9 +258,9 @@
                 $t2Res = ($t2Totals['has_res'] ?? false) && ($t2Totals['res_complete'] ?? false) ? ($t2Totals['res'] ?? 0) : null;
                 $t3Res = ($t3Totals['has_res'] ?? false) && ($t3Totals['res_complete'] ?? false) ? ($t3Totals['res'] ?? 0) : null;
 
-                $rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rang'] ?? null;
-                $rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rang'] ?? null;
-                $rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rang'] ?? null;
+                $rT1 = ($bulletin['trimestres']['1er Trimestre'] ?? [])['rangs'] ?? [];
+                $rT2 = ($bulletin['trimestres']['2e Trimestre'] ?? [])['rangs'] ?? [];
+                $rT3 = ($bulletin['trimestres']['3e Trimestre'] ?? [])['rangs'] ?? [];
                 $rAn = $bulletin['annuel']['rang'] ?? null;
             @endphp
 
@@ -338,17 +338,17 @@
                 <td colspan="2" style="text-align: left; padding-left: 5px;">Place</td>
                 <td colspan="4"></td>
 
-                <td>{{ $hasT1 ? $rankLabel($rT1) : '' }}</td>
-                <td>{{ $hasT1 ? $rankLabel($rT1) : '' }}</td>
-                <td>{{ $hasT1 ? $rankLabel($rT1) : '' }}</td>
+                <td>{{ $hasT1 ? $rankLabel($rT1['tj'] ?? null) : '' }}</td>
+                <td>{{ $hasT1 ? $rankLabel($rT1['examen'] ?? null) : '' }}</td>
+                <td>{{ $hasT1 ? $rankLabel($rT1['total'] ?? null) : '' }}</td>
 
-                <td>{{ $hasT2 ? $rankLabel($rT2) : '' }}</td>
-                <td>{{ $hasT2 ? $rankLabel($rT2) : '' }}</td>
-                <td>{{ $hasT2 ? $rankLabel($rT2) : '' }}</td>
+                <td>{{ $hasT2 ? $rankLabel($rT2['tj'] ?? null) : '' }}</td>
+                <td>{{ $hasT2 ? $rankLabel($rT2['examen'] ?? null) : '' }}</td>
+                <td>{{ $hasT2 ? $rankLabel($rT2['total'] ?? null) : '' }}</td>
 
-                <td>{{ $hasT3 ? $rankLabel($rT3) : '' }}</td>
-                <td>{{ $hasT3 ? $rankLabel($rT3) : '' }}</td>
-                <td>{{ $hasT3 ? $rankLabel($rT3) : '' }}</td>
+                <td>{{ $hasT3 ? $rankLabel($rT3['tj'] ?? null) : '' }}</td>
+                <td>{{ $hasT3 ? $rankLabel($rT3['examen'] ?? null) : '' }}</td>
+                <td>{{ $hasT3 ? $rankLabel($rT3['total'] ?? null) : '' }}</td>
 
                 <td colspan="3"></td>
                 <td>{{ $isAnnualBulletin ? $rankLabel($rAn) : '' }}</td>
