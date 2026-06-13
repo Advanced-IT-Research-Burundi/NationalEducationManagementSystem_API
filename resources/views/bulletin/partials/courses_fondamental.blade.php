@@ -11,6 +11,23 @@
 
         return $maxValue > 0 && $noteValue < ($maxValue / 2) ? 'failed-total' : '';
     };
+    $annualComplete = function (array $cours) {
+        foreach (\App\Support\BulletinCourseLayout::TRIMESTRE_LABELS as $label) {
+            $summary = $cours['trimestres'][$label] ?? null;
+            if (!$summary || !($summary['has_expected_notes'] ?? false) || !($summary['is_complete'] ?? false)) {
+                return false;
+            }
+        }
+
+        return ($cours['annuel']['is_complete'] ?? false) && ($cours['annuel']['note_total'] ?? null) !== null;
+    };
+    $percentage = function ($note, $max, bool $isComplete) {
+        if (!$isComplete || $note === null || $note === '' || $max === null || $max === '' || (float) $max <= 0) {
+            return '';
+        }
+
+        return round(((float) $note / (float) $max) * 100, 1) . '%';
+    };
 @endphp
 
 @foreach ($layout['groups'] as $groupIndex => $group)
@@ -21,10 +38,10 @@
             $t2 = $cours['trimestres']['2e Trimestre'] ?? null;
             $t3 = $cours['trimestres']['3e Trimestre'] ?? null;
             $annuel = $cours['annuel'] ?? null;
+            $annualIsComplete = $annualComplete($cours);
         @endphp
         <tr>
             @if ($courseIndex === 0)
-                <td rowspan="{{ count($group['items']) + 1 }}">{{ $groupIndex + 1 }}</td>
                 <td rowspan="{{ count($group['items']) + 1 }}">{{ $group['name'] }}</td>
             @endif
 
@@ -47,8 +64,8 @@
             <td class="{{ $totalClass($t3['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
 
             <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
-            <td class="{{ $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) }}">{{ $fmt($annuel['note_total'] ?? null) }}</td>
-            <td></td>
+            <td class="{{ $annualIsComplete ? $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) : '' }}">{{ $annualIsComplete ? $fmt($annuel['note_total'] ?? null) : '' }}</td>
+            <td>{{ $percentage($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
             <td></td>
         </tr>
     @endforeach
@@ -84,9 +101,10 @@
         $t2 = $cours['trimestres']['2e Trimestre'] ?? null;
         $t3 = $cours['trimestres']['3e Trimestre'] ?? null;
         $annuel = $cours['annuel'] ?? null;
+        $annualIsComplete = $annualComplete($cours);
     @endphp
     <tr>
-        <td colspan="3" class="td-name">{{ $cours['nom'] }}</td>
+        <td colspan="2" class="td-name">{{ $cours['nom'] }}</td>
         <td>{{ $cours['credit_heures'] }}</td>
         <td>{{ $fmt($cours['max_tj'] ?? null) }}</td>
         <td>{{ $fmt($cours['max_examen'] ?? null) }}</td>
@@ -105,8 +123,8 @@
         <td class="{{ $totalClass($t3['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
 
         <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
-        <td class="{{ $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) }}">{{ $fmt($annuel['note_total'] ?? null) }}</td>
-        <td></td>
+        <td class="{{ $annualIsComplete ? $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) : '' }}">{{ $annualIsComplete ? $fmt($annuel['note_total'] ?? null) : '' }}</td>
+        <td>{{ $percentage($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
         <td></td>
     </tr>
 @endforeach

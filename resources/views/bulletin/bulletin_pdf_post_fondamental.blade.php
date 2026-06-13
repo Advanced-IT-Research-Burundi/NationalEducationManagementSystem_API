@@ -139,13 +139,13 @@
 
     <table>
       <tr>
-        <td colspan="24"
+        <td colspan="23"
           style="text-align: left; font-weight: bold; border-bottom: 1px solid #000; border-top: 3px solid #000; padding: 4px;">
           Nom et prénom : {{ $bulletin['eleve']['nom'] }} {{ $bulletin['eleve']['prenom'] }}
         </td>
       </tr>
       <tr>
-        <td colspan="4" style="text-align: left; font-weight: bold; padding: 4px;">
+        <td colspan="3" style="text-align: left; font-weight: bold; padding: 4px;">
           Classe : {{ $data['classe']['nom'] }}<br>
           Nombre d'élèves : {{ $data['nombre_eleves'] }}<br>
           Année scolaire : {{ $data['annee_scolaire']['libelle'] ?? ($data['annee_scolaire']['code'] ?? '—') }}
@@ -157,8 +157,7 @@
         <th colspan="4">Résultats annuels</th>
       </tr>
       <tr>
-        <th style="width: 20px;">N°</th>
-        <th colspan="2">Domaines/Disciplines</th>
+        <th colspan="2">Domaines</th>
         <th style="width: 20px;">H/S</th>
         <th>TJ</th>
         <th>COM.</th>
@@ -231,7 +230,7 @@
         $isAnnualBulletin = empty($data['trimestre']);
       @endphp
       <tr>
-        <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">Conduite</td>
+        <td colspan="2" style="text-align: left; padding-left: 5px; font-weight: bold;">Conduite</td>
         <td>-</td>
         <td>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</td>
         <td></td>
@@ -260,7 +259,7 @@
       </tr>
 
       <tr class="total-row" style="border-top: 3px solid #000;">
-        <td colspan="3" style="text-align: left; padding-left: 5px;">TOTAL GLOBAL</td>
+        <td colspan="2" style="text-align: left; padding-left: 5px;">TOTAL GLOBAL</td>
         <td></td>
         <td colspan="3"></td>
         <td>{{ $fmt($grandT1Max) }}</td>
@@ -281,7 +280,7 @@
       </tr>
 
       <tr class="total-row">
-        <td colspan="3" style="text-align: left; padding-left: 5px;">Pourcentage</td>
+        <td colspan="2" style="text-align: left; padding-left: 5px;">Pourcentage</td>
         <td colspan="5"></td>
 
         <td colspan="3"></td>
@@ -305,7 +304,7 @@
       </tr>
 
       <tr class="total-row" style="border-bottom: 2px solid #000;">
-        <td colspan="3" style="text-align: left; padding-left: 5px;">Place</td>
+        <td colspan="2" style="text-align: left; padding-left: 5px;">Place</td>
         <td colspan="5"></td>
 
         <td colspan="3"></td>
@@ -332,7 +331,7 @@
 
       <!-- Signatures à l'intérieur du tableau -->
       <tr class="total-row" style="border-bottom: 2px solid #000;">
-        <td colspan="3" rowspan="2" class="sig-cell sig-cell-first">Signatures</td>
+        <td colspan="2" rowspan="2" class="sig-cell sig-cell-first">Signatures</td>
         <td colspan="5" class="sig-cell">Titulaire</td>
         <td colspan="4" class="sig-cell"></td>
         <td colspan="4" class="sig-cell"></td>
