@@ -181,9 +181,11 @@ Route::middleware(['auth:sanctum'])->prefix('academic')->name('academic.')->grou
 
     // Bulletins
     Route::get('bulletins/generate', [BulletinController::class, 'generate'])->name('bulletins.generate');
+    Route::get('bulletins/html', [BulletinController::class, 'html'])->name('bulletins.html');
     Route::get('bulletins/pdf', [BulletinController::class, 'pdf'])->name('bulletins.pdf');
 
     // Palmarès
     Route::get('palmares', [PalmaresController::class, 'index'])->name('palmares.index');
+    Route::get('palmares/html', [PalmaresController::class, 'html'])->name('palmares.html');
     Route::get('palmares/pdf', [PalmaresController::class, 'pdf'])->name('palmares.pdf');
 });

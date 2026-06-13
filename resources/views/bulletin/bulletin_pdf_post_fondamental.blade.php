@@ -200,7 +200,7 @@
         $isAnnualBulletin = empty($data['trimestre']);
       @endphp
       <tr>
-        <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">CONDUITE / DISCIPLINE</td>
+        <td colspan="3" style="text-align: left; padding-left: 5px; font-weight: bold;">Conduite</td>
         <td>-</td>
         <td>{{ $fmt(($conduiteT1 ?? [])['max'] ?? ($bulletin['conduite']['max'] ?? 60)) }}</td>
         <td></td>

@@ -311,6 +311,32 @@ class PalmaresController extends Controller
     }
 
     /**
+     * Display printable palmares HTML.
+     */
+    public function html(Request $request)
+    {
+        $this->authorizePalmaresAccess($request);
+
+        $request->validate([
+            'classe_id' => ['required', 'exists:classes,id'],
+            'mode' => ['nullable', 'in:current,annual'],
+            'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
+            'type' => ['nullable', 'in:simple,detaille'],
+        ]);
+
+        $palmaresResponse = $this->index($request);
+        $palmaresData = json_decode($palmaresResponse->getContent(), true)['data'];
+
+        $view = ($palmaresData['type'] ?? 'simple') === 'detaille'
+            ? 'bulletin.palmares_detaille'
+            : 'bulletin.palmares_pdf_non_detaille';
+
+        return response()
+            ->view($view, ['data' => $palmaresData])
+            ->header('Content-Type', 'text/html; charset=UTF-8');
+    }
+
+    /**
      * Points et barème pour une matière sur un sous-ensemble d'évaluations (ex. un trimestre).
      *
      * @return array{0: float, 1: float} [total, max_total]

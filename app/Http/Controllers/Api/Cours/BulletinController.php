@@ -421,18 +421,60 @@ class BulletinController extends Controller
             'eleve_id' => ['nullable', 'exists:eleves,id'],
         ]);
 
+        [$bulletinData, $viewName] = $this->preparePrintableBulletin($request);
+
+        $pdf = Pdf::loadView($viewName, ['data' => $bulletinData]);
+        $pdf->setPaper('A4', 'portrait');
+
+        $eleveNom = 'eleve';
+        $elevePrenom = 'eleve';
+        if ($request->filled('eleve_id') && !empty($bulletinData['bulletins'])) {
+            $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
+            $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
+        }
+        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . $eleveNom . '_' . $elevePrenom . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Display printable bulletin HTML.
+     */
+    public function html(Request $request)
+    {
+        $request->validate([
+            'classe_id' => ['required', 'exists:classes,id'],
+            'mode' => ['nullable', 'in:current,annual'],
+            'trimestre' => ['nullable', 'string', 'max:100'],
+            'annee_scolaire_id' => ['nullable', 'exists:annee_scolaires,id'],
+            'eleve_id' => ['nullable', 'exists:eleves,id'],
+        ]);
+
+        [$bulletinData, $viewName] = $this->preparePrintableBulletin($request);
+
+        return response()
+            ->view($viewName, ['data' => $bulletinData])
+            ->header('Content-Type', 'text/html; charset=UTF-8');
+    }
+
+    /**
+     * @return array{0: array, 1: string}
+     */
+    private function preparePrintableBulletin(Request $request): array
+    {
         $classeId = $request->integer('classe_id');
         $mode = $request->string('mode')->toString() ?: 'current';
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
 
         if (!$anneeScolaireId) {
-            return response()->json(['message' => 'Aucune année scolaire active.'], 422);
+            abort(422, 'Aucune année scolaire active.');
         }
 
         $requestedEleveIdForAuth = $request->filled('eleve_id') ? $request->integer('eleve_id') : null;
         $this->authorizeBulletinRequest($request, $classeId, $requestedEleveIdForAuth, $anneeScolaireId);
 
-        [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode);
+        $isParent = $request->user()?->hasRole(Role::PARENT);
+        [$trimestre, $trimestreModel] = $this->resolveBulletinPeriod($request, $anneeScolaireId, $mode, $isParent);
 
         $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
         $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
@@ -459,18 +501,7 @@ class BulletinController extends Controller
             ? 'bulletin.bulletin_pdf_post_fondamental'
             : 'bulletin.bulletin_pdf_fondamental';
 
-        $pdf = Pdf::loadView($viewName, ['data' => $bulletinData]);
-        $pdf->setPaper('A4', 'portrait');
-
-        $eleveNom = 'eleve';
-        $elevePrenom = 'eleve';
-        if ($request->filled('eleve_id') && !empty($bulletinData['bulletins'])) {
-            $eleveNom = $bulletinData['bulletins'][0]['eleve']['nom'] ?? 'eleve';
-            $elevePrenom = $bulletinData['bulletins'][0]['eleve']['prenom'] ?? 'eleve';
-        }
-        $filename = 'bulletin_' . ($bulletinData['classe']['nom'] ?? 'classe') . '_' . $eleveNom . '_' . $elevePrenom . '.pdf';
-
-        return $pdf->download($filename);
+        return [$bulletinData, $viewName];
     }
 
     /**
