@@ -200,6 +200,7 @@ it('does not expose annual category totals before all trimesters are complete', 
     ]);
 
     expect($totals['annuel']['is_complete'])->toBeFalse();
+    expect($totals['annuel']['max_tot'])->toBe(120);
     expect($totals['annuel']['has_tot'])->toBeFalse();
     expect($totals['annuel']['tot'])->toBe(0);
 });

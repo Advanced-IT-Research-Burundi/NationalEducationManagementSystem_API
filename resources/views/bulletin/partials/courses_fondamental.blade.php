@@ -54,7 +54,7 @@
             <td>{{ $fmt($t3['note_examen'] ?? null) }}</td>
             <td class="{{ $totalClass($t3['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
 
-            <td>{{ $annualIsComplete ? $fmt($annuel['max_total'] ?? null) : '' }}</td>
+            <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
             <td class="{{ $annualIsComplete ? $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) : '' }}">{{ $annualIsComplete ? $fmt($annuel['note_total'] ?? null) : '' }}</td>
             <td>{{ $percentage($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
             <td></td>
@@ -79,7 +79,7 @@
         <td>{{ $catTotals['trimestres']['3e Trimestre']['has_res'] && $catTotals['trimestres']['3e Trimestre']['res_complete'] ? $fmt($catTotals['trimestres']['3e Trimestre']['res']) : '' }}</td>
         <td>{{ $catTotals['trimestres']['3e Trimestre']['has_tot'] && $catTotals['trimestres']['3e Trimestre']['tot_complete'] ? $fmt($catTotals['trimestres']['3e Trimestre']['tot']) : '' }}</td>
 
-        <td>{{ $catTotals['annuel']['is_complete'] ? $fmt($catTotals['annuel']['max_tot']) : '' }}</td>
+        <td>{{ $fmt($catTotals['annuel']['max_tot']) }}</td>
         <td>{{ $catTotals['annuel']['has_tot'] && $catTotals['annuel']['is_complete'] ? $fmt($catTotals['annuel']['tot']) : '' }}</td>
         <td></td>
         <td></td>
@@ -113,7 +113,7 @@
         <td>{{ $fmt($t3['note_examen'] ?? null) }}</td>
         <td class="{{ $totalClass($t3['note_total'] ?? null, $cours['max_total'] ?? null) }}"><strong>{{ $fmt($t3['note_total'] ?? null) }}</strong></td>
 
-        <td>{{ $annualIsComplete ? $fmt($annuel['max_total'] ?? null) : '' }}</td>
+        <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
         <td class="{{ $annualIsComplete ? $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) : '' }}">{{ $annualIsComplete ? $fmt($annuel['note_total'] ?? null) : '' }}</td>
         <td>{{ $percentage($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
         <td></td>
