@@ -146,6 +146,18 @@
   @php
     $cours = $data['cours'] ?? [];
     $classement = $data['classement'] ?? [];
+    $failurePercent = function ($missing, $max) {
+      if ($missing === null || $missing === '' || $max === null || $max === '' || (float) $max <= 0) {
+        return '';
+      }
+
+      $half = ((float) $max) / 2;
+      if ($half <= 0) {
+        return '';
+      }
+
+      return round(((float) $missing / $half) * 100, 1);  //.'%';
+    };
     $totalEleves = is_array($classement) ? count($classement) : 0;
     $admisCount = 0;
     if (is_array($classement)) {
@@ -191,7 +203,7 @@
             $def = $entry['echecs'][$code] ?? null; @endphp
             <td class="td-small">
               @if(!is_null($def) && $def !== '')
-                -{{ $def }}
+                -{{ $failurePercent($def, $entry['cours_max'][$code] ?? null) }}
               @endif
             </td>
           @endforeach
