@@ -18,6 +18,7 @@ class UpdateMatiereRequest extends FormRequest
         return [
             'nom' => ['sometimes', 'required', 'string', 'max:100'],
             'code' => ['sometimes', 'required', 'string', 'max:20', 'unique:matieres,code,' . $matiereId],
+            'ordre' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
             'niveau_ids' => ['nullable', 'array'],
             'niveau_ids.*' => ['exists:niveaux_scolaires,id'],

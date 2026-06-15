@@ -28,7 +28,7 @@ class CategorieCours extends Model
      */
     public function scopeOrdered($query)
     {
-        return $query->orderBy('ordre');
+        return $query->orderBy('ordre')->orderBy('nom');
     }
 
     public function scopeVisibleOnBulletin($query)

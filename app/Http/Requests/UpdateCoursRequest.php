@@ -15,6 +15,7 @@ class UpdateCoursRequest extends FormRequest
     {
         return [
             'nom' => ['sometimes', 'string', 'max:255'],
+            'ordre' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'categorie_cours_id' => ['nullable', 'exists:categories_cours,id'],
             'est_principale' => ['sometimes', 'boolean'],
             'ponderation_tj' => ['sometimes', 'numeric', 'min:0'],

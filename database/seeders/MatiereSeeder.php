@@ -35,8 +35,8 @@ class MatiereSeeder extends Seeder
             ['nom' => 'Mécanique', 'code' => 'MEC', 'coefficient' => 3, 'heures_par_semaine' => 4, 'description' => 'Mécanique'],
         ];
 
-        foreach ($matieres as $matiere) {
-            Matiere::create($matiere);
+        foreach ($matieres as $index => $matiere) {
+            Matiere::create($matiere + ['ordre' => $index + 1]);
         }
     }
 }

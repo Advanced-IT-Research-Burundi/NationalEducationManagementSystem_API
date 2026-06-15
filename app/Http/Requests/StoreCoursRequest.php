@@ -16,6 +16,7 @@ class StoreCoursRequest extends FormRequest
     {
         return [
             'nom' => ['required', 'string', 'max:255'],
+            'ordre' => ['nullable', 'integer', 'min:0'],
             'categorie_cours_id' => ['nullable', 'exists:categories_cours,id'],
             'est_principale' => ['boolean'],
             'ponderation_tj' => ['required', 'numeric', 'min:0'],
@@ -39,6 +40,8 @@ class StoreCoursRequest extends FormRequest
     {
         return [
             'nom.required' => 'Le nom du cours est obligatoire.',
+            'ordre.integer' => "L'ordre du cours doit être un nombre entier.",
+            'ordre.min' => "L'ordre du cours doit être positif ou nul.",
             'ponderation_tj.required' => 'La pondération T.J. est obligatoire.',
             'ponderation_examen.required' => 'La pondération Examen est obligatoire.',
         ];
