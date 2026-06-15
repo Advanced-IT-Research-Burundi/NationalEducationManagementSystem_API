@@ -16,6 +16,7 @@ class StoreMatiereRequest extends FormRequest
         return [
             'nom' => ['required', 'string', 'max:100'],
             'code' => ['required', 'string', 'max:20', 'unique:matieres,code'],
+            'ordre' => ['nullable', 'integer', 'min:0'],
             'niveau_id' => ['nullable', 'exists:niveaux_scolaires,id'],
             'niveau_ids' => ['nullable', 'array'],
             'niveau_ids.*' => ['exists:niveaux_scolaires,id'],
@@ -35,6 +36,8 @@ class StoreMatiereRequest extends FormRequest
             'nom.required' => 'Le nom de la matière est requis.',
             'code.required' => 'Le code de la matière est requis.',
             'code.unique' => 'Ce code de matière existe déjà.',
+            'ordre.integer' => "L'ordre de la matière doit être un nombre entier.",
+            'ordre.min' => "L'ordre de la matière doit être positif ou nul.",
             'niveau_id.exists' => 'Le niveau sélectionné n\'existe pas.',
         ];
     }

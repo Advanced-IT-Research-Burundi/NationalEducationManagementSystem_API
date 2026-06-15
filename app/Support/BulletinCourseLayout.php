@@ -45,12 +45,44 @@ final class BulletinCourseLayout
         }
 
         $groupList = array_values($groups);
-        usort($groupList, fn (array $a, array $b) => $a['ordre'] <=> $b['ordre']);
+        usort($groupList, static function (array $a, array $b): int {
+            if ($a['ordre'] !== $b['ordre']) {
+                return $a['ordre'] <=> $b['ordre'];
+            }
+
+            return strcasecmp($a['name'], $b['name']);
+        });
+        foreach ($groupList as &$group) {
+            $group['items'] = self::sortCoursesByOrder($group['items']);
+        }
+        unset($group);
+
+        $standalone = self::sortCoursesByOrder($standalone);
 
         return [
             'groups' => $groupList,
             'standalone' => $standalone,
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private static function sortCoursesByOrder(array $items): array
+    {
+        usort($items, static function (array $a, array $b): int {
+            $orderA = (int) ($a['ordre'] ?? 99);
+            $orderB = (int) ($b['ordre'] ?? 99);
+
+            if ($orderA !== $orderB) {
+                return $orderA <=> $orderB;
+            }
+
+            return strcasecmp((string) ($a['nom'] ?? ''), (string) ($b['nom'] ?? ''));
+        });
+
+        return $items;
     }
 
     /**

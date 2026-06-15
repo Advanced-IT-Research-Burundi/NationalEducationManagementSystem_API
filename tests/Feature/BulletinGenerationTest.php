@@ -146,15 +146,68 @@ beforeEach(function (): void {
 
 it('partitions bulletin courses without Autres pseudo-category', function (): void {
     $layout = BulletinCourseLayout::partitionForPdf([
-        ['nom' => 'Français', 'categorie' => 'Langues', 'categorie_ordre' => 1],
-        ['nom' => 'Entrepreneuriat', 'categorie' => null, 'categorie_ordre' => 99],
-        ['nom' => 'Divers', 'categorie' => 'Autre', 'categorie_ordre' => 99],
+        ['nom' => 'Maths', 'ordre' => 2, 'categorie' => 'Langues', 'categorie_ordre' => 1],
+        ['nom' => 'Français', 'ordre' => 1, 'categorie' => 'Langues', 'categorie_ordre' => 1],
+        ['nom' => 'Entrepreneuriat', 'ordre' => 2, 'categorie' => null, 'categorie_ordre' => 99],
+        ['nom' => 'Divers', 'ordre' => 1, 'categorie' => 'Autre', 'categorie_ordre' => 99],
     ]);
 
     expect($layout['groups'])->toHaveCount(1);
     expect($layout['groups'][0]['name'])->toBe('Langues');
+    expect(collect($layout['groups'][0]['items'])->pluck('nom')->all())->toBe(['Français', 'Maths']);
     expect($layout['standalone'])->toHaveCount(2);
-    expect(collect($layout['standalone'])->pluck('nom')->all())->toBe(['Entrepreneuriat', 'Divers']);
+    expect(collect($layout['standalone'])->pluck('nom')->all())->toBe(['Divers', 'Entrepreneuriat']);
+});
+
+it('orders bulletin courses by category order then course order', function (): void {
+    $fixture = createBulletinFixture();
+    $langues = CategorieCours::create([
+        'nom' => 'Langues',
+        'ordre' => 1,
+        'afficher_bulletin' => true,
+    ]);
+    $sciences = CategorieCours::create([
+        'nom' => 'Sciences',
+        'ordre' => 2,
+        'afficher_bulletin' => true,
+    ]);
+
+    createMatiereForSchool($fixture, [
+        'nom' => 'Physique',
+        'code' => 'PHY_BUL',
+        'ordre' => 2,
+        'categorie_cours_id' => $sciences->id,
+    ]);
+    createMatiereForSchool($fixture, [
+        'nom' => 'Français',
+        'code' => 'FRA_BUL',
+        'ordre' => 2,
+        'categorie_cours_id' => $langues->id,
+    ]);
+    createMatiereForSchool($fixture, [
+        'nom' => 'Anglais',
+        'code' => 'ANG_BUL',
+        'ordre' => 1,
+        'categorie_cours_id' => $langues->id,
+    ]);
+    createMatiereForSchool($fixture, [
+        'nom' => 'Chimie',
+        'code' => 'CHI_BUL',
+        'ordre' => 1,
+        'categorie_cours_id' => $sciences->id,
+    ]);
+
+    $response = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'annual',
+        ]));
+
+    $response->assertSuccessful();
+    $courseNames = collect($response->json('data.bulletins.0.cours'))->pluck('nom')->all();
+
+    expect($courseNames)->toBe(['Anglais', 'Français', 'Chimie', 'Physique']);
 });
 
 it('formats place as Non classé when incomplete and unranked', function (): void {

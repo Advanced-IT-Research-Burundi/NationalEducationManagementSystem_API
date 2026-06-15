@@ -39,6 +39,31 @@ class BulletinController extends Controller
 
     private const TRIMESTRES = ['1er Trimestre', '2e Trimestre', '3e Trimestre'];
 
+    private function bulletinLayoutSignature(int $classeId): string
+    {
+        $classe = Classe::withoutGlobalScope(AcademicYearScope::class)->findOrFail($classeId);
+
+        $courses = Matiere::withoutGlobalScope(AcademicYearScope::class)
+            ->forClasse($classe)
+            ->with(['categorieCours:id,ordre,updated_at'])
+            ->get(['matieres.id', 'matieres.ordre', 'matieres.categorie_cours_id', 'matieres.updated_at']);
+
+        $parts = $courses->map(function (Matiere $matiere): string {
+            $category = $matiere->categorieCours;
+
+            return implode('|', [
+                $matiere->id,
+                $matiere->ordre ?? 0,
+                $matiere->updated_at?->timestamp ?? 0,
+                $matiere->categorie_cours_id ?? 0,
+                $category?->ordre ?? 0,
+                $category?->updated_at?->timestamp ?? 0,
+            ]);
+        })->all();
+
+        return sha1(implode('::', $parts));
+    }
+
     /**
      * Generate bulletin data for a student or a class.
      */
@@ -76,7 +101,8 @@ class BulletinController extends Controller
 
         $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
         $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:" . implode(',', $displayTrimestres);
+        $layoutSignature = $this->bulletinLayoutSignature($classeId);
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:{$layoutSignature}:" . implode(',', $displayTrimestres);
         $ttl = 600;
 
         $data = Cache::remember(
@@ -207,6 +233,7 @@ class BulletinController extends Controller
                 $coursePayload = [
                     'cours_id' => $matiere->id,
                     'nom' => $matiere->nom,
+                    'ordre' => (int) ($matiere->ordre ?? 0),
                     'categorie' => $hasCategorieCours ? $matiere->categorieCours?->nom : null,
                     'categorie_ordre' => $hasCategorieCours ? ($matiere->categorieCours?->ordre ?? 99) : 99,
                     'display_group' => BulletinCourseLayout::isStandaloneCategory(
@@ -512,7 +539,8 @@ class BulletinController extends Controller
 
         $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
         $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:" . implode(',', $displayTrimestres);
+        $layoutSignature = $this->bulletinLayoutSignature($classeId);
+        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:{$layoutSignature}:" . implode(',', $displayTrimestres);
         $bulletinData = Cache::remember(
             $cacheKey,
             600,

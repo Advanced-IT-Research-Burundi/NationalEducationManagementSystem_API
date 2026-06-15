@@ -18,6 +18,7 @@ class Matiere extends Model
     protected $fillable = [
         'nom',
         'code',
+        'ordre',
         'categorie_cours_id',
         'est_principale',
         'ponderation_tj',
@@ -33,6 +34,7 @@ class Matiere extends Model
     ];
 
     protected $casts = [
+        'ordre' => 'integer',
         'actif' => 'boolean',
         'est_principale' => 'boolean',
         'coefficient' => 'integer',
@@ -80,6 +82,15 @@ class Matiere extends Model
     public function scopeActive($query)
     {
         return $query->where('actif', true);
+    }
+
+    public function scopeOrdered($query)
+    {
+        if (Schema::hasColumn('matieres', 'ordre')) {
+            return $query->orderBy('ordre')->orderBy('nom');
+        }
+
+        return $query->orderBy('nom');
     }
 
     public function scopeSearch($query, string $search)
@@ -176,6 +187,10 @@ class Matiere extends Model
             $query->leftJoin('categories_cours as cc_bulletin_ord', 'matieres.categorie_cours_id', '=', 'cc_bulletin_ord.id')
                 ->orderByRaw('cc_bulletin_ord.ordre IS NULL, cc_bulletin_ord.ordre ASC')
                 ->select('matieres.*');
+        }
+
+        if (Schema::hasColumn('matieres', 'ordre')) {
+            $query->orderByRaw('matieres.ordre IS NULL, matieres.ordre ASC');
         }
 
         return $query->orderBy('matieres.nom');

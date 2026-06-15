@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateMatiereRequest;
 use App\Models\Matiere;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class MatiereController extends Controller
 {
@@ -61,7 +62,13 @@ class MatiereController extends Controller
             $query->forSchool(auth()->user()->school_id);
         }
 
-        $matieres = $query->latest()->paginate($request->get('per_page', 15));
+        if (Schema::hasColumn('matieres', 'ordre')) {
+            $query->orderBy('ordre')->orderBy('nom');
+        } else {
+            $query->orderBy('nom');
+        }
+
+        $matieres = $query->paginate($request->get('per_page', 15));
 
         return response()->json($matieres);
     }
@@ -71,7 +78,7 @@ class MatiereController extends Controller
      */
     public function list(Request $request): JsonResponse
     {
-        $query = Matiere::active()->with(['niveaux:id', 'sections:id'])->orderBy('nom');
+        $query = Matiere::active()->with(['niveaux:id', 'sections:id'])->ordered();
 
         if ($request->filled('niveau_id')) {
             $query->where(function ($q) use ($request) {
@@ -97,7 +104,12 @@ class MatiereController extends Controller
             $query->forSchool(auth()->user()->school_id);
         }
 
-        $matieres = $query->get(['id', 'nom', 'code', 'niveau_id', 'section_id']);
+        $columns = ['id', 'nom', 'code', 'niveau_id', 'section_id'];
+        if (Schema::hasColumn('matieres', 'ordre')) {
+            $columns[] = 'ordre';
+        }
+
+        $matieres = $query->get($columns);
 
         return response()->json($matieres);
     }
