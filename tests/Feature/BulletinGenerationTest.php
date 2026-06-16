@@ -512,6 +512,88 @@ it('calculates palmares success rate from passed students over total students', 
     expect($response->json('data.non_classes'))->toHaveCount(1);
 });
 
+it('ignores Education Morale in palmares totals like bulletins do', function (): void {
+    $fixture = createBulletinFixture();
+    $trimestre = Trimestre::create([
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'nom' => '1er Trimestre',
+        'date_debut' => now()->subMonth(),
+        'date_fin' => now()->addMonth(),
+        'actif' => true,
+    ]);
+
+    $matierePrincipale = createMatiereForSchool($fixture, [
+        'nom' => 'Mathématiques',
+        'code' => 'MATH_EM_FIX',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 0,
+    ]);
+    $educationMorale = createMatiereForSchool($fixture, [
+        'nom' => 'Education Morale',
+        'code' => 'EDM_FIX',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 0,
+    ]);
+
+    $evalPrincipale = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $matierePrincipale->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre_id' => $trimestre->id,
+        'trimestre' => $trimestre->nom,
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => 40,
+    ]);
+    $evalEducationMorale = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $educationMorale->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre_id' => $trimestre->id,
+        'trimestre' => $trimestre->nom,
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => 40,
+    ]);
+
+    Note::create([
+        'evaluation_id' => $evalPrincipale->id,
+        'eleve_id' => $fixture['eleve']->id,
+        'note' => 20,
+    ]);
+    Note::create([
+        'evaluation_id' => $evalEducationMorale->id,
+        'eleve_id' => $fixture['eleve']->id,
+        'note' => 0,
+    ]);
+
+    $bulletinResponse = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '1er Trimestre',
+        ]));
+    $bulletinResponse->assertSuccessful();
+    $bulletin = $bulletinResponse->json('data.bulletins.0');
+
+    $palmaresResponse = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/palmares?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '1er Trimestre',
+        ]));
+    $palmaresResponse->assertSuccessful();
+    $palmares = $palmaresResponse->json('data.classement.0');
+
+    expect($bulletin['total_max_global'])->toBe($palmares['total_max']);
+    expect($bulletin['total_points_global'])->toBe($palmares['total_points']);
+    expect($bulletin['pourcentage_global'])->toBe($palmares['pourcentage']);
+    expect($palmares['total_max'])->toBeGreaterThan(0);
+    expect($palmares['pourcentage'])->toBe(50);
+});
+
 it('uses the three-trimester maximum in annual result columns when generating a trimester bulletin', function (): void {
     $fixture = createBulletinFixture();
     $matiere = createMatiereForSchool($fixture, [

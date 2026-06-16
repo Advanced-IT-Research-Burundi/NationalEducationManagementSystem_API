@@ -116,7 +116,11 @@ class PalmaresController extends Controller
 
         $evaluations = $evaluationsQuery->get();
 
-        $cours = Matiere::query()->forClasse($classe)->get();
+        $cours = Matiere::query()
+            ->forClasse($classe)
+            ->get()
+            ->reject(fn (Matiere $matiere) => $this->isEducationMoraleCourse($matiere))
+            ->values();
 
         $coursMeta = $cours->map(function ($matiere) {
             $code = self::palmaresCoursCode($matiere);
@@ -491,5 +495,16 @@ class PalmaresController extends Controller
             ?? $item->trimestre_label
             ?? $item->trimestre
             ?? null;
+    }
+
+    private function isEducationMoraleCourse(Matiere $matiere): bool
+    {
+        $name = Str::of((string) ($matiere->nom ?? ''))
+            ->ascii()
+            ->lower()
+            ->squish()
+            ->toString();
+
+        return $name === 'education morale';
     }
 }
