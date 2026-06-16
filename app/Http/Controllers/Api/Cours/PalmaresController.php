@@ -228,18 +228,6 @@ class PalmaresController extends Controller
             $globalMax = round($totalMax + $conduiteMaxPourEleve, 2);
             $pourcentage = ($isComplete && $globalMax > 0) ? round(($globalPoints / $globalMax) * 100, 1) : null;
 
-            $decision = null;
-            if ($type === 'detaille' && $isComplete) {
-                $nbEchecs = count($coursEchecs);
-                if ($pourcentage >= 50 && $nbEchecs === 0) {
-                    $decision = 'Admis';
-                } elseif ($pourcentage >= 50 && $nbEchecs > 0) {
-                    $decision = 'Admis (avec échecs)';
-                } else {
-                    $decision = 'Ajourné';
-                }
-            }
-
             $entry = [
                 'eleve' => [
                     'id' => $eleve->id,
@@ -269,7 +257,7 @@ class PalmaresController extends Controller
                 $entry['cours_points'] = $coursPoints;
                 $entry['cours_max'] = $coursMaxima;
                 $entry['echecs'] = $coursEchecs; // points manquants pour atteindre la moitié
-                $entry['decision_jury'] = $decision;
+                $entry['decision_jury'] = '';
                 $entry['nombre_echecs'] = count($coursEchecs);
             }
 
@@ -278,6 +266,8 @@ class PalmaresController extends Controller
 
         // Sort by total descending
         usort($classement, fn($a, $b) => ($b['total_points'] ?? -INF) <=> ($a['total_points'] ?? -INF));
+
+        $classementTousEleves = $classement;
 
         // Assign ranks
         $rank = 1;
@@ -307,6 +297,12 @@ class PalmaresController extends Controller
         $tauxReussite = count($eleves) > 0
             ? round(($nombreElevesReussis / count($eleves)) * 100, 1)
             : null;
+        $moyenneClasse = count($classementTousEleves) > 0
+            ? round(array_sum(array_map(
+                fn (array $entry) => (float) ($entry['pourcentage'] ?? 0),
+                $classementTousEleves
+            )) / count($classementTousEleves), 1)
+            : null;
 
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);
 
@@ -326,6 +322,7 @@ class PalmaresController extends Controller
                 'nombre_eleves' => count($eleves),
                 'nombre_eleves_reussis' => $nombreElevesReussis,
                 'taux_reussite' => $tauxReussite,
+                'moyenne_classe' => $moyenneClasse,
                 'mode' => $mode,
                 'type' => $type,
                 'cours' => $type === 'detaille' ? $coursMeta : null,

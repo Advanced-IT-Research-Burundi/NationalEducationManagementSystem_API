@@ -30,7 +30,6 @@
       font-weight: bold;
       text-transform: uppercase;
       letter-spacing: 1px;
-      border-bottom: 2px solid #333;
       padding-bottom: 8px;
       margin-bottom: 20px;
     }
@@ -113,7 +112,7 @@
 </head>
 
 <body>
-  <div class="titre">PALMARÈS</div>
+  <div class="titre">PALMARES</div>
 
   <div class="entete">
     <div class="entete-row">
@@ -141,10 +140,9 @@
     <thead>
       <tr>
         <th>Rang</th>
-        <th>Matricule</th>
-        <th>Nom et Prénom</th>
+        <th>Nom</th>
+        <th>Prénom</th>
         <th>Total</th>
-        <th>Maximum</th>
         <th>Pourcentage</th>
       </tr>
     </thead>
@@ -152,10 +150,9 @@
       @foreach($data['classement'] as $entry)
         <tr>
           <td><strong>{{ $entry['rang'] }}</strong></td>
-          <td>{{ $entry['eleve']['matricule'] }}</td>
-          <td class="td-name">{{ $entry['eleve']['nom'] }} {{ $entry['eleve']['prenom'] }}</td>
+          <td class="td-name">{{ $entry['eleve']['nom'] }}</td>
+          <td class="td-name">{{ $entry['eleve']['prenom'] }}</td>
           <td>{{ $entry['total_points'] }}</td>
-          <td>{{ $entry['total_max'] }}</td>
           <td><strong>{{ $entry['pourcentage'] }}%</strong></td>
         </tr>
       @endforeach
@@ -165,6 +162,12 @@
   @if(!is_null($tauxReussite))
     <div style="margin-top: 14px; font-weight: bold;">
       Le taux de réussite de la classe : {{ $tauxReussite }}%
+    </div>
+  @endif
+
+  @if(!is_null($data['moyenne_classe'] ?? null))
+    <div style="margin-top: 6px; font-weight: bold;">
+      La moyenne de la classe : {{ $data['moyenne_classe'] }}%
     </div>
   @endif
 
