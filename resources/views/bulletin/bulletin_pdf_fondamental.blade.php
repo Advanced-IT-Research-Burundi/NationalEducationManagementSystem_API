@@ -52,6 +52,8 @@
 
         table {
             width: 100%;
+            max-width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             margin-top: 5px;
             font-size: 9px;
@@ -64,6 +66,8 @@
             text-align: center;
             padding: 3px 2px;
             vertical-align: middle;
+            white-space: normal;
+            word-break: break-word;
         }
 
         th {

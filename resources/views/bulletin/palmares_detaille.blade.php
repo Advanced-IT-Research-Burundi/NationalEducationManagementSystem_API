@@ -62,6 +62,8 @@
 
     table {
       width: 100%;
+      max-width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       margin-top: 10px;
       border: 1.4pt solid #000;
@@ -73,6 +75,8 @@
       text-align: center;
       padding: 6px;
       vertical-align: middle;
+      white-space: normal;
+      word-break: break-word;
     }
 
     th {
