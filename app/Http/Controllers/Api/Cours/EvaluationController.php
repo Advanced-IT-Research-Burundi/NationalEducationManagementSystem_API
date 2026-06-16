@@ -185,7 +185,7 @@ class EvaluationController extends Controller
         $validated = $request->validate([
             'notes' => ['required', 'array', 'min:1'],
             'notes.*.eleve_id' => ['required', 'exists:eleves,id'],
-            'notes.*.note' => ['required', 'numeric', 'min:0'],
+            'notes.*.note' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         // Validate no note exceeds note_maximale
@@ -212,15 +212,21 @@ class EvaluationController extends Controller
 
         DB::transaction(function () use ($evaluation, $validated) {
             foreach ($validated['notes'] as $entry) {
-                Note::updateOrCreate(
-                    [
-                        'evaluation_id' => $evaluation->id,
-                        'eleve_id' => $entry['eleve_id'],
-                    ],
-                    [
-                        'note' => $entry['note'],
-                    ]
-                );
+                if ($entry['note'] === null) {
+                    Note::where('evaluation_id', $evaluation->id)
+                        ->where('eleve_id', $entry['eleve_id'])
+                        ->delete();
+                } else {
+                    Note::updateOrCreate(
+                        [
+                            'evaluation_id' => $evaluation->id,
+                            'eleve_id' => $entry['eleve_id'],
+                        ],
+                        [
+                            'note' => $entry['note'],
+                        ]
+                    );
+                }
             }
         });
 
