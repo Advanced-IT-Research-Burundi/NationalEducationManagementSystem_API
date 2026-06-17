@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Colline;
+use App\Models\Niveau;
 use App\Models\School;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithTitle;
@@ -45,25 +46,25 @@ class EleveImportSheet implements FromArray, WithTitle, WithStyles, WithColumnWi
     {
         return [
             // Row 1: Title (merged via AfterSheet event)
-            ['📋 TEMPLATE D\'IMPORT DES ÉLÈVES - Système de Gestion Scolaire'],
+            [' TEMPLATE D\'IMPORT DES ÉLÈVES - Système de Gestion Scolaire'],
 
             // Row 2: Legend
-            ['🔴 Obligatoire  |  🟢 Clé étrangère → écrire le NOM (l\'ID sera trouvé auto)  |  🔵 Optionnel  |  ⚠️ Voir onglet LISTES'],
+            [' Obligatoire  |   Clé étrangère → écrire le NOM (l\'ID sera trouvé auto)  |   Optionnel  |   Voir onglet LISTES'],
 
             // Row 3: Column headers
             [
-                'matricule *', 'nom *', 'prenom *', 'sexe *', 'date_naissance *', 'lieu_naissance *',
-                'nationalite', 'colline_origine 🟢', 'adresse', 'nom_pere', 'nom_mere',
+                'matricule', 'nom *', 'prenom *', 'sexe *', 'date_naissance *', 'lieu_naissance *',
+                'nationalite', 'colline_origine', 'adresse', 'nom_pere', 'nom_mere',
                 'nom_tuteur', 'contact_tuteur', 'est_orphelin', 'a_handicap', 'type_handicap',
-                'ecole_origine 🟢', 'school_destination 🟢',
+                'school_destination *', 'niveau *',
             ],
 
             // Row 4: Type indicators
             [
-                '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE',
-                '○ OPTIONNEL', '◆ NOM → ID AUTO', '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL',
-                '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL',
-                '◆ NOM → ID AUTO', '◆ NOM → ID AUTO',
+                ' OPTIONNEL (auto)', ' OBLIGATOIRE', ' OBLIGATOIRE', ' OBLIGATOIRE', ' OBLIGATOIRE', ' OBLIGATOIRE',
+                ' OPTIONNEL', ' NOM → ID AUTO', ' OPTIONNEL', ' OPTIONNEL', ' OPTIONNEL',
+                ' OPTIONNEL', ' OPTIONNEL', ' OPTIONNEL', ' OPTIONNEL', ' OPTIONNEL',
+                ' NOM → ID AUTO', ' NOM → ID AUTO',
             ],
 
             // Row 5: Examples
@@ -71,15 +72,15 @@ class EleveImportSheet implements FromArray, WithTitle, WithStyles, WithColumnWi
                 'EL-2024-001', 'NDAYISHIMIYE', 'Jean Pierre', 'M', '2010-05-15', 'Gitega',
                 'Burundaise', 'Kiganda', 'Quartier Rohero', 'NDAYISHIMIYE Emmanuel', 'NIYONKURU Marie',
                 'HAKIZIMANA Paul', '+257 79 123 456', '0', '0', 'Visuel',
-                'Lycée Kiganda', 'École Rohero',
+                'École Rohero', '7ème',
             ],
 
             // Row 6: Notes
             [
-                'Unique, libre', 'Nom famille', 'Prénom(s)', 'M ou F', 'YYYY-MM-DD', 'Ville/Commune',
+                'Vide = généré auto', 'Nom famille', 'Prénom(s)', 'M ou F', 'YYYY-MM-DD ou DD/MM/YYYY', 'Ville/Commune',
                 'Défaut: Burundaise', 'Nom colline exacte', 'Adresse complète', 'Nom complet', 'Nom complet',
                 'Si diff. parents', 'Téléphone', '0=Non, 1=Oui', '0=Non, 1=Oui', 'Si handicap=1',
-                'Nom école exacte', 'Nom école exacte',
+                'Nom école exacte', 'Nom ou code niveau',
             ],
         ];
         // Rows 7-106 : laissées vides pour la saisie (gérées via AfterSheet)
@@ -135,9 +136,9 @@ class EleveImportSheet implements FromArray, WithTitle, WithStyles, WithColumnWi
                 $sheet->getRowDimension(3)->setRowHeight(28);
 
                 // ── Row 4: Type indicators (coloured per type) ───────────────
-                $requiredCols = ['A', 'B', 'C', 'D', 'E', 'F'];
+                $requiredCols = ['B', 'C', 'D', 'E', 'F', 'Q', 'R'];
                 $fkCols       = ['H', 'Q', 'R'];
-                $optionalCols = ['G', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+                $optionalCols = ['A', 'G', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
 
                 foreach ($requiredCols as $col) {
                     $sheet->getStyle("{$col}4")->applyFromArray([
@@ -182,7 +183,7 @@ class EleveImportSheet implements FromArray, WithTitle, WithStyles, WithColumnWi
                 $sheet->getRowDimension(6)->setRowHeight(32);
 
                 // ── Data rows 7-106: light green bg for FK cols ──────────────
-                foreach (['H', 'Q', 'R'] as $col) {
+                foreach (['H', 'Q', 'R'] as $col) { // colline, école, niveau
                     $sheet->getStyle("{$col}7:{$col}106")->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF0FFF0']],
                     ]);
@@ -234,12 +235,14 @@ class EleveListesSheet implements FromArray, WithTitle, WithStyles, WithEvents
 {
     private array $collines;
     private array $ecoles;
+    private array $niveaux;
 
     public function __construct()
     {
         // Charger depuis la BD pour guider l'utilisateur
         $this->collines = Colline::select('id', 'name')->orderBy('name')->limit(200)->get()->toArray();
         $this->ecoles   = School::select('id', 'name')->orderBy('name')->limit(200)->get()->toArray();
+        $this->niveaux  = Niveau::select('id', 'nom', 'code')->where('actif', true)->orderBy('ordre')->limit(200)->get()->toArray();
     }
 
     public function title(): string
@@ -252,7 +255,7 @@ class EleveListesSheet implements FromArray, WithTitle, WithStyles, WithEvents
         $rows = [];
 
         // Section header
-        $rows[] = ['📖 LISTES DE RÉFÉRENCE - Valeurs acceptées'];
+        $rows[] = [' LISTES DE RÉFÉRENCE - Valeurs acceptées'];
         $rows[] = [''];
 
         // Sexe
@@ -271,22 +274,32 @@ class EleveListesSheet implements FromArray, WithTitle, WithStyles, WithEvents
         $rows[] = [''];
 
         // Collines
-        $rows[] = ['🟢 COLLINES DISPONIBLES (colline_origine)', 'ID (info)', 'Province/Commune'];
+        $rows[] = [' COLLINES DISPONIBLES (colline_origine)', 'ID (info)', 'Province/Commune'];
         foreach ($this->collines as $colline) {
             $rows[] = [$colline['name'], $colline['id'], ''];
         }
         if (empty($this->collines)) {
-            $rows[] = ['⚠️ Aucune colline en base - contacter l\'administrateur', '', ''];
+            $rows[] = [' Aucune colline en base - contacter l\'administrateur', '', ''];
         }
         $rows[] = [''];
 
         // Écoles
-        $rows[] = ['🟢 ÉCOLES DISPONIBLES (ecole_origine / school_destination)', 'ID (info)'];
+        $rows[] = [' ÉCOLES DISPONIBLES (school_destination)', 'ID (info)'];
         foreach ($this->ecoles as $ecole) {
             $rows[] = [$ecole['name'], $ecole['id']];
         }
         if (empty($this->ecoles)) {
-            $rows[] = ['⚠️ Aucune école en base - contacter l\'administrateur', ''];
+            $rows[] = [' Aucune école en base - contacter l\'administrateur', ''];
+        }
+        $rows[] = [''];
+
+        // Niveaux
+        $rows[] = [' NIVEAUX DISPONIBLES (niveau)', 'Code', 'ID (info)'];
+        foreach ($this->niveaux as $niveau) {
+            $rows[] = [$niveau['nom'], $niveau['code'], $niveau['id']];
+        }
+        if (empty($this->niveaux)) {
+            $rows[] = [' Aucun niveau en base - contacter l\'administrateur', '', ''];
         }
 
         return $rows;
@@ -332,24 +345,26 @@ class EleveInstructionsSheet implements FromArray, WithTitle, WithStyles
     public function array(): array
     {
         return [
-            ['📌 INSTRUCTIONS D\'UTILISATION', ''],
+            [' INSTRUCTIONS D\'UTILISATION', ''],
             ['', ''],
             ['ÉTAPE 1', 'Remplir les données à partir de la ligne 7 de l\'onglet Import_Eleves'],
-            ['ÉTAPE 2', 'Colonnes en vert 🟢 (colline_origine, ecole_origine, school_destination) :'],
+            ['ÉTAPE 2', 'Colonnes en vert (colline_origine, school_destination, niveau) :'],
             ['', '   → Écrire le NOM exact (pas l\'ID). Exemple : "Kiganda" au lieu de "42"'],
             ['', '   → La casse n\'est pas importante (recherche insensible aux majuscules)'],
             ['', '   → Les noms disponibles sont listés dans l\'onglet LISTES'],
             ['ÉTAPE 3', 'Pour "sexe" : M ou F uniquement (voir onglet LISTES)'],
-            ['ÉTAPE 4', 'Pour les dates : format YYYY-MM-DD (exemple : 2010-05-15)'],
+            ['ÉTAPE 4', 'Pour les dates : YYYY-MM-DD ou DD/MM/YYYY (exemple : 2010-05-15)'],
             ['ÉTAPE 5', 'est_orphelin et a_handicap : 0 = Non, 1 = Oui'],
-            ['ÉTAPE 6', 'Sauvegarder en .xlsx ou .csv puis uploader via l\'interface'],
+            ['ÉTAPE 6', 'Matricule : laisser vide pour génération automatique'],
+            ['ÉTAPE 7', 'Sauvegarder en .xlsx ou .csv puis uploader via l\'interface'],
             ['', ''],
-            ['⚠️ NE PAS', 'Modifier les entêtes de colonnes (lignes 3 à 6)'],
-            ['⚠️ NE PAS', 'Supprimer les onglets LISTES et INSTRUCTIONS'],
-            ['⚠️ NE PAS', 'Laisser le champ matricule vide ou en doublon'],
-            ['✅ INFO', 'Les erreurs sont retournées ligne par ligne après validation'],
-            ['✅ INFO', 'L\'import est transactionnel : tout réussit ou tout est annulé'],
-            ['✅ INFO', 'Maximum 500 élèves par fichier pour éviter les timeouts'],
+            [' NE PAS', 'Modifier les entêtes de colonnes (lignes 3 à 6)'],
+            [' NE PAS', 'Supprimer les onglets LISTES et INSTRUCTIONS'],
+            [' NE PAS', 'Utiliser un matricule en doublon dans le même fichier'],
+            [' INFO', 'Les erreurs sont retournées ligne par ligne après validation'],
+            [' INFO', 'L\'import est transactionnel : tout réussit ou tout est annulé'],
+            [' INFO', 'Une inscription est créée pour l\'année scolaire active'],
+            [' INFO', 'Maximum 500 élèves par fichier pour éviter les timeouts'],
         ];
     }
 

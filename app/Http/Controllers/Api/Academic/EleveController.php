@@ -753,12 +753,20 @@ class EleveController extends Controller
      */
     public function importExcel(Request $request): JsonResponse
     {
+        $this->authorize('create', Eleve::class);
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
+            'niveau_id' => ['nullable', 'integer', 'exists:niveaux_scolaires,id'],
         ]);
 
         try {
-            Excel::import(new EleveImport, $request->file('file'));
+            Excel::import(new EleveImport(
+                defaultSchoolId: $request->integer('school_id') ?: null,
+                defaultNiveauId: $request->integer('niveau_id') ?: null,
+                forcedSchoolId: $this->resolveImportForcedSchoolId(),
+            ), $request->file('file'));
 
             return response()->json([
                 'message' => 'Importation réussie',
@@ -767,14 +775,22 @@ class EleveController extends Controller
             $failures = $e->failures();
             $errors = [];
             foreach ($failures as $failure) {
-                $errors[] = 'Ligne '.$failure->row().': '.implode(', ', $failure->errors());
+                $prefix = $failure->row() > 0 ? 'Ligne '.$failure->row().': ' : '';
+                $errors[] = $prefix.implode(', ', $failure->errors());
             }
 
             return response()->json([
                 'message' => 'Erreur de validation lors de l\'importation',
                 'errors' => $errors,
             ], 422);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => [$e->getMessage()],
+            ], 422);
         } catch (\Exception $e) {
+            Log::error('Eleve import failed', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'message' => 'Erreur lors de l\'importation: '.$e->getMessage(),
             ], 500);
@@ -786,11 +802,27 @@ class EleveController extends Controller
      */
     public function downloadTemplate()
     {
+        $this->authorize('create', Eleve::class);
+
         if (ob_get_level()) {
             ob_end_clean();
         }
 
         return Excel::download(new EleveTemplateExport, 'template_import_eleves.xlsx');
+    }
+
+    /**
+     * Force school scope for establishment-level users during import.
+     */
+    private function resolveImportForcedSchoolId(): ?int
+    {
+        $user = Auth::user();
+
+        if ($user->admin_level === 'ECOLE') {
+            return $user->admin_entity_id ?? $user->school_id;
+        }
+
+        return null;
     }
 
     public function export(Request $request): BinaryFileResponse

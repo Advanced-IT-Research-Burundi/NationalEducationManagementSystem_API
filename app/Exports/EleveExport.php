@@ -54,7 +54,7 @@ class EleveExport implements FromQuery, WithColumnWidths, WithEvents, WithHeadin
             'date_naissance',
             'lieu_naissance',
             'nationalite',
-            'colline_origine',       // NOM (pas ID)
+            'colline_origine',
             'adresse',
             'nom_pere',
             'nom_mere',
@@ -63,10 +63,8 @@ class EleveExport implements FromQuery, WithColumnWidths, WithEvents, WithHeadin
             'est_orphelin',
             'a_handicap',
             'type_handicap',
-            'ecole_origine',         // NOM (pas ID)
-            'school_destination',    // NOM (pas ID)
-            'niveau',                // NOM (pas ID)
-            'statut_global',
+            'school_destination',
+            'niveau',
         ];
     }
 
@@ -82,7 +80,7 @@ class EleveExport implements FromQuery, WithColumnWidths, WithEvents, WithHeadin
             $eleve->date_naissance?->format('Y-m-d'),
             $eleve->lieu_naissance,
             $eleve->nationalite,
-            $eleve->collineOrigine?->nom ?? '',     // ← NOM au lieu de l'ID
+            $eleve->collineOrigine?->name ?? '',
             $eleve->adresse,
             $eleve->nom_pere,
             $eleve->nom_mere,
@@ -91,10 +89,8 @@ class EleveExport implements FromQuery, WithColumnWidths, WithEvents, WithHeadin
             $eleve->est_orphelin ? '1' : '0',
             $eleve->a_handicap ? '1' : '0',
             $eleve->type_handicap,
-            '',
-            $eleve->ecole?->nom ?? '',              // ← NOM au lieu de l'ID
-            $eleve->niveau?->nom ?? '',             // ← NOM au lieu de l'ID
-            $eleve->statut_global,
+            $eleve->ecole?->name ?? '',
+            $eleve->niveau?->nom ?? '',
         ];
     }
 
@@ -111,7 +107,7 @@ class EleveExport implements FromQuery, WithColumnWidths, WithEvents, WithHeadin
             'A' => 18, 'B' => 20, 'C' => 22, 'D' => 8,  'E' => 16, 'F' => 20,
             'G' => 18, 'H' => 22, 'I' => 22, 'J' => 25, 'K' => 25,
             'L' => 25, 'M' => 20, 'N' => 14, 'O' => 14, 'P' => 18,
-            'Q' => 25, 'R' => 25, 'S' => 20, 'T' => 16,
+            'Q' => 25, 'R' => 20,
         ];
     }
 
@@ -132,10 +128,10 @@ class EleveExport implements FromQuery, WithColumnWidths, WithEvents, WithHeadin
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $lastRow = $sheet->getHighestRow();
-                $lastCol = 'T';
+                $lastCol = 'R';
 
                 // FK columns (in green to show "name, not ID")
-                foreach (['H', 'Q', 'R', 'S'] as $col) {
+                foreach (['H', 'Q', 'R'] as $col) {
                     if ($lastRow > 1) {
                         $sheet->getStyle("{$col}2:{$col}{$lastRow}")->applyFromArray([
                             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF0FFF0']],
