@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Bienvenue sur NEMS</title>
+    <title>Bienvenue sur EMS</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -16,18 +16,18 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Bienvenue sur NEMS</h2>
+            <h2>Bienvenue sur EMS</h2>
         </div>
         
         <div class="content">
             <p>Bonjour {{ $user->name }},</p>
             
-            <p>Votre compte sur le Système  de Gestion de l'Éducation (NEMS) a été créé avec succès.</p>
+            <p>Votre compte sur le Système  de Gestion de l'Éducation (EMS) a été créé avec succès.</p>
             
             @if($password)
             <div class="credentials">
                 <p><strong>Vos identifiants de connexion :</strong></p>
-                <p>Email : {{ $user->email }}</p>
+                <!-- <p>Email : {{ $user->email }}</p> -->
                 <p>Mot de passe temporaire : <strong>{{ $password }}</strong></p>
             </div>
             
@@ -42,7 +42,7 @@
         </div>
         
         <div class="footer">
-            <p>&copy; {{ date('Y') }} NEMS - Ministère de l'Éducation . Tous droits réservés.</p>
+            <p>&copy; {{ date('Y') }} EMS - Ministère de l'Éducation . Tous droits réservés.</p>
         </div>
     </div>
 </body>

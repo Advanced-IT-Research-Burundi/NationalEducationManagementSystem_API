@@ -144,7 +144,7 @@
   <table>
     <thead>
       <tr>
-        <th>Rang</th>
+        <th>Place</th>
         <th>Nom</th>
         <th>Prénom</th>
         <th>Total</th>
