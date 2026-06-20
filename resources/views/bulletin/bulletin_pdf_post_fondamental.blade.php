@@ -232,7 +232,7 @@
         $globalTotals = \App\Support\BulletinCourseLayout::computeGroupTotals($bulletin['cours'], true);
         $trimTotal = fn($label) => $globalTotals['trimestres'][$label] ?? [];
         $pct = fn($points, $max, $complete = true) => $complete && $points !== null && $max > 0
-          ? round(($points / $max) * 100, 1) . '%'
+          ? round(($points / $max) * 100, 1) . ''
           : '';
         $rankLabel = fn($rank) => $rank !== null ? \App\Support\BulletinCourseLayout::formatRang((int) $rank) : '';
 
