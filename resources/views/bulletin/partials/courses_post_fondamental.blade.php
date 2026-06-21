@@ -22,7 +22,11 @@
 @endphp
 
 @foreach ($layout['groups'] as $groupIndex => $group)
-    @php $catTotals = \App\Support\BulletinCourseLayout::computeGroupTotals($group['items'], true); @endphp
+    @php
+        $catTotals = \App\Support\BulletinCourseLayout::computeGroupTotals($group['items'], true);
+        $catCreditHeures = collect($group['items'])->sum(fn($c) => (float) ($c['credit_heures'] ?? 0));
+        $catCreditHeuresDisplay = $catCreditHeures > 0 ? ($catCreditHeures == (int) $catCreditHeures ? (int) $catCreditHeures : $catCreditHeures) : '-';
+    @endphp
     @foreach ($group['items'] as $courseIndex => $cours)
         @php
             $t1 = $cours['trimestres']['1er Trimestre'] ?? null;
@@ -38,7 +42,7 @@
             @endif
 
             <td class="td-name">{{ $cours['nom'] }}</td>
-            <td>1</td>
+            <td>{{ $cours['credit_heures'] ?: '' }}</td>
             <td>{{ $fmt($cours['max_tj'] ?? null) }}</td>
             <td>{{ $hasComp ? $fmt($cours['max_competence']) : '—' }}</td>
             <td>{{ $fmt($cours['max_examen'] ?? null) }}</td>
@@ -67,7 +71,7 @@
     @endforeach
     <tr style="font-weight: bold; background-color: #f5f5f5;">
         <td style="text-align: left; padding-left: 5px;">Total</td>
-        <td>-</td>
+        <td>{{ $catCreditHeuresDisplay }}</td>
         <td>{{ ($catTotals['max_tj'] ?? 0) > 0 ? $fmt($catTotals['max_tj']) : '—' }}</td>
         <td>{{ ($catTotals['max_com'] ?? 0) > 0 ? $fmt($catTotals['max_com']) : '—' }}</td>
         <td>{{ $fmt($catTotals['max_res']) }}</td>
@@ -106,7 +110,7 @@
     @endphp
     <tr>
         <td colspan="2" class="td-name">{{ $cours['nom'] }}</td>
-        <td>1</td>
+        <td>{{ $cours['credit_heures'] ?: '' }}</td>
         <td>{{ $fmt($cours['max_tj'] ?? null) }}</td>
         <td>{{ $hasComp ? $fmt($cours['max_competence']) : '—' }}</td>
         <td>{{ $fmt($cours['max_examen'] ?? null) }}</td>

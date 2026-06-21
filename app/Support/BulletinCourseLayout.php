@@ -33,7 +33,7 @@ final class BulletinCourseLayout
             }
 
             $name = (string) $categorie;
-            if (! isset($groups[$name])) {
+            if (!isset($groups[$name])) {
                 $groups[$name] = [
                     'name' => $name,
                     'ordre' => (int) ($item['categorie_ordre'] ?? 99),
@@ -203,7 +203,7 @@ final class BulletinCourseLayout
             return '';
         }
 
-        return $rank === 1 ? '1er' : $rank . 'ème';
+        return $rank === 1 ? '1ère' : $rank . 'ème';
     }
 
     public static function formatPlace(?int $rank, bool $isComplete): string
@@ -217,7 +217,7 @@ final class BulletinCourseLayout
 
     public static function formatPercentage(?float $points, ?float $max, bool $isComplete): string
     {
-        if (! $isComplete || $points === null || $max === null || $max <= 0) {
+        if (!$isComplete || $points === null || $max === null || $max <= 0) {
             return '';
         }
 

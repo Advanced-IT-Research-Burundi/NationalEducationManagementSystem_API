@@ -235,6 +235,10 @@
                 $isAnnualBulletin = empty($data['trimestre']);
                 $educationMorale = $bulletin['education_morale'] ?? null;
                 $globalTotals = \App\Support\BulletinCourseLayout::computeGroupTotals($bulletin['cours'], false);
+                $totalCreditHeures = collect($bulletin['cours'])->sum(fn($c) => (float) ($c['credit_heures'] ?? 0));
+                $totalCreditHeuresDisplay = $totalCreditHeures > 0
+                    ? ($totalCreditHeures == (int) $totalCreditHeures ? (int) $totalCreditHeures : $totalCreditHeures)
+                    : '';
                 $trimTotal = fn($label) => $globalTotals['trimestres'][$label] ?? [];
                 $pct = fn($points, $max, $complete = true) => $complete && $points !== null && $max > 0
                     ? round(($points / $max) * 100, 1) . ''
@@ -295,7 +299,7 @@
 
             <tr class="total-row" style="border-top: 3px solid #000;">
                 <td colspan="2" style="text-align: left; padding-left: 5px;">TOTAL</td>
-                <td></td>
+                <td>{{ $totalCreditHeuresDisplay }}</td>
                 <td>{{ $fmt($maxTjWithConduite) }}</td>
                 <td>{{ $fmt($maxRes) }}</td>
                 <td>{{ $fmt($grandT1Max) }}</td>

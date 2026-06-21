@@ -451,6 +451,24 @@ class BulletinController extends Controller
         }
         unset($bulletin);
 
+        // Trier les bulletins par rang croissant (1ère place en premier).
+        // Les élèves non classés (rang null) sont placés à la fin, triés par nom.
+        usort($bulletins, static function (array $a, array $b): int {
+            $rankA = $a['rang'] ?? null;
+            $rankB = $b['rang'] ?? null;
+
+            if ($rankA === null && $rankB === null) {
+                return strcasecmp(
+                    ($a['eleve']['nom'] ?? '') . ' ' . ($a['eleve']['prenom'] ?? ''),
+                    ($b['eleve']['nom'] ?? '') . ' ' . ($b['eleve']['prenom'] ?? '')
+                );
+            }
+            if ($rankA === null) return 1;
+            if ($rankB === null) return -1;
+
+            return $rankA <=> $rankB;
+        });
+
         // Effectif total de la classe (gardé même quand on extrait un seul bulletin
         // afin de conserver l'information "rang X / N").
         $effectifClasse = count($eleves);
