@@ -76,14 +76,15 @@ class UserController extends Controller
         $data = $request->validated();
 
         $user = new User;
+        $plainPassword = null;
 
         if ($this->isParentRole($data)) {
-            $generatedPassword = $this->generateSecurePassword();
-            $user->password = $generatedPassword;
-            $data['generated_password'] = $generatedPassword;
+            $plainPassword = $this->generateSecurePassword();
+            $user->password = $plainPassword;
             unset($data['password'], $data['password_confirmation']);
         } else {
-            $user->password = $data['password'];
+            $plainPassword = $data['password'];
+            $user->password = $plainPassword;
             unset($data['password'], $data['password_confirmation']);
         }
 
@@ -98,17 +99,17 @@ class UserController extends Controller
         $this->syncEnseignantProfile($user, $data);
         $this->syncParentEleveLinksFromRequest($user, $data);
 
-        // Send Welcome Mail
-        Mail::to($user->email)->send(new WelcomeMail($user, $data['generated_password'] ?? null));
+        // Send Welcome Mail with the password used at creation time
+        Mail::to($user->email)->send(new WelcomeMail($user, $plainPassword));
 
         $response = [
             'message' => 'User created successfully',
             'user' => tap($user->load('roles'))->setAttribute('is_super_admin', $user->isSuperAdmin()),
         ];
 
-        // Include generated password in response for Parent users
-        if (isset($data['generated_password'])) {
-            $response['generated_password'] = $data['generated_password'];
+        // Include the password in response for convenience when a temporary one was generated
+        if ($plainPassword !== null && $this->isParentRole($data)) {
+            $response['generated_password'] = $plainPassword;
         }
 
         return response()->json($response, 201);

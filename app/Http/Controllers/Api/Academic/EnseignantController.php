@@ -7,6 +7,7 @@ use App\Http\Requests\StoreAffectationEnseignantRequest;
 use App\Http\Requests\StoreEnseignantRequest;
 use App\Http\Requests\UpdateEnseignantRequest;
 use App\Http\Resources\EnseignantResource;
+use App\Mail\WelcomeMail;
 use App\Models\AffectationEnseignant;
 use App\Models\Enseignant;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class EnseignantController extends Controller
 {
@@ -58,6 +60,7 @@ class EnseignantController extends Controller
     public function store(StoreEnseignantRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $plainPassword = $data['password'];
 
         DB::beginTransaction();
 
@@ -66,7 +69,7 @@ class EnseignantController extends Controller
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                'password' => Hash::make($plainPassword),
                 'admin_level' => 'ECOLE',
                 'admin_entity_id' => ! empty($data['ecoles']) ? $data['ecoles'][0] : null,
                 'created_by' => Auth::id(),
@@ -95,6 +98,8 @@ class EnseignantController extends Controller
             if (! empty($data['ecoles'])) {
                 $enseignant->ecoles()->attach($data['ecoles']);
             }
+
+            Mail::to($user->email)->send(new WelcomeMail($user, $plainPassword));
 
             DB::commit();
 
