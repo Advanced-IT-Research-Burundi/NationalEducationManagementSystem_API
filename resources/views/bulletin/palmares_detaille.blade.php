@@ -89,16 +89,21 @@
       text-align: left;
       background: #fafaf6;
       font-weight: bold;
+      min-width: 70px;
     }
 
     .th-small {
-      font-size: 9px;
-      padding: 4px;
+      font-size: 8px;
+      padding: 3px 2px;
+      width: 28px;
+      max-width: 28px;
     }
 
     .td-small {
-      font-size: 9px;
-      padding: 4px;
+      font-size: 8px;
+      padding: 3px 2px;
+      width: 28px;
+      max-width: 28px;
     }
 
     @media print {
@@ -154,6 +159,19 @@
   @endphp
 
   <table>
+    <colgroup>
+      <col style="width: 32px;">  {{-- Place --}}
+      <col style="width: 80px;">  {{-- Nom --}}
+      <col style="width: 80px;">  {{-- Prénom --}}
+      <col style="width: 24px;">  {{-- Sexe --}}
+      <col style="width: 42px;">  {{-- Total points --}}
+      <col style="width: 32px;">  {{-- % --}}
+      @foreach($cours as $c)
+        <col style="width: 28px;">
+      @endforeach
+      <col style="width: 30px;">  {{-- Échecs --}}
+      <col style="width: 40px;">  {{-- Décision jury --}}
+    </colgroup>
     <thead>
       <tr>
         <th>Place</th>
