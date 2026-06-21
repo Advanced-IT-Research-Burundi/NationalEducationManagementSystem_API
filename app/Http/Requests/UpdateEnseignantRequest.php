@@ -28,8 +28,9 @@ class UpdateEnseignantRequest extends FormRequest
 
         return [
             // User update fields (optional)
-            'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($enseignant->user_id)],
+            'nom'    => ['sometimes', 'string', 'max:150'],
+            'prenom' => ['sometimes', 'string', 'max:150'],
+            'email'  => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($enseignant->user_id)],
 
             // Enseignant specific fields
             'ecoles' => ['sometimes', 'array', 'min:1'],

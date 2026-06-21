@@ -25,8 +25,9 @@ class StoreEnseignantRequest extends FormRequest
     {
         return [
             // User creation fields
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'nom'    => ['required', 'string', 'max:150'],
+            'prenom' => ['required', 'string', 'max:150'],
+            'email'  => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
 
             // Enseignant specific fields
@@ -63,8 +64,9 @@ class StoreEnseignantRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Le nom est requis.',
-            'email.required' => 'L\'email est requis.',
+            'nom.required'      => 'Le nom est requis.',
+            'prenom.required'   => 'Le prénom est requis.',
+            'email.required'    => 'L\'email est requis.',
             'email.unique' => 'Cet email est déjà utilisé.',
             'password.required' => 'Le mot de passe est requis.',
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',

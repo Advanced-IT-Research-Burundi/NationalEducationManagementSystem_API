@@ -67,12 +67,14 @@ class EnseignantController extends Controller
         try {
             // Create user account for the enseignant
             $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make($plainPassword),
-                'admin_level' => 'ECOLE',
-                'admin_entity_id' => ! empty($data['ecoles']) ? $data['ecoles'][0] : null,
-                'created_by' => Auth::id(),
+                'nom'            => $data['nom'],
+                'prenom'         => $data['prenom'],
+                'name'           => trim(($data['nom'] ?? '') . ' ' . ($data['prenom'] ?? '')),
+                'email'          => $data['email'],
+                'password'       => Hash::make($plainPassword),
+                'admin_level'    => 'ECOLE',
+                'admin_entity_id'=> !empty($data['ecoles']) ? $data['ecoles'][0] : null,
+                'created_by'     => Auth::id(),
             ]);
 
             // Assign teacher role
@@ -136,10 +138,12 @@ class EnseignantController extends Controller
 
         try {
             // Update user data if provided
-            if (isset($data['name']) || isset($data['email'])) {
+            if (isset($data['nom']) || isset($data['prenom']) || isset($data['email'])) {
                 $enseignant->user->update([
-                    'name' => $data['name'] ?? $enseignant->user->name,
-                    'email' => $data['email'] ?? $enseignant->user->email,
+                    'nom'    => $data['nom'] ?? $enseignant->user->nom,
+                    'prenom' => $data['prenom'] ?? $enseignant->user->prenom,
+                    'name'   => trim(($data['nom'] ?? $enseignant->user->nom ?? '') . ' ' . ($data['prenom'] ?? $enseignant->user->prenom ?? '')),
+                    'email'  => $data['email'] ?? $enseignant->user->email,
                 ]);
             }
 
