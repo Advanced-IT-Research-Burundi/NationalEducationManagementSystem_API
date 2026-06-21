@@ -203,7 +203,7 @@ final class BulletinCourseLayout
             return '';
         }
 
-        return $rank === 1 ? '1er' : $rank . ' eme';
+        return $rank === 1 ? '1er' : $rank . 'ème';
     }
 
     public static function formatPlace(?int $rank, bool $isComplete): string
