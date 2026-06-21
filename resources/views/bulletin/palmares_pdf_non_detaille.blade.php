@@ -158,7 +158,7 @@
           <td class="td-name">{{ $entry['eleve']['nom'] }}</td>
           <td class="td-name">{{ $entry['eleve']['prenom'] }}</td>
           <td>{{ $entry['total_points'] }}</td>
-          <td><strong>{{ $entry['pourcentage'] }}%</strong></td>
+          <td><strong>{{ $entry['pourcentage'] }}</strong></td>
         </tr>
       @endforeach
     </tbody>

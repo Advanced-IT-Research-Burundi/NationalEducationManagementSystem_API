@@ -177,7 +177,7 @@
           <td class="td-name">{{ $entry['eleve']['prenom'] }}</td>
           <td>{{ $entry['eleve']['sexe'] ?? '—' }}</td>
           <td><strong>{{ $entry['total_points'] }}</strong></td>
-          <td><strong>{{ $entry['pourcentage'] }}%</strong></td>
+          <td><strong>{{ $entry['pourcentage'] }}</strong></td>
 
           @foreach($cours as $c)
             @php $code = $c['code'];
