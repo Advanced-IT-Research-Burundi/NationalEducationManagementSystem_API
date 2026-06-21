@@ -19,8 +19,20 @@ class AffectationMatiereController extends Controller
     {
         $this->resolveAnneeScolaireId($request);
 
+        $user = Auth::user();
+
         $query = AffectationMatiere::with(['enseignant.user', 'matiere', 'school', 'anneeScolaire']);
 
+        // Restriction automatique par école : un utilisateur de niveau ECOLE
+        // ne voit que les affectations de son école, évitant les "N/A" liés
+        // à des enseignants d'autres établissements non accessibles.
+        if (!$user->isSuperAdmin() && $user->isSchoolUser() && $user->admin_entity_id) {
+            $query->where('school_id', $user->admin_entity_id);
+        } elseif (!$user->isSuperAdmin() && $user->school_id && !$user->admin_entity_id) {
+            $query->where('school_id', $user->school_id);
+        }
+
+        // Filtre manuel school_id (prioritaire si fourni explicitement)
         if ($request->filled('school_id')) {
             $query->where('school_id', $request->school_id);
         }
@@ -35,6 +47,15 @@ class AffectationMatiereController extends Controller
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
+        }
+
+        // Filtre de recherche par nom d'enseignant ou matière
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('enseignant.user', fn($u) => $u->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('matiere', fn($m) => $m->where('nom', 'like', "%{$search}%"));
+            });
         }
 
         $affectations = $query->latest()->paginate($request->get('per_page', 15));
