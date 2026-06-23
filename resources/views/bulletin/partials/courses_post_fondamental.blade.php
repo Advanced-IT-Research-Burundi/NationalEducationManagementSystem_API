@@ -17,7 +17,7 @@
             return '';
         }
 
-        return round(((float) $note / (float) $max) * 100, 1) . '%';
+        return round(((float) $note / (float) $max) * 100, 1) . '';
     };
 @endphp
 
@@ -94,7 +94,7 @@
 
         <td>{{ $fmt($catTotals['annuel']['max_tot']) }}</td>
         <td>{{ $catTotals['annuel']['has_tot'] && $catTotals['annuel']['is_complete'] ? $fmt($catTotals['annuel']['tot']) : '' }}</td>
-        <td>{{ $catTotals['annuel']['pourcentage'] !== null ? $catTotals['annuel']['pourcentage'] . '%' : '' }}</td>
+        <td>{{ $catTotals['annuel']['pourcentage'] !== null ? $catTotals['annuel']['pourcentage'] . '' : '' }}</td>
         <td></td>
     </tr>
 @endforeach

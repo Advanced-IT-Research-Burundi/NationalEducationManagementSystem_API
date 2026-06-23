@@ -341,8 +341,9 @@
                 <td>{{ $pct($t3Res, $maxRes, ($t3Totals['res_complete'] ?? false)) }}</td>
                 <td>{{ $pct($grandT3Points, $grandT3Max, $t3Complete) }}</td>
 
-                <td colspan="3"></td>
+                <td colspan="2"></td>
                 <td>{{ $annualPercentage !== null ? $annualPercentage . '' : '' }}</td>
+                <td></td>
             </tr>
 
             <tr class="total-row" style="border-bottom: 2px solid #000;">
