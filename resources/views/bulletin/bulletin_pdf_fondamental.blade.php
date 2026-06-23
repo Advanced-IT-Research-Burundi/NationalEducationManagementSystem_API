@@ -225,9 +225,9 @@
                 $annualPercentage = $annualIsComplete && $grandAnnuelPoints !== null && $grandAnnuelMax > 0
                     ? round(($grandAnnuelPoints / $grandAnnuelMax) * 100, 1)
                     : null;
-                $annualAppreciation = $annualPercentage !== null
-                    ? \App\Support\BulletinCourseLayout::buildAppreciationFromPercentage($annualPercentage)
-                    : '';
+                $conduiteAnnualPercentage = $annualIsComplete && ($conduiteAnnuel['note'] ?? null) !== null && ($conduiteAnnuel['max'] ?? 0) > 0
+                    ? round(((float) $conduiteAnnuel['note'] / (float) $conduiteAnnuel['max']) * 100, 1)
+                    : null;
 
                 $hasT1 = isset($bulletin['trimestres']['1er Trimestre']);
                 $hasT2 = isset($bulletin['trimestres']['2e Trimestre']);
@@ -296,7 +296,7 @@
 
                 <td>{{ $fmt($conduiteAnnuel['max'] ?? null) }}</td>
                 <td>{{ $annualIsComplete ? $fmt($conduiteAnnuel['note'] ?? null) : '' }}</td>
-                <td></td>
+                <td>{{ $conduiteAnnualPercentage !== null ? $conduiteAnnualPercentage . '' : '' }}</td>
                 <td></td>
             </tr>
 
@@ -321,8 +321,8 @@
 
                 <td>{{ $fmt($grandAnnuelMax) }}</td>
                 <td>{{ $fmt($grandAnnuelPoints) }}</td>
-                <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
-                <td>{{ $annualAppreciation }}</td>
+                <td>{{ $annualPercentage !== null ? $annualPercentage . '' : '' }}</td>
+                <td></td>
             </tr>
 
             <tr class="total-row">
@@ -342,7 +342,7 @@
                 <td>{{ $pct($grandT3Points, $grandT3Max, $t3Complete) }}</td>
 
                 <td colspan="3"></td>
-                <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
+                <td>{{ $annualPercentage !== null ? $annualPercentage . '' : '' }}</td>
             </tr>
 
             <tr class="total-row" style="border-bottom: 2px solid #000;">

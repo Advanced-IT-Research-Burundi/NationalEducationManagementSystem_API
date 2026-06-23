@@ -19,15 +19,6 @@
 
         return round(((float) $note / (float) $max) * 100, 1) . '%';
     };
-    $appreciation = function ($note, $max, bool $isComplete) {
-        if (!$isComplete || $note === null || $note === '' || $max === null || $max === '' || (float) $max <= 0) {
-            return '';
-        }
-
-        return \App\Support\BulletinCourseLayout::buildAppreciationFromPercentage(
-            round(((float) $note / (float) $max) * 100, 1)
-        );
-    };
 @endphp
 
 @foreach ($layout['groups'] as $groupIndex => $group)
@@ -75,7 +66,7 @@
             <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
             <td class="{{ $annualIsComplete ? $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) : '' }}">{{ $annualIsComplete ? $fmt($annuel['note_total'] ?? null) : '' }}</td>
             <td>{{ $percentage($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
-            <td>{{ $appreciation($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
+            <td></td>
         </tr>
     @endforeach
     <tr style="font-weight: bold; background-color: #f5f5f5;">
@@ -104,7 +95,7 @@
         <td>{{ $fmt($catTotals['annuel']['max_tot']) }}</td>
         <td>{{ $catTotals['annuel']['has_tot'] && $catTotals['annuel']['is_complete'] ? $fmt($catTotals['annuel']['tot']) : '' }}</td>
         <td>{{ $catTotals['annuel']['pourcentage'] !== null ? $catTotals['annuel']['pourcentage'] . '%' : '' }}</td>
-        <td>{{ $catTotals['annuel']['appreciation'] ?? '' }}</td>
+        <td></td>
     </tr>
 @endforeach
 
@@ -143,6 +134,6 @@
         <td>{{ $fmt($annuel['max_total'] ?? null) }}</td>
         <td class="{{ $annualIsComplete ? $totalClass($annuel['note_total'] ?? null, $annuel['max_total'] ?? null) : '' }}">{{ $annualIsComplete ? $fmt($annuel['note_total'] ?? null) : '' }}</td>
         <td>{{ $percentage($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
-        <td>{{ $appreciation($annuel['note_total'] ?? null, $annuel['max_total'] ?? null, $annualIsComplete) }}</td>
+        <td></td>
     </tr>
 @endforeach
