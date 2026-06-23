@@ -12,9 +12,11 @@ use App\Models\Pays;
 use App\Models\Role;
 use App\Models\Trimestre;
 use App\Models\User;
+use App\Support\BulletinCache;
 use App\Support\BulletinCourseLayout;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
@@ -137,6 +139,17 @@ function bulletinTestActor(int $schoolId): User
     $user->assignRole(Role::DIRECTEUR_ECOLE);
 
     return $user;
+}
+
+function createBulletinTrimestre(array $fixture, array $overrides = []): Trimestre
+{
+    return Trimestre::create(array_merge([
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'nom' => '1er Trimestre',
+        'date_debut' => now()->subMonth(),
+        'date_fin' => now()->addMonth(),
+        'actif' => true,
+    ], $overrides));
 }
 
 beforeEach(function (): void {
@@ -898,4 +911,98 @@ it('tags standalone courses in bulletin payload', function (): void {
 
     expect($courses->firstWhere('nom', 'Français')['display_group'])->toBe('grouped');
     expect($courses->firstWhere('nom', 'Entrepreneuriat')['display_group'])->toBe('standalone');
+});
+
+it('invalidates bulletin cache version when a note is updated', function (): void {
+    Cache::flush();
+
+    $fixture = createBulletinFixture();
+    createBulletinTrimestre($fixture);
+    $matiere = createMatiereForSchool($fixture, [
+        'nom' => 'Math',
+        'code' => 'MATH_CACHE',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 0,
+    ]);
+
+    $evaluation = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $matiere->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre' => '1er Trimestre',
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => 40,
+    ]);
+
+    $note = Note::create([
+        'evaluation_id' => $evaluation->id,
+        'eleve_id' => $fixture['eleve']->id,
+        'note' => 12,
+    ]);
+
+    $versionBefore = BulletinCache::version($fixture['classe']->id, $fixture['annee']->id);
+
+    $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '1er Trimestre',
+        ]))
+        ->assertSuccessful();
+
+    $note->update(['note' => 36]);
+
+    expect(BulletinCache::version($fixture['classe']->id, $fixture['annee']->id))
+        ->toBe($versionBefore + 1);
+});
+
+it('returns fresh bulletin totals after a note update', function (): void {
+    Cache::flush();
+
+    $fixture = createBulletinFixture();
+    createBulletinTrimestre($fixture);
+    $matiere = createMatiereForSchool($fixture, [
+        'nom' => 'Math Refresh',
+        'code' => 'MATH_REFRESH',
+        'ponderation_tj' => 40,
+        'ponderation_examen' => 0,
+    ]);
+
+    $evaluation = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $matiere->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre' => '1er Trimestre',
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => 40,
+    ]);
+
+    $note = Note::create([
+        'evaluation_id' => $evaluation->id,
+        'eleve_id' => $fixture['eleve']->id,
+        'note' => 10,
+    ]);
+
+    $params = [
+        'classe_id' => $fixture['classe']->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'mode' => 'current',
+        'trimestre' => '1er Trimestre',
+    ];
+
+    $firstTotal = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query($params))
+        ->json('data.bulletins.0.total_points_global');
+
+    $note->update(['note' => 30]);
+
+    $secondTotal = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/bulletins/generate?' . http_build_query($params))
+        ->json('data.bulletins.0.total_points_global');
+
+    expect($secondTotal)->not->toBe($firstTotal);
+    expect((float) $secondTotal)->toBeGreaterThan((float) $firstTotal);
 });

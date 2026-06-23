@@ -160,17 +160,17 @@
 
   <table>
     <colgroup>
-      <col style="width: 32px;">  {{-- Place --}}
-      <col style="width: 80px;">  {{-- Nom --}}
-      <col style="width: 80px;">  {{-- Prénom --}}
-      <col style="width: 24px;">  {{-- Sexe --}}
-      <col style="width: 42px;">  {{-- Total points --}}
-      <col style="width: 32px;">  {{-- % --}}
+      <col style="width: auto">  {{-- Place --}}
+      <col style="width: auto">  {{-- Nom --}}
+      <col style="width: auto">  {{-- Prénom --}}
+      <col style="width: auto">  {{-- Sexe --}}
+      <col style="width: auto">  {{-- Total points --}}
+      <col style="width: auto">  {{-- % --}}
       @foreach($cours as $c)
-        <col style="width: 28px;">
+        <col style="width: auto;">
       @endforeach
-      <col style="width: 30px;">  {{-- Échecs --}}
-      <col style="width: 40px;">  {{-- Décision jury --}}
+      <col style="width: auto">  {{-- Échecs --}}
+      <col style="width: auto">  {{-- Décision jury --}}
     </colgroup>
     <thead>
       <tr>

@@ -15,6 +15,7 @@ use App\Services\CurrentAcademicContextService;
 use App\Models\Role;
 use App\Services\ConduiteConfigService;
 use App\Support\AcademicCycleHelper;
+use App\Support\BulletinCache;
 use App\Support\BulletinCourseLayout;
 use App\Traits\ResolvesAnneeScolaire;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -102,13 +103,17 @@ class BulletinController extends Controller
         $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
         $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
         $layoutSignature = $this->bulletinLayoutSignature($classeId);
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:{$layoutSignature}:" . implode(',', $displayTrimestres);
-        $ttl = 600;
-
+        $cacheKey = BulletinCache::dataKey(
+            $classeId,
+            $anneeScolaireId,
+            $cachePeriod,
+            $layoutSignature,
+            $displayTrimestres
+        );
         $data = Cache::remember(
             $cacheKey,
-            $ttl,
-            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel, $displayTrimestres)
+            BulletinCache::DATA_TTL_SECONDS,
+            fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel, $displayTrimestres)
         );
 
         if ($requestedEleveId) {
@@ -558,11 +563,17 @@ class BulletinController extends Controller
         $displayTrimestres = $this->resolveBulletinTrimestres($trimestre, $trimestreModel, $anneeScolaireId);
         $cachePeriod = $trimestre ? "current:{$trimestre}" : 'annual';
         $layoutSignature = $this->bulletinLayoutSignature($classeId);
-        $cacheKey = "bulletin:{$classeId}:{$anneeScolaireId}:{$cachePeriod}:{$layoutSignature}:" . implode(',', $displayTrimestres);
+        $cacheKey = BulletinCache::dataKey(
+            $classeId,
+            $anneeScolaireId,
+            $cachePeriod,
+            $layoutSignature,
+            $displayTrimestres
+        );
         $bulletinData = Cache::remember(
             $cacheKey,
-            600,
-            fn() => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel, $displayTrimestres)
+            BulletinCache::DATA_TTL_SECONDS,
+            fn () => $this->buildBulletinData($classeId, $trimestre, $anneeScolaireId, $trimestreModel, $displayTrimestres)
         );
 
         if ($request->filled('eleve_id')) {
