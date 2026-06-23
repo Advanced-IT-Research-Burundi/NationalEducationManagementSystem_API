@@ -362,8 +362,10 @@
                 <td>{{ $hasT3 ? $rankLabel($rT3['examen'] ?? null) : '' }}</td>
                 <td>{{ $hasT3 ? $rankLabel($rT3['total'] ?? null) : '' }}</td>
 
-                <td colspan="3"></td>
+                <td></td>
                 <td>{{ $isAnnualBulletin ? $rankLabel($rAn) : '' }}</td>
+                <td></td>
+                <td></td>
             </tr>
 
             @if ($educationMorale)
