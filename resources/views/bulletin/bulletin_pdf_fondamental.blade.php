@@ -225,6 +225,9 @@
                 $annualPercentage = $annualIsComplete && $grandAnnuelPoints !== null && $grandAnnuelMax > 0
                     ? round(($grandAnnuelPoints / $grandAnnuelMax) * 100, 1)
                     : null;
+                $annualAppreciation = $annualPercentage !== null
+                    ? \App\Support\BulletinCourseLayout::buildAppreciationFromPercentage($annualPercentage)
+                    : '';
 
                 $hasT1 = isset($bulletin['trimestres']['1er Trimestre']);
                 $hasT2 = isset($bulletin['trimestres']['2e Trimestre']);
@@ -318,8 +321,8 @@
 
                 <td>{{ $fmt($grandAnnuelMax) }}</td>
                 <td>{{ $fmt($grandAnnuelPoints) }}</td>
-                <td></td>
-                <td></td>
+                <td>{{ $annualPercentage !== null ? $annualPercentage . '%' : '' }}</td>
+                <td>{{ $annualAppreciation }}</td>
             </tr>
 
             <tr class="total-row">

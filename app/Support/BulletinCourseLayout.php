@@ -96,7 +96,14 @@ final class BulletinCourseLayout
             'max_com' => 0,
             'max_res' => 0,
             'max_tot' => 0,
-            'annuel' => ['max_tot' => 0, 'tot' => 0, 'has_tot' => false, 'is_complete' => true],
+            'annuel' => [
+                'max_tot' => 0,
+                'tot' => 0,
+                'pourcentage' => null,
+                'appreciation' => '',
+                'has_tot' => false,
+                'is_complete' => true,
+            ],
             'trimestres' => [],
         ];
 
@@ -170,6 +177,15 @@ final class BulletinCourseLayout
             }
         }
 
+        if (
+            $totals['annuel']['is_complete']
+            && $totals['annuel']['has_tot']
+            && ($totals['annuel']['max_tot'] ?? 0) > 0
+        ) {
+            $totals['annuel']['pourcentage'] = round(($totals['annuel']['tot'] / $totals['annuel']['max_tot']) * 100, 1);
+            $totals['annuel']['appreciation'] = self::buildAppreciationFromPercentage($totals['annuel']['pourcentage']);
+        }
+
         return $totals;
     }
 
@@ -222,5 +238,26 @@ final class BulletinCourseLayout
         }
 
         return (string) round(($points / $max) * 100, 1);
+    }
+
+    public static function buildAppreciationFromPercentage(?float $percentage): string
+    {
+        if ($percentage === null) {
+            return '';
+        }
+
+        if ($percentage >= 83.4) {
+            return 'Excellent';
+        }
+
+        if ($percentage >= 66.7) {
+            return 'Bon';
+        }
+
+        if ($percentage >= 50) {
+            return 'Passable';
+        }
+
+        return 'Mauvais';
     }
 }
