@@ -107,6 +107,20 @@ class EvaluationController extends Controller
             }
         }
 
+        $referenceError = $this->validateEvaluationNoteMaximaleReference(
+            $validated['type_evaluation'],
+            (int) $validated['cours_id'],
+            (float) $validated['note_maximale']
+        );
+        if ($referenceError !== null) {
+            return response()->json([
+                'message' => $referenceError,
+                'errors' => [
+                    'note_maximale' => [$referenceError],
+                ],
+            ], 422);
+        }
+
         $validated['annee_scolaire_id'] = $anneeScolaireId;
         $validated['trimestre_id'] = $currentTrimestre->id;
         $validated['trimestre'] = $currentTrimestre->nom;
@@ -154,6 +168,22 @@ class EvaluationController extends Controller
             if ($err !== null) {
                 return response()->json(['message' => $err], 422);
             }
+        }
+
+        $coursId = isset($validated['cours_id']) ? (int) $validated['cours_id'] : (int) $evaluation->cours_id;
+        $noteMaximale = (float) ($validated['note_maximale'] ?? $evaluation->note_maximale);
+        $referenceError = $this->validateEvaluationNoteMaximaleReference(
+            $nextType,
+            $coursId,
+            $noteMaximale
+        );
+        if ($referenceError !== null) {
+            return response()->json([
+                'message' => $referenceError,
+                'errors' => [
+                    'note_maximale' => [$referenceError],
+                ],
+            ], 422);
         }
 
         $evaluation->update($validated);
@@ -356,6 +386,40 @@ class EvaluationController extends Controller
         $matiere = Matiere::find($coursId);
         if (! $matiere || (float) ($matiere->ponderation_competence ?? 0) <= 0) {
             return "Ce cours n'a pas de pondération compétences : impossible d'utiliser le type 'Compétence'. Définissez un maximum compétences sur la fiche cours.";
+        }
+
+        return null;
+    }
+
+    /**
+     * @return string|null Error message or null if OK
+     */
+    private function validateEvaluationNoteMaximaleReference(string $typeEvaluation, int $coursId, float $noteMaximale): ?string
+    {
+        if (! in_array($typeEvaluation, ['Examen', 'Compétence'], true)) {
+            return null;
+        }
+
+        $matiere = Matiere::find($coursId);
+        if (! $matiere) {
+            return "Le cours sélectionné est introuvable.";
+        }
+
+        $reference = $typeEvaluation === 'Examen'
+            ? $matiere->ponderation_examen
+            : $matiere->ponderation_competence;
+
+        $referenceValue = round((float) ($reference ?? 0), 2);
+        $noteMaximaleValue = round($noteMaximale, 2);
+
+        if ($referenceValue <= 0) {
+            return "Ce cours n'a pas de pondération ".($typeEvaluation === 'Examen' ? 'examen' : 'compétence')." valide.";
+        }
+
+        if ($noteMaximaleValue !== $referenceValue) {
+            $direction = $noteMaximaleValue < $referenceValue ? 'inférieure' : 'supérieure';
+
+            return "La note maximale saisie est {$direction} à la pondération attendue ({$referenceValue}) pour le type '{$typeEvaluation}'.";
         }
 
         return null;
