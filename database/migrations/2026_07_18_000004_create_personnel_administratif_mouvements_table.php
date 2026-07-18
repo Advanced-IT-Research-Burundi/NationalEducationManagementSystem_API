@@ -15,13 +15,15 @@ return new class extends Migration
             $table->foreignId('nouveau_service_id')->nullable();
             $table->foreignId('ancienne_fonction_id')->nullable();
             $table->foreignId('nouvelle_fonction_id')->nullable();
-            $table->string('type_mouvement')->index();
-            $table->date('date_mouvement')->index();
+            $table->string('type_mouvement');
+            $table->date('date_mouvement');
             $table->text('motif')->nullable();
             $table->foreignId('created_by')->nullable();
             $table->timestamps();
 
-            $table->index(['personnel_administratif_id', 'type_mouvement']);
+            $table->index('type_mouvement', 'pam_type_idx');
+            $table->index('date_mouvement', 'pam_date_idx');
+            $table->index(['personnel_administratif_id', 'type_mouvement'], 'pam_personnel_type_idx');
 
             $table->foreign('personnel_administratif_id', 'pam_personnel_fk')
                 ->references('id')->on('personnel_administratifs')
