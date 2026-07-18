@@ -165,6 +165,11 @@ class User extends Authenticatable
         return $this->hasOne(Enseignant::class);
     }
 
+    public function personnelAdministratif(): HasOne
+    {
+        return $this->hasOne(PersonnelAdministratif::class);
+    }
+
     /**
      * Children (eleves) that this parent user is linked to.
      */

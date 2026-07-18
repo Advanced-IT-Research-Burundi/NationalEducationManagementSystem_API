@@ -14,6 +14,10 @@ use App\Http\Controllers\Api\HR\TransferRequestController;
 use App\Http\Controllers\Api\HR\CareerController;
 use App\Http\Controllers\Api\HR\AttendanceController;
 use App\Http\Controllers\Api\HR\LeaveRequestController;
+use App\Http\Controllers\Api\HR\ServiceController;
+use App\Http\Controllers\Api\HR\FonctionController;
+use App\Http\Controllers\Api\HR\PersonnelAdministratifController;
+use App\Http\Controllers\Api\HR\PersonnelAdministratifMouvementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +25,24 @@ use App\Http\Controllers\Api\HR\LeaveRequestController;
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->prefix('hr')->name('hr.')->group(function () {
+
+    // RH transversal
+    Route::apiResource('services', ServiceController::class);
+    Route::apiResource('fonctions', FonctionController::class);
+    Route::get('services/{service}/fonctions', [FonctionController::class, 'byService'])
+        ->name('services.fonctions');
+
+    Route::apiResource('personnels', PersonnelAdministratifController::class)
+        ->parameters(['personnels' => 'personnelAdministratif']);
+    Route::get('personnels/{personnelAdministratif}/mouvements', [PersonnelAdministratifController::class, 'mouvements'])
+        ->name('personnels.mouvements');
+    Route::get('personnels/statistics', [PersonnelAdministratifController::class, 'statistics'])
+        ->name('personnels.statistics');
+    Route::get('personnels/export', [PersonnelAdministratifController::class, 'export'])
+        ->name('personnels.export');
+    Route::apiResource('mouvements', PersonnelAdministratifMouvementController::class)
+        ->only(['index', 'show'])
+        ->parameters(['mouvements' => 'mouvement']);
 
     // Teachers
     Route::apiResource('teachers', TeacherController::class);
