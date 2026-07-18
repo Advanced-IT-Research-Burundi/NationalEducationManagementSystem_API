@@ -32,14 +32,14 @@ Route::middleware(['auth:sanctum'])->prefix('hr')->name('hr.')->group(function (
     Route::get('services/{service}/fonctions', [FonctionController::class, 'byService'])
         ->name('services.fonctions');
 
-    Route::apiResource('personnels', PersonnelAdministratifController::class)
-        ->parameters(['personnels' => 'personnelAdministratif']);
-    Route::get('personnels/{personnelAdministratif}/mouvements', [PersonnelAdministratifController::class, 'mouvements'])
-        ->name('personnels.mouvements');
     Route::get('personnels/statistics', [PersonnelAdministratifController::class, 'statistics'])
         ->name('personnels.statistics');
     Route::get('personnels/export', [PersonnelAdministratifController::class, 'export'])
         ->name('personnels.export');
+    Route::apiResource('personnels', PersonnelAdministratifController::class)
+        ->parameters(['personnels' => 'personnelAdministratif']);
+    Route::get('personnels/{personnelAdministratif}/mouvements', [PersonnelAdministratifController::class, 'mouvements'])
+        ->name('personnels.mouvements');
     Route::apiResource('mouvements', PersonnelAdministratifMouvementController::class)
         ->only(['index', 'show'])
         ->parameters(['mouvements' => 'mouvement']);
