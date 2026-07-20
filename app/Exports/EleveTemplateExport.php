@@ -3,39 +3,47 @@
 namespace App\Exports;
 
 use App\Models\Colline;
+use App\Models\Commune;
+use App\Models\Niveau;
+use App\Models\Province;
 use App\Models\School;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
-use Maatwebsite\Excel\Concerns\WithTitle;
+use App\Models\Zone;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Font;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class EleveTemplateExport implements WithMultipleSheets
 {
     public function sheets(): array
     {
+        $references = new EleveReferencesSheet();
+
         return [
-            new EleveImportSheet(),
-            new EleveListesSheet(),
+            new EleveImportSheet($references),
+            $references,
             new EleveInstructionsSheet(),
         ];
     }
 }
 
-// ============================================================
-// SHEET 1 : Template de saisie principal
-// ============================================================
 class EleveImportSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, WithEvents
 {
+    private const FIRST_DATA_ROW = 7;
+    private const LAST_DATA_ROW = 506;
+
+    public function __construct(private readonly EleveReferencesSheet $references)
+    {
+    }
+
     public function title(): string
     {
         return 'Import_Eleves';
@@ -44,60 +52,133 @@ class EleveImportSheet implements FromArray, WithTitle, WithStyles, WithColumnWi
     public function array(): array
     {
         return [
-            // Row 1: Title (merged via AfterSheet event)
-            ['📋 TEMPLATE D\'IMPORT DES ÉLÈVES - Système de Gestion Scolaire'],
-
-            // Row 2: Legend
-            ['🔴 Obligatoire  |  🟢 Clé étrangère → écrire le NOM (l\'ID sera trouvé auto)  |  🔵 Optionnel  |  ⚠️ Voir onglet LISTES'],
-
-            // Row 3: Column headers
+            ['TEMPLATE D\'IMPORT DES ELEVES'],
+            ['Saisir les eleves uniquement de la ligne 7 a la ligne 506. Les lignes 1 a 6 sont ignorees. L import s arrete apres 4 lignes consecutives sans matricule.'],
             [
-                'matricule *', 'nom *', 'prenom *', 'sexe *', 'date_naissance *', 'lieu_naissance *',
-                'nationalite', 'colline_origine 🟢', 'adresse', 'nom_pere', 'nom_mere',
-                'nom_tuteur', 'contact_tuteur', 'est_orphelin', 'a_handicap', 'type_handicap',
-                'ecole_origine 🟢', 'school_destination 🟢',
+                'matricule *',
+                'nom *',
+                'prenom *',
+                'sexe *',
+                'date_naissance *',
+                'lieu_naissance *',
+                'nationalite',
+                'school_destination *',
+                'niveau_scolaire *',
+                'province_origine',
+                'commune_origine',
+                'zone_origine',
+                'colline_origine',
+                'adresse',
+                'nom_pere',
+                'nom_mere',
+                'nom_tuteur',
+                'contact_tuteur',
+                'est_orphelin',
+                'a_handicap',
+                'type_handicap',
             ],
-
-            // Row 4: Type indicators
             [
-                '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE', '⬤ OBLIGATOIRE',
-                '○ OPTIONNEL', '◆ NOM → ID AUTO', '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL',
-                '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL', '○ OPTIONNEL',
-                '◆ NOM → ID AUTO', '◆ NOM → ID AUTO',
+                'OBLIGATOIRE',
+                'OBLIGATOIRE',
+                'OBLIGATOIRE',
+                'OBLIGATOIRE',
+                'OBLIGATOIRE',
+                'OBLIGATOIRE',
+                'OPTIONNEL',
+                'NOM -> schools.id',
+                'NOM/CODE -> niveaux_scolaires.id',
+                'NOM -> provinces.id',
+                'NOM -> communes.id',
+                'NOM -> zones.id',
+                'NOM -> collines.id',
+                'OPTIONNEL',
+                'OPTIONNEL',
+                'OPTIONNEL',
+                'OPTIONNEL',
+                'OPTIONNEL',
+                '0/1',
+                '0/1',
+                'SI HANDICAP=1',
             ],
-
-            // Row 5: Examples
             [
-                'EL-2024-001', 'NDAYISHIMIYE', 'Jean Pierre', 'M', '2010-05-15', 'Gitega',
-                'Burundaise', 'Kiganda', 'Quartier Rohero', 'NDAYISHIMIYE Emmanuel', 'NIYONKURU Marie',
-                'HAKIZIMANA Paul', '+257 79 123 456', '0', '0', 'Visuel',
-                'Lycée Kiganda', 'École Rohero',
+                'EL-2026-001',
+                'NDAYISHIMIYE',
+                'Jean Pierre',
+                'M',
+                '2010-05-15',
+                'Gitega',
+                'Burundaise',
+                $this->references->firstSchoolName(),
+                $this->references->firstNiveauName(),
+                $this->references->firstProvinceName(),
+                $this->references->firstCommuneName(),
+                $this->references->firstZoneName(),
+                $this->references->firstCollineName(),
+                'Quartier Rohero',
+                'NDAYISHIMIYE Emmanuel',
+                'NIYONKURU Marie',
+                'HAKIZIMANA Paul',
+                '+257 79 123 456',
+                '0',
+                '0',
+                '',
             ],
-
-            // Row 6: Notes
             [
-                'Unique, libre', 'Nom famille', 'Prénom(s)', 'M ou F', 'YYYY-MM-DD', 'Ville/Commune',
-                'Défaut: Burundaise', 'Nom colline exacte', 'Adresse complète', 'Nom complet', 'Nom complet',
-                'Si diff. parents', 'Téléphone', '0=Non, 1=Oui', '0=Non, 1=Oui', 'Si handicap=1',
-                'Nom école exacte', 'Nom école exacte',
+                'Unique, max 20',
+                'Nom de famille',
+                'Prenom(s)',
+                'M ou F',
+                'YYYY-MM-DD',
+                'Ville ou commune',
+                'Defaut: Burundaise',
+                'Nom exact de l\'ecole',
+                'Nom ou code exact du niveau',
+                'Nom exact',
+                'Nom exact',
+                'Nom exact',
+                'Nom exact',
+                'Adresse complete',
+                'Nom complet',
+                'Nom complet',
+                'Si different des parents',
+                'Telephone',
+                '0=Non, 1=Oui',
+                '0=Non, 1=Oui',
+                'Obligatoire si a_handicap=1',
             ],
         ];
-        // Rows 7-106 : laissées vides pour la saisie (gérées via AfterSheet)
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 18, 'B' => 20, 'C' => 22, 'D' => 10, 'E' => 18, 'F' => 20,
-            'G' => 18, 'H' => 22, 'I' => 22, 'J' => 25, 'K' => 25,
-            'L' => 25, 'M' => 20, 'N' => 14, 'O' => 14, 'P' => 18,
-            'Q' => 25, 'R' => 25,
+            'A' => 18,
+            'B' => 20,
+            'C' => 22,
+            'D' => 10,
+            'E' => 18,
+            'F' => 20,
+            'G' => 18,
+            'H' => 32,
+            'I' => 24,
+            'J' => 24,
+            'K' => 24,
+            'L' => 24,
+            'M' => 24,
+            'N' => 28,
+            'O' => 26,
+            'P' => 26,
+            'Q' => 26,
+            'R' => 20,
+            'S' => 14,
+            'T' => 14,
+            'U' => 20,
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
-        return []; // Styles appliqués via AfterSheet pour plus de contrôle
+        return [];
     }
 
     public function registerEvents(): array
@@ -105,188 +186,209 @@ class EleveImportSheet implements FromArray, WithTitle, WithStyles, WithColumnWi
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $lastCol = 'R';
+                $lastCol = 'U';
 
-                // ── Row 1: Title ────────────────────────────────────────────
                 $sheet->mergeCells("A1:{$lastCol}1");
                 $sheet->getStyle("A1:{$lastCol}1")->applyFromArray([
-                    'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 13, 'name' => 'Arial'],
-                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
+                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 14, 'name' => 'Arial'],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
                 ]);
                 $sheet->getRowDimension(1)->setRowHeight(32);
 
-                // ── Row 2: Legend ────────────────────────────────────────────
                 $sheet->mergeCells("A2:{$lastCol}2");
                 $sheet->getStyle("A2:{$lastCol}2")->applyFromArray([
-                    'font'      => ['italic' => true, 'color' => ['argb' => 'FF595959'], 'size' => 9, 'name' => 'Arial'],
-                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFF2CC']],
+                    'font' => ['italic' => true, 'color' => ['argb' => 'FF595959'], 'size' => 9, 'name' => 'Arial'],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFF2CC']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                 ]);
-                $sheet->getRowDimension(2)->setRowHeight(20);
+                $sheet->getRowDimension(2)->setRowHeight(24);
 
-                // ── Row 3: Headers ───────────────────────────────────────────
                 $sheet->getStyle("A3:{$lastCol}3")->applyFromArray([
-                    'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 10, 'name' => 'Arial'],
-                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
+                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 10, 'name' => 'Arial'],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
-                    'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFBFBFBF']]],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFBFBFBF']]],
                 ]);
-                $sheet->getRowDimension(3)->setRowHeight(28);
+                $sheet->getRowDimension(3)->setRowHeight(34);
 
-                // ── Row 4: Type indicators (coloured per type) ───────────────
-                $requiredCols = ['A', 'B', 'C', 'D', 'E', 'F'];
-                $fkCols       = ['H', 'Q', 'R'];
-                $optionalCols = ['G', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+                $requiredCols = ['A', 'B', 'C', 'D', 'E', 'F', 'H', 'I'];
+                $foreignCols = ['H', 'I', 'J', 'K', 'L', 'M'];
+                $optionalCols = ['G', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U'];
 
                 foreach ($requiredCols as $col) {
                     $sheet->getStyle("{$col}4")->applyFromArray([
-                        'font'  => ['bold' => true, 'color' => ['argb' => 'FFC00000'], 'size' => 8, 'name' => 'Arial'],
-                        'fill'  => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFCE4D6']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                        'font' => ['bold' => true, 'color' => ['argb' => 'FFC00000'], 'size' => 8, 'name' => 'Arial'],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFCE4D6']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                     ]);
                 }
-                foreach ($fkCols as $col) {
+
+                foreach ($foreignCols as $col) {
                     $sheet->getStyle("{$col}4")->applyFromArray([
-                        'font'  => ['bold' => true, 'color' => ['argb' => 'FF375623'], 'size' => 8, 'name' => 'Arial'],
-                        'fill'  => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE2EFDA']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                        'font' => ['bold' => true, 'color' => ['argb' => 'FF375623'], 'size' => 8, 'name' => 'Arial'],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE2EFDA']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                     ]);
                 }
+
                 foreach ($optionalCols as $col) {
                     $sheet->getStyle("{$col}4")->applyFromArray([
-                        'font'  => ['color' => ['argb' => 'FF2E75B6'], 'size' => 8, 'name' => 'Arial'],
-                        'fill'  => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFEBF3FB']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                        'font' => ['color' => ['argb' => 'FF2E75B6'], 'size' => 8, 'name' => 'Arial'],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFEBF3FB']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                     ]);
                 }
-                $sheet->getStyle("A4:{$lastCol}4")->applyFromArray([
+
+                $sheet->getStyle("A4:{$lastCol}6")->applyFromArray([
                     'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFBFBFBF']]],
+                    'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
                 ]);
 
-                // ── Row 5: Examples ──────────────────────────────────────────
                 $sheet->getStyle("A5:{$lastCol}5")->applyFromArray([
-                    'font'      => ['italic' => true, 'color' => ['argb' => 'FF7F7F7F'], 'size' => 9, 'name' => 'Arial'],
-                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF2F2F2']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                    'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFBFBFBF']]],
-                ]);
-
-                // ── Row 6: Notes ─────────────────────────────────────────────
-                $sheet->getStyle("A6:{$lastCol}6")->applyFromArray([
-                    'font'      => ['color' => ['argb' => 'FF595959'], 'size' => 8, 'name' => 'Arial'],
-                    'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFAFAFA']],
+                    'font' => ['italic' => true, 'color' => ['argb' => 'FF7F7F7F'], 'size' => 9, 'name' => 'Arial'],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF2F2F2']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
-                    'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFBFBFBF']]],
                 ]);
-                $sheet->getRowDimension(6)->setRowHeight(32);
 
-                // ── Data rows 7-106: light green bg for FK cols ──────────────
-                foreach (['H', 'Q', 'R'] as $col) {
-                    $sheet->getStyle("{$col}7:{$col}106")->applyFromArray([
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF0FFF0']],
-                    ]);
-                }
-                // Borders for all data rows
-                $sheet->getStyle("A7:{$lastCol}106")->applyFromArray([
+                $sheet->getStyle("A6:{$lastCol}6")->applyFromArray([
+                    'font' => ['color' => ['argb' => 'FF595959'], 'size' => 8, 'name' => 'Arial'],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFAFAFA']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+                ]);
+                $sheet->getRowDimension(6)->setRowHeight(34);
+
+                $sheet->getStyle('H7:M506')->applyFromArray([
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF0FFF0']],
+                ]);
+                $sheet->getStyle("A7:{$lastCol}506")->applyFromArray([
                     'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFBFBFBF']]],
-                    'font'    => ['size' => 10, 'name' => 'Arial'],
+                    'font' => ['size' => 10, 'name' => 'Arial'],
                     'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
                 ]);
 
-                // ── Freeze panes ─────────────────────────────────────────────
                 $sheet->freezePane('A7');
+                $sheet->setAutoFilter("A3:{$lastCol}3");
 
-                // ── Data Validation: sexe ────────────────────────────────────
-                $dvSexe = new DataValidation();
-                $dvSexe->setType(DataValidation::TYPE_LIST)
-                    ->setErrorStyle(DataValidation::STYLE_STOP)
-                    ->setAllowBlank(false)
-                    ->setShowDropDown(false)
-                    ->setFormula1('"M,F"')
-                    ->setError('Utiliser M (Masculin) ou F (Féminin)')
-                    ->setErrorTitle('Valeur invalide')
-                    ->setPrompt('Entrer M ou F');
-                for ($row = 7; $row <= 106; $row++) {
-                    $sheet->setDataValidation("D{$row}", clone $dvSexe);
-                }
-
-                // ── Data Validation: booléens ────────────────────────────────
-                $dvBool = new DataValidation();
-                $dvBool->setType(DataValidation::TYPE_LIST)
-                    ->setAllowBlank(true)
-                    ->setShowDropDown(false)
-                    ->setFormula1('"0,1"')
-                    ->setPrompt('0 = Non, 1 = Oui');
-                for ($row = 7; $row <= 106; $row++) {
-                    $sheet->setDataValidation("N{$row}", clone $dvBool);
-                    $sheet->setDataValidation("O{$row}", clone $dvBool);
-                }
+                $this->applyListValidation($sheet, 'D', '"M,F"', false, 'Utiliser M ou F.');
+                $this->applyListValidation($sheet, 'H', $this->references->validationFormula('schools'), false, 'Choisir un nom depuis REFERENCES.');
+                $this->applyListValidation($sheet, 'I', $this->references->validationFormula('niveaux'), false, 'Choisir un nom ou code depuis REFERENCES.');
+                $this->applyListValidation($sheet, 'J', $this->references->validationFormula('provinces'), true, 'Choisir un nom depuis REFERENCES.');
+                $this->applyListValidation($sheet, 'K', $this->references->validationFormula('communes'), true, 'Choisir un nom depuis REFERENCES.');
+                $this->applyListValidation($sheet, 'L', $this->references->validationFormula('zones'), true, 'Choisir un nom depuis REFERENCES.');
+                $this->applyListValidation($sheet, 'M', $this->references->validationFormula('collines'), true, 'Choisir un nom depuis REFERENCES.');
+                $this->applyListValidation($sheet, 'S', '"0,1"', true, '0 = Non, 1 = Oui.');
+                $this->applyListValidation($sheet, 'T', '"0,1"', true, '0 = Non, 1 = Oui.');
             },
         ];
     }
+
+    private function applyListValidation(Worksheet $sheet, string $column, string $formula, bool $allowBlank, string $prompt): void
+    {
+        if ($formula === '') {
+            return;
+        }
+
+        $validation = new DataValidation();
+        $validation->setType(DataValidation::TYPE_LIST)
+            ->setErrorStyle(DataValidation::STYLE_STOP)
+            ->setAllowBlank($allowBlank)
+            ->setShowDropDown(false)
+            ->setFormula1($formula)
+            ->setErrorTitle('Valeur invalide')
+            ->setError('La valeur saisie n existe pas dans la liste autorisee.')
+            ->setPrompt($prompt);
+
+        for ($row = self::FIRST_DATA_ROW; $row <= self::LAST_DATA_ROW; $row++) {
+            $sheet->setDataValidation("{$column}{$row}", clone $validation);
+        }
+    }
 }
 
-// ============================================================
-// SHEET 2 : Listes de référence (données dynamiques depuis la BD)
-// ============================================================
-class EleveListesSheet implements FromArray, WithTitle, WithStyles, WithEvents
+class EleveReferencesSheet implements FromArray, WithTitle, WithStyles, WithEvents
 {
+    private array $schools;
+    private array $niveaux;
+    private array $provinces;
+    private array $communes;
+    private array $zones;
     private array $collines;
-    private array $ecoles;
 
     public function __construct()
     {
-        // Charger depuis la BD pour guider l'utilisateur
-        $this->collines = Colline::select('id', 'name')->orderBy('name')->limit(200)->get()->toArray();
-        $this->ecoles   = School::select('id', 'name')->orderBy('name')->limit(200)->get()->toArray();
+        $this->schools = School::withoutGlobalScopes()
+            ->select('id', 'name', 'code_ecole')
+            ->orderBy('name')
+            ->get()
+            ->toArray();
+
+        $this->niveaux = Niveau::select('id', 'nom', 'code')
+            ->orderBy('ordre')
+            ->orderBy('nom')
+            ->get()
+            ->toArray();
+
+        $this->provinces = Province::select('id', 'name')->orderBy('name')->get()->toArray();
+        $this->communes = Commune::with('province:id,name')->select('id', 'name', 'province_id')->orderBy('name')->get()->toArray();
+        $this->zones = Zone::with('commune:id,name')->select('id', 'name', 'commune_id')->orderBy('name')->get()->toArray();
+        $this->collines = Colline::with('zone:id,name')->select('id', 'name', 'zone_id')->orderBy('name')->get()->toArray();
     }
 
     public function title(): string
     {
-        return 'LISTES';
+        return 'REFERENCES';
     }
 
     public function array(): array
     {
-        $rows = [];
+        $rows = [[
+            'SEXE',
+            'BOOLEEN',
+            'STATUT_GLOBAL',
+            'schools.name',
+            'niveaux_scolaires.nom',
+            'provinces.name',
+            'communes.name',
+            'zones.name',
+            'collines.name',
+            'schools.code_ecole',
+            'niveaux_scolaires.code',
+            'commune.province',
+            'zone.commune',
+            'colline.zone',
+        ]];
 
-        // Section header
-        $rows[] = ['📖 LISTES DE RÉFÉRENCE - Valeurs acceptées'];
-        $rows[] = [''];
+        $max = max(
+            5,
+            count($this->schools),
+            count($this->niveaux),
+            count($this->provinces),
+            count($this->communes),
+            count($this->zones),
+            count($this->collines)
+        );
 
-        // Sexe
-        $rows[] = ['SEXE', 'Description'];
-        $rows[] = ['M', 'Masculin (Garçon)'];
-        $rows[] = ['F', 'Féminin (Fille)'];
-        $rows[] = [''];
+        $sexes = ['M', 'F'];
+        $booleans = ['0', '1'];
+        $statuts = ['actif', 'inactif', 'transfere', 'abandonne', 'decede'];
 
-        // Statut global
-        $rows[] = ['STATUT_GLOBAL', 'Description'];
-        $rows[] = ['actif',      'Élève actuellement actif'];
-        $rows[] = ['inactif',    'Élève inactif temporairement'];
-        $rows[] = ['transfere',  'Élève transféré vers une autre école'];
-        $rows[] = ['abandonne',  'Élève ayant abandonné'];
-        $rows[] = ['decede',     'Élève décédé'];
-        $rows[] = [''];
-
-        // Collines
-        $rows[] = ['🟢 COLLINES DISPONIBLES (colline_origine)', 'ID (info)', 'Province/Commune'];
-        foreach ($this->collines as $colline) {
-            $rows[] = [$colline['name'], $colline['id'], ''];
-        }
-        if (empty($this->collines)) {
-            $rows[] = ['⚠️ Aucune colline en base - contacter l\'administrateur', '', ''];
-        }
-        $rows[] = [''];
-
-        // Écoles
-        $rows[] = ['🟢 ÉCOLES DISPONIBLES (ecole_origine / school_destination)', 'ID (info)'];
-        foreach ($this->ecoles as $ecole) {
-            $rows[] = [$ecole['name'], $ecole['id']];
-        }
-        if (empty($this->ecoles)) {
-            $rows[] = ['⚠️ Aucune école en base - contacter l\'administrateur', ''];
+        for ($i = 0; $i < $max; $i++) {
+            $rows[] = [
+                $sexes[$i] ?? '',
+                $booleans[$i] ?? '',
+                $statuts[$i] ?? '',
+                $this->schools[$i]['name'] ?? '',
+                $this->niveaux[$i]['nom'] ?? '',
+                $this->provinces[$i]['name'] ?? '',
+                $this->communes[$i]['name'] ?? '',
+                $this->zones[$i]['name'] ?? '',
+                $this->collines[$i]['name'] ?? '',
+                $this->schools[$i]['code_ecole'] ?? '',
+                $this->niveaux[$i]['code'] ?? '',
+                $this->communes[$i]['province']['name'] ?? '',
+                $this->zones[$i]['commune']['name'] ?? '',
+                $this->collines[$i]['zone']['name'] ?? '',
+            ];
         }
 
         return $rows;
@@ -302,26 +404,73 @@ class EleveListesSheet implements FromArray, WithTitle, WithStyles, WithEvents
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-
-                $sheet->getStyle('A1:D1')->applyFromArray([
-                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 12],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                $sheet->getStyle('A1:N1')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 10],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF375623']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'wrapText' => true],
                 ]);
-                $sheet->mergeCells('A1:D1');
+                $sheet->freezePane('A2');
+                $sheet->setAutoFilter('A1:N1');
 
-                $sheet->getColumnDimension('A')->setWidth(40);
-                $sheet->getColumnDimension('B')->setWidth(12);
-                $sheet->getColumnDimension('C')->setWidth(30);
-                $sheet->getColumnDimension('D')->setWidth(25);
+                foreach (range('A', 'N') as $column) {
+                    $sheet->getColumnDimension($column)->setWidth(in_array($column, ['D', 'E', 'F', 'G', 'H', 'I'], true) ? 28 : 18);
+                }
             },
         ];
     }
+
+    public function validationFormula(string $list): string
+    {
+        $map = [
+            'schools' => ['D', count($this->schools)],
+            'niveaux' => ['E', count($this->niveaux)],
+            'provinces' => ['F', count($this->provinces)],
+            'communes' => ['G', count($this->communes)],
+            'zones' => ['H', count($this->zones)],
+            'collines' => ['I', count($this->collines)],
+        ];
+
+        if (! isset($map[$list]) || $map[$list][1] < 1) {
+            return '';
+        }
+
+        [$column, $count] = $map[$list];
+        $lastRow = $count + 1;
+
+        return "REFERENCES!\${$column}\$2:\${$column}\${$lastRow}";
+    }
+
+    public function firstSchoolName(): string
+    {
+        return $this->schools[0]['name'] ?? 'Nom exact de l ecole';
+    }
+
+    public function firstNiveauName(): string
+    {
+        return $this->niveaux[0]['nom'] ?? 'Nom exact du niveau';
+    }
+
+    public function firstProvinceName(): string
+    {
+        return $this->provinces[0]['name'] ?? '';
+    }
+
+    public function firstCommuneName(): string
+    {
+        return $this->communes[0]['name'] ?? '';
+    }
+
+    public function firstZoneName(): string
+    {
+        return $this->zones[0]['name'] ?? '';
+    }
+
+    public function firstCollineName(): string
+    {
+        return $this->collines[0]['name'] ?? '';
+    }
 }
 
-// ============================================================
-// SHEET 3 : Instructions
-// ============================================================
 class EleveInstructionsSheet implements FromArray, WithTitle, WithStyles
 {
     public function title(): string
@@ -332,36 +481,34 @@ class EleveInstructionsSheet implements FromArray, WithTitle, WithStyles
     public function array(): array
     {
         return [
-            ['📌 INSTRUCTIONS D\'UTILISATION', ''],
+            ['INSTRUCTIONS D\'UTILISATION', ''],
             ['', ''],
-            ['ÉTAPE 1', 'Remplir les données à partir de la ligne 7 de l\'onglet Import_Eleves'],
-            ['ÉTAPE 2', 'Colonnes en vert 🟢 (colline_origine, ecole_origine, school_destination) :'],
-            ['', '   → Écrire le NOM exact (pas l\'ID). Exemple : "Kiganda" au lieu de "42"'],
-            ['', '   → La casse n\'est pas importante (recherche insensible aux majuscules)'],
-            ['', '   → Les noms disponibles sont listés dans l\'onglet LISTES'],
-            ['ÉTAPE 3', 'Pour "sexe" : M ou F uniquement (voir onglet LISTES)'],
-            ['ÉTAPE 4', 'Pour les dates : format YYYY-MM-DD (exemple : 2010-05-15)'],
-            ['ÉTAPE 5', 'est_orphelin et a_handicap : 0 = Non, 1 = Oui'],
-            ['ÉTAPE 6', 'Sauvegarder en .xlsx ou .csv puis uploader via l\'interface'],
+            ['ETAPE 1', 'Remplir les donnees uniquement de la ligne 7 a la ligne 506 de l onglet Import_Eleves.'],
+            ['ETAPE 2', 'Pour school_destination, niveau_scolaire, province_origine, commune_origine, zone_origine et colline_origine, ecrire le NOM exact depuis REFERENCES.'],
+            ['ETAPE 3', 'Ne pas saisir les ID des tables etrangeres dans Import_Eleves. Les ID sont affiches uniquement pour controle administratif.'],
+            ['ETAPE 4', 'Pour niveau_scolaire, le backend accepte le nom ou le code exact du niveau.'],
+            ['ETAPE 5', 'Pour les dates, utiliser YYYY-MM-DD. Les formats JJ/MM/AAAA et JJ-MM-AAAA sont aussi normalises a l import.'],
+            ['ETAPE 6', 'est_orphelin et a_handicap: 0 = Non, 1 = Oui. Si a_handicap = 1, renseigner type_handicap.'],
+            ['ETAPE 7', 'Sauvegarder en .xlsx puis uploader via l interface.'],
             ['', ''],
-            ['⚠️ NE PAS', 'Modifier les entêtes de colonnes (lignes 3 à 6)'],
-            ['⚠️ NE PAS', 'Supprimer les onglets LISTES et INSTRUCTIONS'],
-            ['⚠️ NE PAS', 'Laisser le champ matricule vide ou en doublon'],
-            ['✅ INFO', 'Les erreurs sont retournées ligne par ligne après validation'],
-            ['✅ INFO', 'L\'import est transactionnel : tout réussit ou tout est annulé'],
-            ['✅ INFO', 'Maximum 500 élèves par fichier pour éviter les timeouts'],
+            ['VALIDATION', 'L import refuse les noms de reference inconnus ou ambigus et indique la ligne concernee.'],
+            ['VALIDATION', 'L import refuse les doublons de matricule dans le meme fichier.'],
+            ['VALIDATION', 'Si une ecole a une liste de niveaux configuree, le niveau importe doit appartenir a cette ecole.'],
+            ['IMPORTANT', 'Ne pas modifier les entetes des colonnes de la ligne 3.'],
+            ['IMPORTANT', 'Le fichier est traite en bloc: si une ligne est invalide, aucune insertion n est effectuee.'],
+            ['LIMITE', 'Le modele prepare 500 lignes de saisie, de la ligne 7 a la ligne 506. La lecture s arrete apres 4 lignes consecutives sans matricule.'],
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         $sheet->getColumnDimension('A')->setWidth(18);
-        $sheet->getColumnDimension('B')->setWidth(85);
+        $sheet->getColumnDimension('B')->setWidth(95);
 
         return [
             1 => [
-                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 13],
-                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
+                'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 13],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1F3864']],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ],
         ];
