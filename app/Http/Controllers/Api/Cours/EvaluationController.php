@@ -79,7 +79,6 @@ class EvaluationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-
         $validated = $request->validate([
             'classe_id' => ['required', 'exists:classes,id'],
             'cours_id' => ['required', 'exists:matieres,id'],
@@ -89,6 +88,20 @@ class EvaluationController extends Controller
         ]);
 
         $currentTrimestre = $this->academicContextService->ensureCurrentTrimestreNotLocked();
+        $duplicateError = $this->validateEvaluationTypeUniqueness(
+            (int) $validated['classe_id'],
+            (int) $validated['cours_id'],
+            (int) $currentTrimestre->id,
+            $validated['type_evaluation']
+        );
+        if ($duplicateError !== null) {
+            return response()->json([
+                'message' => $duplicateError,
+                'errors' => [
+                    'type_evaluation' => [$duplicateError],
+                ],
+            ], 422);
+        }
 
         $anneeScolaireId = $this->resolveAnneeScolaireId($request);
         if (! $anneeScolaireId) {
@@ -182,6 +195,22 @@ class EvaluationController extends Controller
                 'message' => $referenceError,
                 'errors' => [
                     'note_maximale' => [$referenceError],
+                ],
+            ], 422);
+        }
+
+        $duplicateError = $this->validateEvaluationTypeUniqueness(
+            (int) ($validated['classe_id'] ?? $evaluation->classe_id),
+            $coursId,
+            (int) $evaluation->trimestre_id,
+            $nextType,
+            $evaluation->id
+        );
+        if ($duplicateError !== null) {
+            return response()->json([
+                'message' => $duplicateError,
+                'errors' => [
+                    'type_evaluation' => [$duplicateError],
                 ],
             ], 422);
         }
@@ -420,6 +449,37 @@ class EvaluationController extends Controller
             $direction = $noteMaximaleValue < $referenceValue ? 'inférieure' : 'supérieure';
 
             return "La note maximale saisie est {$direction} à la pondération attendue ({$referenceValue}) pour le type '{$typeEvaluation}'.";
+        }
+
+        return null;
+    }
+
+    /**
+     * @return string|null Error message or null if OK
+     */
+    private function validateEvaluationTypeUniqueness(
+        int $classeId,
+        int $coursId,
+        int $trimestreId,
+        string $typeEvaluation,
+        ?int $ignoreId = null
+    ): ?string {
+        if (trim($typeEvaluation) === 'TJ') {
+            return null;
+        }
+
+        $query = Evaluation::query()
+            ->where('classe_id', $classeId)
+            ->where('cours_id', $coursId)
+            ->where('trimestre_id', $trimestreId)
+            ->where('type_evaluation', $typeEvaluation);
+
+        if ($ignoreId !== null) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        if ($query->exists()) {
+            return "Impossible de créer deux évaluations du même type pour la même classe, la même matière et le même trimestre. Seuls les TJ peuvent être multiples.";
         }
 
         return null;
