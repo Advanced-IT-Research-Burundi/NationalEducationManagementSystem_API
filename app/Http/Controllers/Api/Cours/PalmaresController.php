@@ -297,11 +297,11 @@ class PalmaresController extends Controller
         $tauxReussite = count($eleves) > 0
             ? round(($nombreElevesReussis / count($eleves)) * 100, 1)
             : null;
-        $moyenneClasse = count($classementTousEleves) > 0
+        $moyenneClasse = count($classement) > 0
             ? round(array_sum(array_map(
                 fn (array $entry) => (float) ($entry['pourcentage'] ?? 0),
-                $classementTousEleves
-            )) / count($classementTousEleves), 1)
+                $classement
+            )) / count($classement), 1)
             : null;
 
         $anneeScolaire = AnneeScolaire::find($anneeScolaireId);

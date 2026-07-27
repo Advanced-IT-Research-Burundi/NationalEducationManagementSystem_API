@@ -525,6 +525,65 @@ it('calculates palmares success rate from passed students over total students', 
     expect($response->json('data.non_classes'))->toHaveCount(1);
 });
 
+it('calculates palmares class average from classed students only', function (): void {
+    $fixture = createBulletinFixture();
+    $matiere = createMatiereForSchool($fixture, [
+        'nom' => 'Mathématiques',
+        'code' => 'MATH_AVG_CLASS',
+        'ponderation_tj' => 100,
+        'ponderation_examen' => 0,
+    ]);
+
+    $completeEleve = $fixture['eleve'];
+    $incompleteEleve = Eleve::withoutGlobalScopes()->create([
+        'nom' => 'Incomplet',
+        'prenom' => 'Eleve',
+        'sexe' => 'F',
+        'date_naissance' => '2012-04-04',
+        'lieu_naissance' => 'Bujumbura',
+        'school_id' => $fixture['schoolId'],
+    ]);
+
+    DB::table('eleve_class')->insert([
+        'eleve_id' => $incompleteEleve->id,
+        'classe_id' => $fixture['classe']->id,
+        'annee_scolaire' => $fixture['annee']->code,
+        'statut' => 'ACTIVE',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $evaluation = Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $fixture['classe']->id,
+        'cours_id' => $matiere->id,
+        'annee_scolaire_id' => $fixture['annee']->id,
+        'trimestre' => '1er Trimestre',
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => 100,
+    ]);
+
+    Note::create([
+        'evaluation_id' => $evaluation->id,
+        'eleve_id' => $completeEleve->id,
+        'note' => 50,
+    ]);
+
+    $response = $this->actingAs(bulletinTestActor($fixture['schoolId']), 'sanctum')
+        ->getJson('/api/academic/palmares?' . http_build_query([
+            'classe_id' => $fixture['classe']->id,
+            'annee_scolaire_id' => $fixture['annee']->id,
+            'mode' => 'current',
+            'trimestre' => '1er Trimestre',
+        ]));
+
+    $response->assertSuccessful();
+
+    expect($response->json('data.classement'))->toHaveCount(1);
+    expect($response->json('data.non_classes'))->toHaveCount(1);
+    expect($response->json('data.moyenne_classe'))->toBe(50.0);
+});
+
 it('ignores Education Morale in palmares totals like bulletins do', function (): void {
     $fixture = createBulletinFixture();
     $trimestre = Trimestre::create([

@@ -138,14 +138,14 @@
     <div class="entete-row">
       <span class="entete-label">Ecole :</span>
       <span class="entete-value">{{ $data['classe']['school']['name'] ?? '—' }}</span>
-      &nbsp;&nbsp;&nbsp;&nbsp;
+      <br>
       <span class="entete-label">Classe :</span>
       <span class="entete-value">{{ $data['classe']['nom'] }}</span>
     </div>
     <div class="entete-row">
       <span class="entete-label">Trimestre :</span>
       <span class="entete-value">{{ $data['trimestre'] ?? 'Tous' }}</span>
-      &nbsp;&nbsp;&nbsp;&nbsp;
+      <br>
       <span class="entete-label">Année Scolaire :</span>
       <span class="entete-value">{{ $data['annee_scolaire']['libelle'] ?? '—' }}</span>
     </div>
@@ -216,7 +216,7 @@
 
   @if(!is_null($tauxReussite))
     <div style="margin-top: 14px; font-weight: bold;">
-      Le taux de réussite de la classe : {{ $tauxReussite }}%
+      <!-- Le taux de réussite de la classe : {{ $tauxReussite }}% -->
     </div>
   @endif
 
