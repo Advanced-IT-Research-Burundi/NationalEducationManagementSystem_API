@@ -35,8 +35,8 @@ class PostesExport implements FromCollection, WithHeadings, ShouldAutoSize
             return [
                 $poste->code,
                 $poste->nom,
-                $poste->departement_id,
-                $this->relatedLabel($poste, 'departement'),
+                $poste->service_id,
+                $this->relatedLabel($poste, 'service'),
                 $poste->description,
                 $poste->niveau_hierarchique,
                 $poste->salaire_min,
@@ -51,8 +51,8 @@ class PostesExport implements FromCollection, WithHeadings, ShouldAutoSize
         return [
             'Code',
             'Nom',
-            'Departement ID',
-            'Departement',
+            'Service ID',
+            'Service',
             'Description',
             'Niveau hierarchique',
             'Salaire min',

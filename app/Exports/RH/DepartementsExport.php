@@ -40,7 +40,6 @@ class DepartementsExport implements FromCollection, WithHeadings, ShouldAutoSize
                 $this->relatedLabel($departement, 'parent'),
                 $departement->responsable_id,
                 $this->relatedLabel($departement, 'responsable'),
-                $departement->couleur,
                 $departement->statut,
             ];
         });
@@ -56,7 +55,6 @@ class DepartementsExport implements FromCollection, WithHeadings, ShouldAutoSize
             'Departement parent',
             'Responsable ID',
             'Responsable',
-            'Couleur',
             'Statut',
         ];
     }

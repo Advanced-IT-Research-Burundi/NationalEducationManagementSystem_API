@@ -51,4 +51,9 @@ class Service extends Model
     {
         return $this->hasMany(Employe::class);
     }
+
+    public function postes(): HasMany
+    {
+        return $this->hasMany(Poste::class);
+    }
 }

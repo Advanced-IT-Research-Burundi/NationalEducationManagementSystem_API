@@ -120,7 +120,6 @@ class DepartementsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
                     'description' => $this->text($this->get($data, 'description')),
                     'departement_parent_id' => $this->resolveDepartementId($this->get($data, 'departement_parent_id') ?? $this->get($data, 'departement_parent')),
                     'responsable_id' => $this->resolveUserId($this->get($data, 'responsable_id') ?? $this->get($data, 'responsable')),
-                    'couleur' => $this->text($this->get($data, 'couleur')) ?: '#2563eb',
                     'statut' => strtoupper((string) ($this->text($this->get($data, 'statut')) ?? 'ACTIF')),
                 ];
 

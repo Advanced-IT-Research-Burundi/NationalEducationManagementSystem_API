@@ -14,7 +14,7 @@ class PosteController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Poste::query()->with(['departement:id,nom']);
+        $query = Poste::query()->with(['service:id,nom']);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
@@ -25,7 +25,7 @@ class PosteController extends Controller
             });
         }
 
-        foreach (['departement_id', 'statut', 'niveau_hierarchique'] as $field) {
+        foreach (['service_id', 'statut', 'niveau_hierarchique'] as $field) {
             if ($request->filled($field)) {
                 $query->where($field, $request->input($field));
             }
@@ -41,7 +41,7 @@ class PosteController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string', 'max:50', 'unique:postes,code'],
             'nom' => ['required', 'string', 'max:255'],
-            'departement_id' => ['nullable', 'exists:departements,id'],
+            'service_id' => ['nullable', 'exists:services,id'],
             'description' => ['nullable', 'string'],
             'niveau_hierarchique' => ['nullable', 'integer', 'min:1'],
             'salaire_min' => ['nullable', 'numeric', 'min:0'],
@@ -56,7 +56,7 @@ class PosteController extends Controller
 
     public function show(Poste $poste): JsonResponse
     {
-        return response()->json(['data' => $poste->load(['departement', 'employes'])]);
+        return response()->json(['data' => $poste->load(['service', 'employes'])]);
     }
 
     public function update(Request $request, Poste $poste): JsonResponse
@@ -64,7 +64,7 @@ class PosteController extends Controller
         $data = $request->validate([
             'code' => ['sometimes', 'required', 'string', 'max:50', 'unique:postes,code,' . $poste->id],
             'nom' => ['sometimes', 'required', 'string', 'max:255'],
-            'departement_id' => ['nullable', 'exists:departements,id'],
+            'service_id' => ['nullable', 'exists:services,id'],
             'description' => ['nullable', 'string'],
             'niveau_hierarchique' => ['nullable', 'integer', 'min:1'],
             'salaire_min' => ['nullable', 'numeric', 'min:0'],
@@ -90,7 +90,7 @@ class PosteController extends Controller
 
     public function export(Request $request)
     {
-        $query = Poste::query()->with(['departement:id,nom']);
+        $query = Poste::query()->with(['service:id,nom']);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
@@ -101,7 +101,7 @@ class PosteController extends Controller
             });
         }
 
-        foreach (['departement_id', 'statut', 'niveau_hierarchique'] as $field) {
+        foreach (['service_id', 'statut', 'niveau_hierarchique'] as $field) {
             if ($request->filled($field)) {
                 $query->where($field, $request->input($field));
             }

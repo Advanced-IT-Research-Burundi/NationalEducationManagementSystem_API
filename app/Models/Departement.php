@@ -20,7 +20,6 @@ class Departement extends Model
         'description',
         'departement_parent_id',
         'responsable_id',
-        'couleur',
         'statut',
     ];
 

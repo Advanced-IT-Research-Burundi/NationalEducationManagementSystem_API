@@ -17,7 +17,7 @@ class Poste extends Model
     protected $fillable = [
         'code',
         'nom',
-        'departement_id',
+        'service_id',
         'description',
         'niveau_hierarchique',
         'salaire_min',
@@ -39,6 +39,11 @@ class Poste extends Model
     public function departement(): BelongsTo
     {
         return $this->belongsTo(Departement::class);
+    }
+
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
     }
 
     public function employes(): HasMany

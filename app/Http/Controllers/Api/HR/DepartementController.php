@@ -48,7 +48,6 @@ class DepartementController extends Controller
             'description' => ['nullable', 'string'],
             'departement_parent_id' => ['nullable', 'exists:departements,id'],
             'responsable_id' => ['nullable', 'exists:users,id'],
-            'couleur' => ['nullable', 'string', 'max:20'],
             'statut' => ['sometimes', 'string', 'max:50'],
         ]);
 
@@ -72,7 +71,6 @@ class DepartementController extends Controller
             'description' => ['nullable', 'string'],
             'departement_parent_id' => ['nullable', 'exists:departements,id'],
             'responsable_id' => ['nullable', 'exists:users,id'],
-            'couleur' => ['nullable', 'string', 'max:20'],
             'statut' => ['sometimes', 'string', 'max:50'],
         ]);
 

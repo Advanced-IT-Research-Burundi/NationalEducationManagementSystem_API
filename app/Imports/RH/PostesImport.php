@@ -2,8 +2,8 @@
 
 namespace App\Imports\RH;
 
-use App\Models\Departement;
 use App\Models\Poste;
+use App\Models\Service;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
@@ -16,7 +16,7 @@ class PostesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
     protected int $updated = 0;
     protected int $skipped = 0;
     protected array $errors = [];
-    protected array $departementCache = [];
+    protected array $serviceCache = [];
 
     private function normalizeKey(string $key): string
     {
@@ -48,7 +48,7 @@ class PostesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         return $value === '' ? null : $value;
     }
 
-    private function resolveDepartementId(mixed $value): ?int
+    private function resolveServiceId(mixed $value): ?int
     {
         if ($value === null || $value === '') {
             return null;
@@ -63,14 +63,14 @@ class PostesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             return null;
         }
 
-        if (! array_key_exists($key, $this->departementCache)) {
-            $this->departementCache[$key] = Departement::query()
+        if (! array_key_exists($key, $this->serviceCache)) {
+            $this->serviceCache[$key] = Service::query()
                 ->whereRaw('LOWER(TRIM(code)) = ?', [$key])
                 ->orWhereRaw('LOWER(TRIM(nom)) = ?', [$key])
                 ->value('id');
         }
 
-        return $this->departementCache[$key] ? (int) $this->departementCache[$key] : null;
+        return $this->serviceCache[$key] ? (int) $this->serviceCache[$key] : null;
     }
 
     public function collection(Collection $rows): void
@@ -89,7 +89,7 @@ class PostesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
                 $payload = [
                     'code' => $code ?: 'POSTE-' . str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT),
                     'nom' => $nom,
-                    'departement_id' => $this->resolveDepartementId($this->get($data, 'departement_id') ?? $this->get($data, 'departement')),
+                    'service_id' => $this->resolveServiceId($this->get($data, 'service_id') ?? $this->get($data, 'service')),
                     'description' => $this->text($this->get($data, 'description')),
                     'niveau_hierarchique' => (int) ($this->get($data, 'niveau_hierarchique') ?: 1),
                     'salaire_min' => $this->get($data, 'salaire_min'),
