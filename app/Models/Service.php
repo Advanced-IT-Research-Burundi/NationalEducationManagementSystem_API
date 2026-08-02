@@ -13,7 +13,13 @@ class Service extends Model
     protected $fillable = [
         'code',
         'nom',
+        'departement_id',
+        'responsable_id',
         'description',
+        'telephone',
+        'email',
+        'bureau',
+        'statut',
         'is_active',
     ];
 
@@ -29,5 +35,20 @@ class Service extends Model
     public function personnels(): HasMany
     {
         return $this->hasMany(PersonnelAdministratif::class);
+    }
+
+    public function departement()
+    {
+        return $this->belongsTo(Departement::class);
+    }
+
+    public function responsable()
+    {
+        return $this->belongsTo(User::class, 'responsable_id');
+    }
+
+    public function employes(): HasMany
+    {
+        return $this->hasMany(Employe::class);
     }
 }

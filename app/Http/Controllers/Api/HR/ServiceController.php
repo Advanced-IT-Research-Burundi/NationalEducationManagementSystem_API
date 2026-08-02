@@ -11,20 +11,29 @@ class ServiceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $services = Service::query()
-            ->withCount('fonctions')
-            ->when($request->filled('is_active'), fn ($q) => $q->where('is_active', $request->boolean('is_active')))
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $search = trim((string) $request->search);
-                $q->where(function ($sub) use ($search) {
-                    $sub->where('code', 'like', "%{$search}%")
-                        ->orWhere('nom', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('nom')
-            ->get();
+        $query = Service::query()
+            ->with(['departement:id,nom', 'responsable:id,name,email'])
+            ->withCount('employes');
 
-        return response()->json(['data' => $services]);
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('nom', 'like', "%{$search}%")
+                    ->orWhere('bureau', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        foreach (['departement_id', 'responsable_id', 'statut'] as $field) {
+            if ($request->filled($field)) {
+                $query->where($field, $request->input($field));
+            }
+        }
+
+        $services = $query->orderBy('nom')->paginate((int) $request->input('per_page', 15));
+
+        return response()->json($services);
     }
 
     public function store(Request $request): JsonResponse
@@ -32,7 +41,13 @@ class ServiceController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string', 'max:50', 'unique:services,code'],
             'nom' => ['required', 'string', 'max:255'],
+            'departement_id' => ['nullable', 'exists:departements,id'],
+            'responsable_id' => ['nullable', 'exists:users,id'],
             'description' => ['nullable', 'string'],
+            'telephone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'bureau' => ['nullable', 'string', 'max:255'],
+            'statut' => ['sometimes', 'string', 'max:50'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
@@ -43,7 +58,9 @@ class ServiceController extends Controller
 
     public function show(Service $service): JsonResponse
     {
-        return response()->json(['data' => $service->load('fonctions')]);
+        return response()->json([
+            'data' => $service->load(['departement', 'responsable', 'employes']),
+        ]);
     }
 
     public function update(Request $request, Service $service): JsonResponse
@@ -51,7 +68,13 @@ class ServiceController extends Controller
         $data = $request->validate([
             'code' => ['sometimes', 'required', 'string', 'max:50', 'unique:services,code,' . $service->id],
             'nom' => ['sometimes', 'required', 'string', 'max:255'],
+            'departement_id' => ['nullable', 'exists:departements,id'],
+            'responsable_id' => ['nullable', 'exists:users,id'],
             'description' => ['nullable', 'string'],
+            'telephone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'bureau' => ['nullable', 'string', 'max:255'],
+            'statut' => ['sometimes', 'string', 'max:50'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
@@ -62,7 +85,7 @@ class ServiceController extends Controller
 
     public function destroy(Service $service): JsonResponse
     {
-        if ($service->fonctions()->exists() || $service->personnels()->exists()) {
+        if ($service->employes()->exists()) {
             return response()->json([
                 'message' => 'Impossible de supprimer ce service car il est encore utilisé.',
             ], 422);

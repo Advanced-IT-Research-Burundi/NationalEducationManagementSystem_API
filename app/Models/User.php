@@ -170,6 +170,11 @@ class User extends Authenticatable
         return $this->hasOne(PersonnelAdministratif::class);
     }
 
+    public function employe(): HasOne
+    {
+        return $this->hasOne(Employe::class);
+    }
+
     /**
      * Children (eleves) that this parent user is linked to.
      */

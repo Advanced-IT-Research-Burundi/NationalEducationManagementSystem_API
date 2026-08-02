@@ -18,6 +18,11 @@ use App\Http\Controllers\Api\HR\ServiceController;
 use App\Http\Controllers\Api\HR\FonctionController;
 use App\Http\Controllers\Api\HR\PersonnelAdministratifController;
 use App\Http\Controllers\Api\HR\PersonnelAdministratifMouvementController;
+use App\Http\Controllers\Api\HR\RHDashboardController;
+use App\Http\Controllers\Api\HR\DepartementController;
+use App\Http\Controllers\Api\HR\PosteController;
+use App\Http\Controllers\Api\HR\EmployeController;
+use App\Http\Controllers\Api\HR\FormationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,12 +31,59 @@ use App\Http\Controllers\Api\HR\PersonnelAdministratifMouvementController;
 */
 Route::middleware(['auth:sanctum'])->prefix('hr')->name('hr.')->group(function () {
 
+    Route::get('dashboard', [RHDashboardController::class, 'index'])
+        ->middleware('permission:view_hr_dashboard|manage_hr')
+        ->name('dashboard');
+
     // RH transversal
-    Route::apiResource('services', ServiceController::class);
+    Route::get('departements/hierarchy', [DepartementController::class, 'hierarchy'])
+        ->middleware('permission:view_hr_dashboard|manage_hr')
+        ->name('departements.hierarchy');
+    Route::apiResource('departements', DepartementController::class)
+        ->middleware('permission:view_hr_dashboard|manage_hr_departments|manage_hr');
+
+    Route::apiResource('postes', PosteController::class)
+        ->middleware('permission:view_hr_dashboard|manage_hr_positions|manage_hr');
+
+    Route::apiResource('services', ServiceController::class)
+        ->middleware('permission:view_hr_dashboard|manage_hr_services|manage_hr');
+    Route::get('services/{service}/employes', [EmployeController::class, 'byService'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_services|manage_hr_employees|manage_hr')
+        ->name('services.employes');
+
     Route::apiResource('fonctions', FonctionController::class);
     Route::get('services/{service}/fonctions', [FonctionController::class, 'byService'])
         ->name('services.fonctions');
 
+    Route::get('employes/history', [EmployeController::class, 'dashboardHistory'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_employees|manage_hr')
+        ->name('employes.history');
+    Route::post('employes/import', [EmployeController::class, 'import'])
+        ->middleware('permission:manage_hr_employees|manage_hr')
+        ->name('employes.import');
+    Route::get('employes/export', [EmployeController::class, 'export'])
+        ->middleware('permission:export_hr_reports|manage_hr')
+        ->name('employes.export');
+    Route::get('employes/export-pdf', [EmployeController::class, 'exportPdf'])
+        ->middleware('permission:export_hr_reports|manage_hr')
+        ->name('employes.export-pdf');
+    Route::post('employes/{employe}/archive', [EmployeController::class, 'archive'])
+        ->middleware('permission:manage_hr_employees|manage_hr')
+        ->name('employes.archive');
+    Route::post('employes/{id}/restore', [EmployeController::class, 'restore'])
+        ->middleware('permission:manage_hr_employees|manage_hr')
+        ->name('employes.restore');
+    Route::get('employes/{employe}/history', [EmployeController::class, 'history'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_employees|manage_hr')
+        ->name('employes.history-item');
+    Route::apiResource('employes', EmployeController::class)
+        ->parameters(['employes' => 'employe'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_employees|manage_hr');
+
+    Route::apiResource('formations', FormationController::class)
+        ->middleware('permission:view_hr_dashboard|manage_hr_learning|manage_hr');
+
+    // Legacy personnel routes, kept for compatibility
     Route::get('personnels/statistics', [PersonnelAdministratifController::class, 'statistics'])
         ->name('personnels.statistics');
     Route::get('personnels/export', [PersonnelAdministratifController::class, 'export'])
