@@ -21,6 +21,9 @@ class RHDashboardController extends Controller
         $totalEmployes = (clone $baseEmployes)->count();
         $actifs = (clone $baseEmployes)->where('statut', Employe::STATUT_ACTIF)->count();
         $enConge = (clone $baseEmployes)->where('statut', Employe::STATUT_CONGE)->count();
+        $suspendus = (clone $baseEmployes)->where('statut', Employe::STATUT_SUSPENDU)->count();
+        $demissionnaires = (clone $baseEmployes)->where('statut', Employe::STATUT_DEMISSIONNAIRE)->count();
+        $retraites = (clone $baseEmployes)->where('statut', Employe::STATUT_RETRAITE)->count();
         $nouveaux = (clone $baseEmployes)->whereDate('date_embauche', '>=', now()->subDays(30))->count();
         $femmes = (clone $baseEmployes)->whereRaw('upper(sexe) = ?', ['F'])->count();
         $hommes = (clone $baseEmployes)->whereRaw('upper(sexe) = ?', ['M'])->count();
@@ -102,6 +105,9 @@ class RHDashboardController extends Controller
                 'total_employes' => $totalEmployes,
                 'employes_actifs' => $actifs,
                 'employes_en_conge' => $enConge,
+                'employes_suspendus' => $suspendus,
+                'employes_demissionnaires' => $demissionnaires,
+                'employes_retraites' => $retraites,
                 'nouveaux_employes' => $nouveaux,
                 'repartition_par_departement' => $repartitionDept,
                 'repartition_par_service' => $repartitionServices,
