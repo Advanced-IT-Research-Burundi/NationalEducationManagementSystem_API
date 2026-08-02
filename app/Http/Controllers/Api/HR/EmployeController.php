@@ -49,7 +49,7 @@ class EmployeController extends Controller
             $query->withTrashed();
         }
 
-        $employes = $query->latest()->paginate((int) $request->input('per_page', 15));
+        $employes = $query->orderByDesc('id')->paginate((int) $request->input('per_page', 15));
 
         return response()->json($employes);
     }
