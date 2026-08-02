@@ -64,9 +64,6 @@ Route::middleware(['auth:sanctum'])->prefix('hr')->name('hr.')->group(function (
     Route::get('employes/export', [EmployeController::class, 'export'])
         ->middleware('permission:export_hr_reports|manage_hr')
         ->name('employes.export');
-    Route::get('employes/export-pdf', [EmployeController::class, 'exportPdf'])
-        ->middleware('permission:export_hr_reports|manage_hr')
-        ->name('employes.export-pdf');
     Route::post('employes/{employe}/archive', [EmployeController::class, 'archive'])
         ->middleware('permission:manage_hr_employees|manage_hr')
         ->name('employes.archive');

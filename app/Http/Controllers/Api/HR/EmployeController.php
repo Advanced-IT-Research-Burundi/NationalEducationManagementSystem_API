@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Spatie\Activitylog\Models\Activity;
 
 class EmployeController extends Controller
@@ -114,14 +113,6 @@ class EmployeController extends Controller
         $employes = $query->orderBy('nom')->get();
 
         return Excel::download(new EmployesExport($employes), 'employes-rh.xlsx');
-    }
-
-    public function exportPdf(Request $request)
-    {
-        $employes = $this->filteredQuery($request)->orderBy('nom')->get();
-        $pdf = Pdf::loadView('pdf.rh.employes', ['employes' => $employes]);
-
-        return $pdf->download('employes-rh.pdf');
     }
 
     public function import(Request $request): JsonResponse
