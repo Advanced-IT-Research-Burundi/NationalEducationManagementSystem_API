@@ -41,6 +41,11 @@ class Employe extends Model
         'ville',
         'province',
         'pays',
+        'pays_id',
+        'province_id',
+        'commune_id',
+        'zone_id',
+        'colline_id',
         'date_embauche',
         'type_contrat',
         'date_debut_contrat',
@@ -66,11 +71,28 @@ class Employe extends Model
         'is_archived' => 'boolean',
     ];
 
-    protected $appends = ['nom_complet'];
+    protected $appends = ['nom_complet', 'photo_url'];
 
     public function getNomCompletAttribute(): string
     {
         return trim(($this->nom ?? '') . ' ' . ($this->prenom ?? ''));
+    }
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (! $this->photo_path) {
+            return null;
+        }
+
+        if (filter_var($this->photo_path, FILTER_VALIDATE_URL)) {
+            return $this->photo_path;
+        }
+
+        if (str_starts_with($this->photo_path, '/')) {
+            return $this->photo_path;
+        }
+
+        return asset('storage/' . ltrim($this->photo_path, '/'));
     }
 
     public function getActivitylogOptions(): LogOptions
@@ -96,6 +118,31 @@ class Employe extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function pays(): BelongsTo
+    {
+        return $this->belongsTo(Pays::class);
+    }
+
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class);
+    }
+
+    public function commune(): BelongsTo
+    {
+        return $this->belongsTo(Commune::class);
+    }
+
+    public function zone(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class);
+    }
+
+    public function colline(): BelongsTo
+    {
+        return $this->belongsTo(Colline::class);
     }
 
     public function superieur(): BelongsTo

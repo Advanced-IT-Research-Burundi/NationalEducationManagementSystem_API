@@ -5,19 +5,38 @@ namespace App\Http\Controllers\Api\HR;
 use App\Exports\RH\EmployesExport;
 use App\Http\Controllers\Controller;
 use App\Imports\RH\EmployesImport;
+use App\Models\Colline;
+use App\Models\Commune;
 use App\Models\Employe;
+use App\Models\Pays;
+use App\Models\Province;
+use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
 class EmployeController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Employe::query()->with(['departement:id,nom,couleur', 'poste:id,nom', 'service:id,nom', 'user:id,name,email', 'superieur:id,nom,prenom']);
+        $query = Employe::query()->with([
+            'departement:id,nom,couleur',
+            'poste:id,nom',
+            'service:id,nom',
+            'user:id,name,email',
+            'superieur:id,nom,prenom',
+            'pays:id,name',
+            'province:id,name',
+            'commune:id,name',
+            'zone:id,name',
+            'colline:id,name',
+        ]);
 
         if ($request->route('service')) {
             $service = $request->route('service');
@@ -69,7 +88,22 @@ class EmployeController extends Controller
     public function show(Employe $employe): JsonResponse
     {
         return response()->json([
-            'data' => $employe->load(['departement', 'poste', 'service', 'user', 'superieur', 'createur', 'modificateur', 'documents', 'formations']),
+            'data' => $employe->load([
+                'departement',
+                'poste',
+                'service',
+                'user',
+                'superieur',
+                'createur',
+                'modificateur',
+                'documents',
+                'formations',
+                'pays',
+                'province',
+                'commune',
+                'zone',
+                'colline',
+            ]),
         ]);
     }
 
@@ -208,19 +242,28 @@ class EmployeController extends Controller
 
     protected function validatePayload(Request $request, ?Employe $employe = null): array
     {
+        $photoRules = $request->hasFile('photo_path')
+            ? ['nullable', 'file', 'image', 'max:2048']
+            : ['nullable', 'string', 'max:255'];
+
         $payload = $request->validate([
             'user_id' => ['nullable', 'exists:users,id'],
             'departement_id' => ['nullable', 'exists:departements,id'],
             'poste_id' => ['nullable', 'exists:postes,id'],
             'service_id' => ['nullable', 'exists:services,id'],
             'superieur_id' => ['nullable', 'exists:employes,id'],
+            'pays_id' => ['nullable', 'exists:pays,id'],
+            'province_id' => ['nullable', 'exists:provinces,id'],
+            'commune_id' => ['nullable', 'exists:communes,id'],
+            'zone_id' => ['nullable', 'exists:zones,id'],
+            'colline_id' => ['nullable', 'exists:collines,id'],
             'matricule' => [
                 $employe ? 'sometimes' : 'nullable',
                 'string',
                 'max:50',
                 Rule::unique('employes', 'matricule')->ignore($employe?->id),
             ],
-            'photo_path' => ['nullable', 'string', 'max:255'],
+            'photo_path' => $photoRules,
             'nom' => [$employe ? 'sometimes' : 'required', 'string', 'max:255'],
             'prenom' => [$employe ? 'sometimes' : 'required', 'string', 'max:255'],
             'sexe' => ['nullable', 'string', 'max:10'],
@@ -248,7 +291,23 @@ class EmployeController extends Controller
             'is_archived' => ['sometimes', 'boolean'],
         ]);
 
+        if ($request->hasFile('photo_path')) {
+            $payload['photo_path'] = $this->storePhoto($request->file('photo_path'));
+        }
+
         return array_filter($payload, fn ($value) => ! is_null($value));
+    }
+
+    protected function storePhoto(UploadedFile $file): string
+    {
+        $disk = Storage::disk('public');
+        $directory = 'hr/employees/photos';
+        $disk->makeDirectory($directory);
+
+        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $filename = Str::uuid()->toString() . '.' . $extension;
+
+        return $disk->putFileAs($directory, $file, $filename);
     }
 
     protected function generateMatricule(string $nom, string $prenom): string
