@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api\HR;
 
+use App\Exports\RH\PostesExport;
 use App\Http\Controllers\Controller;
+use App\Imports\RH\PostesImport;
 use App\Models\Poste;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PosteController extends Controller
 {
@@ -83,5 +86,47 @@ class PosteController extends Controller
         $poste->delete();
 
         return response()->json(['message' => 'Poste supprimé avec succès']);
+    }
+
+    public function export(Request $request)
+    {
+        $query = Poste::query()->with(['departement:id,nom']);
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('nom', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        foreach (['departement_id', 'statut', 'niveau_hierarchique'] as $field) {
+            if ($request->filled($field)) {
+                $query->where($field, $request->input($field));
+            }
+        }
+
+        return Excel::download(new PostesExport($query->orderBy('nom')->get()), 'postes-rh.xlsx');
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $import = new PostesImport();
+        Excel::import($import, $request->file('file'));
+
+        return response()->json([
+            'message' => 'Import postes terminé avec succès',
+            'data' => [
+                'created' => $import->getCreatedCount(),
+                'updated' => $import->getUpdatedCount(),
+                'skipped' => $import->getSkippedCount(),
+                'errors' => $import->getErrors(),
+            ],
+        ]);
     }
 }

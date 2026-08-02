@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api\HR;
 
+use App\Exports\RH\DepartementsExport;
 use App\Http\Controllers\Controller;
+use App\Imports\RH\DepartementsImport;
 use App\Models\Departement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DepartementController extends Controller
 {
@@ -99,5 +102,49 @@ class DepartementController extends Controller
             ->get();
 
         return response()->json(['data' => $departements]);
+    }
+
+    public function export(Request $request)
+    {
+        $query = Departement::query()->with(['parent:id,nom', 'responsable:id,name,email']);
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('nom', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->input('statut'));
+        }
+
+        if ($request->filled('departement_parent_id')) {
+            $query->where('departement_parent_id', $request->integer('departement_parent_id'));
+        }
+
+        return Excel::download(new DepartementsExport($query->orderBy('nom')->get()), 'departements-rh.xlsx');
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $import = new DepartementsImport();
+        Excel::import($import, $request->file('file'));
+
+        return response()->json([
+            'message' => 'Import départements terminé avec succès',
+            'data' => [
+                'created' => $import->getCreatedCount(),
+                'updated' => $import->getUpdatedCount(),
+                'skipped' => $import->getSkippedCount(),
+                'errors' => $import->getErrors(),
+            ],
+        ]);
     }
 }

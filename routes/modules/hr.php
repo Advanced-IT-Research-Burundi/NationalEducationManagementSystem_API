@@ -39,12 +39,30 @@ Route::middleware(['auth:sanctum'])->prefix('hr')->name('hr.')->group(function (
     Route::get('departements/hierarchy', [DepartementController::class, 'hierarchy'])
         ->middleware('permission:view_hr_dashboard|manage_hr')
         ->name('departements.hierarchy');
+    Route::get('departements/export', [DepartementController::class, 'export'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_departments|manage_hr')
+        ->name('departements.export');
+    Route::post('departements/import', [DepartementController::class, 'import'])
+        ->middleware('permission:manage_hr_departments|manage_hr')
+        ->name('departements.import');
     Route::apiResource('departements', DepartementController::class)
         ->middleware('permission:view_hr_dashboard|manage_hr_departments|manage_hr');
 
+    Route::get('postes/export', [PosteController::class, 'export'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_positions|manage_hr')
+        ->name('postes.export');
+    Route::post('postes/import', [PosteController::class, 'import'])
+        ->middleware('permission:manage_hr_positions|manage_hr')
+        ->name('postes.import');
     Route::apiResource('postes', PosteController::class)
         ->middleware('permission:view_hr_dashboard|manage_hr_positions|manage_hr');
 
+    Route::get('services/export', [ServiceController::class, 'export'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_services|manage_hr')
+        ->name('services.export');
+    Route::post('services/import', [ServiceController::class, 'import'])
+        ->middleware('permission:manage_hr_services|manage_hr')
+        ->name('services.import');
     Route::apiResource('services', ServiceController::class)
         ->middleware('permission:view_hr_dashboard|manage_hr_services|manage_hr');
     Route::get('services/{service}/employes', [EmployeController::class, 'byService'])
@@ -79,6 +97,12 @@ Route::middleware(['auth:sanctum'])->prefix('hr')->name('hr.')->group(function (
 
     Route::apiResource('formations', FormationController::class)
         ->middleware('permission:view_hr_dashboard|manage_hr_learning|manage_hr');
+    Route::get('formations/export', [FormationController::class, 'export'])
+        ->middleware('permission:view_hr_dashboard|manage_hr_learning|manage_hr')
+        ->name('formations.export');
+    Route::post('formations/import', [FormationController::class, 'import'])
+        ->middleware('permission:manage_hr_learning|manage_hr')
+        ->name('formations.import');
 
     // Legacy personnel routes, kept for compatibility
     Route::get('personnels/statistics', [PersonnelAdministratifController::class, 'statistics'])
