@@ -219,7 +219,17 @@ class EmployeController extends Controller
 
     protected function filteredQuery(Request $request)
     {
-        $query = Employe::query()->with(['departement', 'poste', 'service', 'user']);
+        $query = Employe::query()->with([
+            'departement:id,nom,couleur',
+            'poste:id,nom',
+            'service:id,nom',
+            'user:id,name,email',
+            'pays:id,name',
+            'province:id,name',
+            'commune:id,name',
+            'zone:id,name',
+            'colline:id,name',
+        ]);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
