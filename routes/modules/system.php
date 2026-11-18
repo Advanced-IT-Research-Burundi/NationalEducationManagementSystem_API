@@ -6,14 +6,14 @@
  * System Administration, Helpdesk & Support, Training Materials
  */
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\System\SystemConfigController;
-use App\Http\Controllers\Api\System\BackupController;
 use App\Http\Controllers\Api\System\ApiKeyController;
 use App\Http\Controllers\Api\System\AuditLogController;
+use App\Http\Controllers\Api\System\BackupController;
 use App\Http\Controllers\Api\System\SupportTicketController;
-use App\Http\Controllers\Api\System\TrainingMaterialController;
+use App\Http\Controllers\Api\System\SystemConfigController;
 use App\Http\Controllers\Api\System\SystemHealthController;
+use App\Http\Controllers\Api\System\TrainingMaterialController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +57,8 @@ Route::middleware(['auth:sanctum'])->prefix('system')->name('system.')->group(fu
     // Audit Logs
     Route::get('audit-logs', [AuditLogController::class, 'index'])
         ->name('audit-logs.index');
+    Route::get('audit-logs/recent', [AuditLogController::class, 'recent'])
+        ->name('audit-logs.recent');
     Route::get('audit-logs/{log}', [AuditLogController::class, 'show'])
         ->name('audit-logs.show');
     Route::get('audit-logs/by-user/{user}', [AuditLogController::class, 'byUser'])

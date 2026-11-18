@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\System;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
@@ -78,6 +80,109 @@ class AuditLogController extends Controller
                 'total' => $activities->total(),
             ],
         ]);
+    }
+
+    /**
+     * Human readable labels for logged subject types.
+     *
+     * @var array<string, string>
+     */
+    protected const SUBJECT_TYPE_LABELS = [
+        'School' => 'École',
+        'Eleve' => 'Élève',
+        'User' => 'Utilisateur',
+        'Employe' => 'Employé',
+        'Poste' => 'Poste',
+        'Departement' => 'Département',
+        'Formation' => 'Formation',
+        'InscriptionEleve' => 'Inscription',
+    ];
+
+    /**
+     * Human readable labels for logged events.
+     *
+     * @var array<string, string>
+     */
+    protected const EVENT_LABELS = [
+        'created' => 'Création',
+        'updated' => 'Modification',
+        'deleted' => 'Suppression',
+        'restored' => 'Restauration',
+    ];
+
+    /**
+     * Latest activities for the national dashboard, reserved to super admins and national admins.
+     */
+    public function recent(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->isSuperAdmin() && ! $user->hasRole(Role::ADMIN_NATIONAL)) {
+            abort(403, 'Accès réservé aux administrateurs nationaux.');
+        }
+
+        $limit = min(max((int) $request->get('limit', 5), 1), 20);
+
+        $items = Activity::query()
+            ->with(['causer', 'subject'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Activity $activity) => [
+                'id' => $activity->id,
+                'event' => $activity->event,
+                'event_label' => self::EVENT_LABELS[$activity->event] ?? ($activity->event ?: 'Action'),
+                'subject_type_label' => $this->subjectTypeLabel($activity->subject_type),
+                'subject_label' => $this->subjectLabel($activity),
+                'causer_name' => $this->causerName($activity->causer),
+                'created_at' => $activity->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+
+        return response()->json(['data' => $items]);
+    }
+
+    protected function subjectTypeLabel(?string $subjectType): string
+    {
+        if (! $subjectType) {
+            return 'Élément';
+        }
+
+        $baseName = class_basename($subjectType);
+
+        return self::SUBJECT_TYPE_LABELS[$baseName] ?? $baseName;
+    }
+
+    protected function subjectLabel(Activity $activity): string
+    {
+        $subject = $activity->subject;
+        $attributes = $subject instanceof Model
+            ? $subject->getAttributes()
+            : (array) ($activity->properties['old'] ?? $activity->properties['attributes'] ?? []);
+
+        $fullName = trim(($attributes['prenom'] ?? '').' '.($attributes['nom'] ?? ''));
+
+        $label = $attributes['nom_complet'] ?? $attributes['name'] ?? ($fullName !== '' ? $fullName : null)
+            ?? $attributes['libelle'] ?? $attributes['titre'] ?? $attributes['code'] ?? null;
+
+        if ($label) {
+            return (string) $label;
+        }
+
+        return $activity->subject_id ? '#'.$activity->subject_id : '—';
+    }
+
+    protected function causerName(?Model $causer): string
+    {
+        if (! $causer) {
+            return 'Système';
+        }
+
+        $fullName = trim(($causer->prenom ?? '').' '.($causer->nom ?? ''));
+
+        return $causer->name ?: ($fullName !== '' ? $fullName : ($causer->email ?? 'Utilisateur #'.$causer->getKey()));
     }
 
     public function show(string $id): JsonResponse
