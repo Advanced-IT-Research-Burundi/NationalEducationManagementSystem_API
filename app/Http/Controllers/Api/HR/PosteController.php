@@ -14,7 +14,7 @@ class PosteController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Poste::query()->with(['service:id,nom']);
+        $query = Poste::query()->with(['service:id,nom,departement_id']);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
@@ -23,6 +23,10 @@ class PosteController extends Controller
                     ->orWhere('nom', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->filled('departement_id')) {
+            $query->byDepartement($request->integer('departement_id'));
         }
 
         foreach (['service_id', 'statut', 'niveau_hierarchique'] as $field) {
@@ -62,7 +66,7 @@ class PosteController extends Controller
     public function update(Request $request, Poste $poste): JsonResponse
     {
         $data = $request->validate([
-            'code' => ['sometimes', 'required', 'string', 'max:50', 'unique:postes,code,' . $poste->id],
+            'code' => ['sometimes', 'required', 'string', 'max:50', 'unique:postes,code,'.$poste->id],
             'nom' => ['sometimes', 'required', 'string', 'max:255'],
             'service_id' => ['nullable', 'exists:services,id'],
             'description' => ['nullable', 'string'],
@@ -90,7 +94,7 @@ class PosteController extends Controller
 
     public function export(Request $request)
     {
-        $query = Poste::query()->with(['service:id,nom']);
+        $query = Poste::query()->with(['service:id,nom,departement_id']);
 
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
@@ -116,7 +120,7 @@ class PosteController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ]);
 
-        $import = new PostesImport();
+        $import = new PostesImport;
         Excel::import($import, $request->file('file'));
 
         return response()->json([

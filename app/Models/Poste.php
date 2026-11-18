@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,19 @@ class Poste extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Postes rattachés au département, directement ou via leur service.
+     */
+    public function scopeByDepartement(Builder $query, int $departementId): Builder
+    {
+        return $query->where(function (Builder $q) use ($departementId) {
+            $q->where('departement_id', $departementId)
+                ->orWhereHas('service', function (Builder $serviceQuery) use ($departementId) {
+                    $serviceQuery->where('departement_id', $departementId);
+                });
+        });
     }
 
     public function departement(): BelongsTo

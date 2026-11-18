@@ -5,24 +5,26 @@ namespace App\Http\Controllers\Api\HR;
 use App\Exports\RH\EmployesExport;
 use App\Http\Controllers\Controller;
 use App\Imports\RH\EmployesImport;
-use App\Models\Colline;
-use App\Models\Commune;
 use App\Models\Employe;
-use App\Models\Pays;
-use App\Models\Province;
-use App\Models\Zone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
 class EmployeController extends Controller
 {
+    /**
+     * Colonnes NOT NULL : une valeur null envoyée est ignorée au lieu d'écraser la donnée.
+     *
+     * @var list<string>
+     */
+    private const NON_NULLABLE_FIELDS = ['matricule', 'nom', 'prenom', 'temps_travail', 'statut', 'is_archived'];
+
     public function index(Request $request): JsonResponse
     {
         $query = Employe::query()->with([
@@ -122,7 +124,7 @@ class EmployeController extends Controller
         $employe->update(['is_archived' => true, 'statut' => Employe::STATUT_DEMISSIONNAIRE, 'updated_by' => Auth::id()]);
         $employe->delete();
 
-        return response()->json(['message' => 'Employé archivé avec succès']);
+        return response()->json(['message' => 'Employé supprimé avec succès']);
     }
 
     public function archive(Employe $employe): JsonResponse
@@ -155,7 +157,7 @@ class EmployeController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
         ]);
 
-        $import = new EmployesImport();
+        $import = new EmployesImport;
         Excel::import($import, $request->file('file'));
 
         return response()->json([
@@ -305,7 +307,11 @@ class EmployeController extends Controller
             $payload['photo_path'] = $this->storePhoto($request->file('photo_path'));
         }
 
-        return array_filter($payload, fn ($value) => ! is_null($value));
+        return array_filter(
+            $payload,
+            fn ($value, string $field) => ! is_null($value) || ! in_array($field, self::NON_NULLABLE_FIELDS, true),
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     protected function storePhoto(UploadedFile $file): string
@@ -315,16 +321,16 @@ class EmployeController extends Controller
         $disk->makeDirectory($directory);
 
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
-        $filename = Str::uuid()->toString() . '.' . $extension;
+        $filename = Str::uuid()->toString().'.'.$extension;
 
         return $disk->putFileAs($directory, $file, $filename);
     }
 
     protected function generateMatricule(string $nom, string $prenom): string
     {
-        $base = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $nom . $prenom), 0, 6));
+        $base = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $nom.$prenom), 0, 6));
         $suffix = str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
 
-        return 'EMP-' . $base . '-' . $suffix;
+        return 'EMP-'.$base.'-'.$suffix;
     }
 }
