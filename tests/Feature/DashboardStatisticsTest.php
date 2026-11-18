@@ -1,7 +1,12 @@
 <?php
 
 use App\Models\AnneeScolaire;
+use App\Models\Classe;
 use App\Models\Commune;
+use App\Models\Eleve;
+use App\Models\Evaluation;
+use App\Models\Matiere;
+use App\Models\Note;
 use App\Models\Pays;
 use App\Models\Province;
 use App\Models\Role;
@@ -153,6 +158,106 @@ it('computes evolution effectifs from the inscriptions table', function () {
     $anneeEntry = collect($evolution)->firstWhere('annee_id', $annee->id);
     expect($anneeEntry)->not->toBeNull();
     expect($anneeEntry['total_eleves'])->toBe(1);
+});
+
+// ─── Performance computed from class evaluation notes ───────────────────────
+
+it('computes success rates per niveau and averages per matiere from class notes', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    $geo = createGeoHierarchy();
+    $school = createSchool($geo);
+    $annee = AnneeScolaire::factory()->active()->create();
+
+    $niveauCp = DB::table('niveaux_scolaires')->insertGetId([
+        'code' => 'CP1', 'nom' => 'CP1', 'ordre' => 1, 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    $niveauCe = DB::table('niveaux_scolaires')->insertGetId([
+        'code' => 'CE1', 'nom' => 'CE1', 'ordre' => 2, 'created_at' => now(), 'updated_at' => now(),
+    ]);
+
+    $makeClasse = fn (int $niveauId, string $code) => Classe::withoutGlobalScopes()->create([
+        'nom' => $code,
+        'code' => $code,
+        'niveau_id' => $niveauId,
+        'school_id' => $school->id,
+        'annee_scolaire_id' => $annee->id,
+        'statut' => 'ACTIVE',
+    ]);
+    $classeCp = $makeClasse($niveauCp, 'CL_CP1');
+    $classeCe = $makeClasse($niveauCe, 'CL_CE1');
+
+    $maths = Matiere::create(['nom' => 'Mathématiques', 'code' => 'MATH_DSH', 'niveau_id' => $niveauCp, 'actif' => true]);
+
+    $makeEleve = fn (string $nom) => Eleve::withoutGlobalScopes()->create([
+        'nom' => $nom,
+        'prenom' => 'Eleve',
+        'sexe' => 'M',
+        'date_naissance' => '2015-01-01',
+        'lieu_naissance' => 'Bujumbura',
+        'school_id' => $school->id,
+    ]);
+
+    $makeEvaluation = fn (Classe $classe, int $max, ?int $anneeId = null) => Evaluation::withoutGlobalScopes()->create([
+        'classe_id' => $classe->id,
+        'cours_id' => $maths->id,
+        'annee_scolaire_id' => $anneeId ?? $annee->id,
+        'trimestre' => '1er Trimestre',
+        'type_evaluation' => 'TJ',
+        'date_passation' => now(),
+        'note_maximale' => $max,
+    ]);
+
+    $evalCp = $makeEvaluation($classeCp, 20);
+    $evalCe = $makeEvaluation($classeCe, 10);
+
+    Note::create(['evaluation_id' => $evalCp->id, 'eleve_id' => $makeEleve('Reussi')->id, 'note' => 15]);
+    Note::create(['evaluation_id' => $evalCp->id, 'eleve_id' => $makeEleve('Echoue')->id, 'note' => 6]);
+    Note::create(['evaluation_id' => $evalCe->id, 'eleve_id' => $makeEleve('Juste')->id, 'note' => 5]);
+
+    $otherAnnee = AnneeScolaire::factory()->create();
+    $oldEval = $makeEvaluation($classeCp, 20, $otherAnnee->id);
+    Note::create(['evaluation_id' => $oldEval->id, 'eleve_id' => $makeEleve('Ancien')->id, 'note' => 0]);
+
+    $superAdmin = User::query()->where('is_super_admin', true)->firstOrFail();
+
+    $response = $this
+        ->actingAs($superAdmin, 'sanctum')
+        ->getJson('/api/statistics/dashboard/national?annee_scolaire_id='.$annee->id);
+
+    $response->assertSuccessful();
+
+    $performance = $response->json('data.performance');
+
+    expect($performance['total_candidats'])->toBe(3)
+        ->and($performance['candidats_reussis'])->toBe(2)
+        ->and((float) $performance['taux_reussite'])->toBe(66.7)
+        ->and($performance['taux_reussite_par_niveau'])->toHaveCount(2)
+        ->and($performance['taux_reussite_par_niveau'][0]['niveau'])->toBe('CP1')
+        ->and((float) $performance['taux_reussite_par_niveau'][0]['taux'])->toBe(50.0)
+        ->and($performance['taux_reussite_par_niveau'][1]['niveau'])->toBe('CE1')
+        ->and((float) $performance['taux_reussite_par_niveau'][1]['taux'])->toBe(100.0)
+        ->and($performance['moyenne_par_matiere'][0]['matiere'])->toBe('Mathématiques')
+        ->and($performance['moyenne_par_matiere'][0]['total_candidats'])->toBe(3);
+});
+
+it('returns empty performance data when no notes exist', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    createSchool(createGeoHierarchy());
+    AnneeScolaire::factory()->active()->create();
+
+    $superAdmin = User::query()->where('is_super_admin', true)->firstOrFail();
+
+    $response = $this
+        ->actingAs($superAdmin, 'sanctum')
+        ->getJson('/api/statistics/dashboard/national');
+
+    $response->assertSuccessful();
+
+    expect($response->json('data.performance.taux_reussite'))->toBeNull()
+        ->and($response->json('data.performance.taux_reussite_par_niveau'))->toBe([])
+        ->and($response->json('data.performance.moyenne_par_matiere'))->toBe([]);
 });
 
 // ─── Role-based scoping ─────────────────────────────────────────────────────

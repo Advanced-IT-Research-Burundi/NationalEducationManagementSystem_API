@@ -4,14 +4,15 @@ namespace App\Services;
 
 use App\Models\AnneeScolaire;
 use App\Models\Batiment;
+use App\Models\Classe;
 use App\Models\Eleve;
 use App\Models\Enseignant;
-use App\Models\Classe;
 use App\Models\Financement;
 use App\Models\InscriptionEleve;
 use App\Models\Province;
 use App\Models\Salle;
 use App\Models\School;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -19,9 +20,9 @@ use Illuminate\Support\Facades\Schema;
 class StatisticsService
 {
     /**
-     * Cache TTL in seconds (30 minutes)
+     * Cache TTL in seconds (1 minute)
      */
-    const CACHE_TTL = 1800;
+    const CACHE_TTL = 60;
 
     /**
      * Check if the filters array contains any geographic constraint.
@@ -352,17 +353,8 @@ class StatisticsService
     public function getPerformanceStats(array $filters = []): array
     {
         return Cache::remember($this->cacheKey('performance', $filters), self::CACHE_TTL, function () use ($filters) {
-            if (! Schema::hasTable('resultats')) {
-                return [
-                    'taux_reussite' => null,
-                    'moyenne_generale' => null,
-                    'total_candidats' => 0,
-                    'candidats_reussis' => 0,
-                    'note_max' => null,
-                    'note_min' => null,
-                    'moyenne_par_matiere' => [],
-                    'taux_reussite_par_niveau' => [],
-                ];
+            if (! Schema::hasTable('resultats') || ! DB::table('resultats')->exists()) {
+                return $this->getPerformanceStatsFromNotes($filters);
             }
 
             // Overall success rate (average note >= 50/100 or 10/20 depending on scale)
@@ -493,6 +485,111 @@ class StatisticsService
                 'taux_reussite_par_niveau' => $tauxReussiteParNiveau,
             ];
         });
+    }
+
+    /**
+     * Base query on class evaluation notes (notes + evaluations + classes),
+     * scoped by school year and geographic filters.
+     */
+    protected function classNotesQuery(array $filters): Builder
+    {
+        $query = DB::table('notes')
+            ->join('evaluations', 'notes.evaluation_id', '=', 'evaluations.id')
+            ->join('classes', 'evaluations.classe_id', '=', 'classes.id')
+            ->whereNull('evaluations.deleted_at')
+            ->whereNull('classes.deleted_at')
+            ->whereNotNull('notes.note')
+            ->where('evaluations.note_maximale', '>', 0);
+
+        if (! empty($filters['annee_scolaire_id'])) {
+            $query->where('evaluations.annee_scolaire_id', $filters['annee_scolaire_id']);
+        }
+
+        if ($this->hasGeoFilters($filters)) {
+            $query->join('schools', 'classes.school_id', '=', 'schools.id');
+            $this->applyGeoFilters($query, $filters, 'schools');
+        }
+
+        return $query;
+    }
+
+    /**
+     * Performance statistics computed from class evaluation notes.
+     * A student passes when the sum of their notes is at least 50% of the sum of the maximum notes.
+     *
+     * @return array{taux_reussite: ?float, moyenne_generale: ?float, total_candidats: int, candidats_reussis: int, note_max: ?float, note_min: ?float, moyenne_par_matiere: array<int, array{matiere: string, moyenne: float, total_candidats: int}>, taux_reussite_par_niveau: array<int, array{niveau: string, ordre: int, taux: float, total_candidats: int, candidats_reussis: int}>}
+     */
+    protected function getPerformanceStatsFromNotes(array $filters): array
+    {
+        $percentExpression = 'SUM(notes.note) / SUM(evaluations.note_maximale) * 100';
+
+        $globalStats = $this->classNotesQuery($filters)
+            ->selectRaw('COUNT(*) as total_notes')
+            ->selectRaw("{$percentExpression} as moyenne_generale")
+            ->selectRaw('MAX(notes.note / evaluations.note_maximale * 100) as note_max')
+            ->selectRaw('MIN(notes.note / evaluations.note_maximale * 100) as note_min')
+            ->first();
+
+        $hasNotes = ($globalStats->total_notes ?? 0) > 0;
+
+        $studentAverages = $this->classNotesQuery($filters)
+            ->select('notes.eleve_id')
+            ->selectRaw("{$percentExpression} as moyenne")
+            ->groupBy('notes.eleve_id')
+            ->get();
+
+        $totalStudents = $studentAverages->count();
+        $passedStudents = $studentAverages->filter(fn ($row) => (float) $row->moyenne >= 50)->count();
+
+        $moyenneParMatiere = $this->classNotesQuery($filters)
+            ->join('matieres', 'evaluations.cours_id', '=', 'matieres.id')
+            ->select('matieres.nom as matiere')
+            ->selectRaw("{$percentExpression} as moyenne")
+            ->selectRaw('COUNT(DISTINCT notes.eleve_id) as total_candidats')
+            ->groupBy('matieres.nom')
+            ->orderByDesc('moyenne')
+            ->get()
+            ->map(fn ($row) => [
+                'matiere' => $row->matiere,
+                'moyenne' => round((float) $row->moyenne, 1),
+                'total_candidats' => (int) $row->total_candidats,
+            ])
+            ->values()
+            ->toArray();
+
+        $tauxReussiteParNiveau = $this->classNotesQuery($filters)
+            ->join('niveaux_scolaires', 'classes.niveau_id', '=', 'niveaux_scolaires.id')
+            ->select('niveaux_scolaires.nom as niveau', 'niveaux_scolaires.ordre', 'notes.eleve_id')
+            ->selectRaw("{$percentExpression} as moyenne")
+            ->groupBy('niveaux_scolaires.nom', 'niveaux_scolaires.ordre', 'notes.eleve_id')
+            ->get()
+            ->groupBy('niveau')
+            ->map(function ($group, $niveau) {
+                $total = $group->count();
+                $reussis = $group->filter(fn ($row) => (float) $row->moyenne >= 50)->count();
+
+                return [
+                    'niveau' => $niveau,
+                    'ordre' => (int) ($group->first()->ordre ?? 0),
+                    'taux' => $total > 0 ? round(($reussis / $total) * 100, 1) : 0,
+                    'total_candidats' => $total,
+                    'candidats_reussis' => $reussis,
+                ];
+            })
+            ->sortBy('ordre')
+            ->values()
+            ->toArray();
+
+        return [
+            'taux_reussite' => $totalStudents > 0 ? round(($passedStudents / $totalStudents) * 100, 1) : null,
+            'moyenne_generale' => $hasNotes ? round((float) $globalStats->moyenne_generale, 1) : null,
+            'total_candidats' => $totalStudents,
+            'candidats_reussis' => $passedStudents,
+            'note_max' => $hasNotes ? round((float) $globalStats->note_max, 1) : null,
+            'note_min' => $hasNotes ? round((float) $globalStats->note_min, 1) : null,
+            'moyenne_par_matiere' => $moyenneParMatiere,
+            'taux_reussite_par_niveau' => $tauxReussiteParNiveau,
+        ];
     }
 
     /**
