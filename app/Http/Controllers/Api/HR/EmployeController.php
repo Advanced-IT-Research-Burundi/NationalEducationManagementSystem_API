@@ -270,7 +270,7 @@ class EmployeController extends Controller
             'zone_id' => ['nullable', 'exists:zones,id'],
             'colline_id' => ['nullable', 'exists:collines,id'],
             'matricule' => [
-                $employe ? 'sometimes' : 'nullable',
+                'nullable',
                 'string',
                 'max:50',
                 Rule::unique('employes', 'matricule')->ignore($employe?->id),

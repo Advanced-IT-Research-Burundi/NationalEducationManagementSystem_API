@@ -3,11 +3,13 @@
 namespace App\Providers;
 
 use App\Models\AnneeScolaire;
+use App\Models\Enseignant;
 use App\Models\Note;
 use App\Models\NoteConduite;
 use App\Models\User;
 use App\Observers\AnneeScolaireObserver;
 use App\Observers\BulletinCacheObserver;
+use App\Observers\EmployeSyncObserver;
 use App\Observers\NoteCacheObserver;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\ScrambleServiceProvider;
@@ -36,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
         AnneeScolaire::observe(AnneeScolaireObserver::class);
         NoteConduite::observe(BulletinCacheObserver::class);
         Note::observe(NoteCacheObserver::class);
+        User::observe(EmployeSyncObserver::class);
+        Enseignant::observe(EmployeSyncObserver::class);
 
         Gate::before(function (User $user) {
             if ($user->isSuperAdmin()) {
