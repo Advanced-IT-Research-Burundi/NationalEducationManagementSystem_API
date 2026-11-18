@@ -3,7 +3,9 @@
 use App\Models\Employe;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -78,4 +80,28 @@ it('deletes an employe and removes it from the list', function () {
     $this->getJson('/api/hr/employes')
         ->assertSuccessful()
         ->assertJsonMissing(['id' => $this->employe->id, 'matricule' => 'EMP-TEST-0001']);
+});
+
+it('stores an uploaded photo and exposes its url', function () {
+    Storage::fake('public');
+
+    $this->post("/api/hr/employes/{$this->employe->id}", [
+        '_method' => 'PUT',
+        'nom' => 'Bizimana',
+        'prenom' => 'Alice',
+        'photo_path' => UploadedFile::fake()->image('alice.png'),
+    ], ['Accept' => 'application/json'])->assertSuccessful();
+
+    $employe = $this->employe->fresh();
+
+    Storage::disk('public')->assertExists($employe->photo_path);
+    expect($employe->photo_path)->toStartWith('hr/employees/photos/')
+        ->and($employe->photo_url)->toEndWith('/storage/'.$employe->photo_path);
+});
+
+it('returns no photo url when the photo file is missing', function () {
+    Storage::fake('public');
+    $this->employe->update(['photo_path' => 'hr/employees/photos/absente.png']);
+
+    expect($this->employe->fresh()->photo_url)->toBeNull();
 });

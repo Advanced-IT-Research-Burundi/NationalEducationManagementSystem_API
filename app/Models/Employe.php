@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -15,9 +16,13 @@ class Employe extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     public const STATUT_ACTIF = 'ACTIF';
+
     public const STATUT_SUSPENDU = 'SUSPENDU';
+
     public const STATUT_CONGE = 'CONGE';
+
     public const STATUT_DEMISSIONNAIRE = 'DEMISSIONNAIRE';
+
     public const STATUT_RETRAITE = 'RETRAITE';
 
     protected $fillable = [
@@ -75,7 +80,7 @@ class Employe extends Model
 
     public function getNomCompletAttribute(): string
     {
-        return trim(($this->nom ?? '') . ' ' . ($this->prenom ?? ''));
+        return trim(($this->nom ?? '').' '.($this->prenom ?? ''));
     }
 
     public function getPhotoUrlAttribute(): ?string
@@ -92,7 +97,13 @@ class Employe extends Model
             return $this->photo_path;
         }
 
-        return asset('storage/' . ltrim($this->photo_path, '/'));
+        $relativePath = ltrim($this->photo_path, '/');
+
+        if (! Storage::disk('public')->exists($relativePath)) {
+            return null;
+        }
+
+        return asset('storage/'.$relativePath);
     }
 
     public function getActivitylogOptions(): LogOptions
