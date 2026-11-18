@@ -5,23 +5,23 @@ namespace App\Http\Controllers\Api\Cours;
 use App\Http\Controllers\Controller;
 use App\Models\AnneeScolaire;
 use App\Models\Note;
+use App\Models\Role;
 use App\Services\AcademicYearService;
 use App\Services\CurrentAcademicContextService;
-use App\Models\Role;
 use App\Traits\ResolvesAnneeScolaire;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
-use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class NoteController extends Controller
 {
-    use \App\Traits\ResolvesAnneeScolaire;
+    use ResolvesAnneeScolaire;
 
     public function __construct(
         private readonly CurrentAcademicContextService $academicContextService
     ) {}
+
     use ResolvesAnneeScolaire;
 
     /**
@@ -107,13 +107,11 @@ class NoteController extends Controller
             });
         }
 
-        // Filter by section (through evaluation.cours)
+        // Filter by section (through evaluation.classe)
         if ($request->filled('section_id')) {
-            if (Schema::hasColumn('matieres', 'section_id')) {
-                $query->whereHas('evaluation.cours', function ($q) use ($request) {
-                    $q->where('section_id', $request->integer('section_id'));
-                });
-            }
+            $query->whereHas('evaluation.classe', function ($q) use ($request) {
+                $q->bySection($request->integer('section_id'));
+            });
         }
 
         // Filter by eleve

@@ -71,6 +71,11 @@ class Classe extends Model
         return $query->where('school_id', $schoolId);
     }
 
+    public function scopeBySection($query, int $sectionId)
+    {
+        return $query->where('section_id', $sectionId);
+    }
+
     public function scopeByNiveau($query, int $niveauId)
     {
         return $query->where('niveau_id', $niveauId);
